@@ -1,0 +1,328 @@
+/** `gen uc|er|job <m>.<agg> <name>` — пара контракт ↔ реализация (naming.md §3). */
+import { join } from 'node:path';
+import type { GenArgs } from '../cli';
+import { sortImports } from '../import-order';
+import { kindNames, toCamel, toPascal, toUpperSnake } from '../naming';
+import type { GenPlan, PlannedFile } from '../plan';
+
+type OpKind = 'uc' | 'er' | 'job';
+
+/** Маркер списка в паспорте и карте модуля. */
+const LIST: Record<OpKind, string> = {
+  uc: 'useCases',
+  er: 'reactions',
+  job: 'jobs',
+};
+
+interface Ctx {
+  m: string;
+  a: string;
+  name: string;
+  kind: OpKind;
+  /** `StreamDeps` */
+  deps: string;
+  /** `Student` */
+  agg: string;
+  className: string;
+  defName: string;
+  /** `complete-student.uc` — без `.ts` */
+  base: string;
+  /** Спецификатор импорта домена из каталога реализации */
+  domain: string;
+}
+
+function contract(c: Ctx): string {
+  const A = c.agg;
+  const camel = toCamel(c.name);
+  switch (c.kind) {
+    case 'uc':
+      return `import { allowAll, defineUseCase } from 'dmg-core';
+import * as v from 'valibot';
+import { ${A}ArDef } from '../${c.a}.ar';
+import { ${A}Events } from '../${c.a}.events';
+
+export const ${c.defName} = defineUseCase({
+  name: '${camel}',
+  label: 'TODO: название операции',
+  description: 'TODO: что делает операция',
+  type: 'command',
+  aggregate: ${A}ArDef,
+  callers: ['user'],
+  policy: allowAll,
+  input: v.object({}),
+  output: v.object({}),
+  errors: [],
+  emits: [${A}Events.created],
+});
+`;
+    case 'er':
+      return `import { defineEventReaction } from 'dmg-core';
+import { ${A}ArDef } from '../${c.a}.ar';
+import { ${A}Events } from '../${c.a}.events';
+
+export const ${c.defName} = defineEventReaction({
+  name: '${camel}',
+  label: 'TODO: название реакции',
+  description: 'TODO: на что и как реагирует',
+  on: [${A}Events.created],
+  touches: [${A}ArDef],
+  emits: [],
+});
+`;
+    case 'job':
+      return `import { defineJob } from 'dmg-core';
+import { ${A}ArDef } from '../${c.a}.ar';
+
+export const ${toUpperSnake(c.name)}_HOUR = 3;
+
+export const ${c.defName} = defineJob({
+  name: '${camel}',
+  label: 'TODO: название задания',
+  description: 'TODO: что делает задание',
+  schedule: { kind: 'dailyAt', hour: ${toUpperSnake(c.name)}_HOUR, minute: 0 },
+  scans: [${A}ArDef],
+  emits: [],
+});
+`;
+  }
+}
+
+function contractTest(c: Ctx): string {
+  return `import { describe, expect, it } from 'bun:test';
+import { normalize } from 'dmg-core/graph';
+import { ${c.defName} } from './${c.base}';
+
+describe('${c.defName}', () => {
+  it('нормализуется', () => {
+    expect(normalize(${c.defName})).toMatchObject({
+      name: '${toCamel(c.name)}',
+    });
+  });
+});
+`;
+}
+
+/**
+ * Импорт Def операции и типа паспорта модуля (его передаёт `ModuleFromDef`,
+ * база берёт из него `ref`, D-43): имена по алфавиту, длинная строка — в
+ * столбик, как у biome.
+ */
+function domainImport(c: Ctx): string {
+  const moduleDef = `${toPascal(c.m)}ModuleDef`;
+  const names = [c.defName, moduleDef]
+    .sort()
+    .map((n) => (n === moduleDef ? `type ${n}` : n));
+  const from = `'${c.domain}'`;
+  const line = `import { ${names.join(', ')} } from ${from};`;
+  return line.length <= 80
+    ? line
+    : `import {\n${names.map((n) => `  ${n},`).join('\n')}\n} from ${from};`;
+}
+
+function implementation(c: Ctx): string {
+  const imports = domainImport(c);
+  const moduleDef = `${toPascal(c.m)}ModuleDef`;
+  const deps = `import type { ${c.deps} } from '../../${c.m}.module';`;
+  const block = (...lines: string[]) =>
+    sortImports([imports, "import { ok } from 'dmg-core';", ...lines, deps]);
+  switch (c.kind) {
+    case 'uc':
+      return `${block("import { UseCaseFromDef } from 'dmg-core/app';")}
+
+export class ${c.className} extends UseCaseFromDef<
+  typeof ${c.defName},
+  ${c.deps},
+  undefined
+> {
+  constructor(deps: ${c.deps}, module: typeof ${moduleDef}) {
+    super(${c.defName}, deps, module);
+  }
+
+  protected async load() {
+    return ok(undefined);
+  }
+
+  protected async execute() {
+    // TODO: операция домена и uow.register
+    return ok({});
+  }
+}
+`;
+    case 'er':
+      return `${block("import { ReactionFromDef } from 'dmg-core/app';")}
+
+export class ${c.className} extends ReactionFromDef<
+  typeof ${c.defName},
+  ${c.deps}
+> {
+  constructor(deps: ${c.deps}, module: typeof ${moduleDef}) {
+    super(${c.defName}, deps, module);
+  }
+
+  protected async react() {
+    // TODO: операция домена и uow.register
+    return ok();
+  }
+}
+`;
+    case 'job':
+      return `${block(
+        "import { JobFromDef, type JobReport, type JobRun } from 'dmg-core/app';",
+      )}
+
+export class ${c.className} extends JobFromDef<
+  typeof ${c.defName},
+  ${c.deps}
+> {
+  constructor(deps: ${c.deps}, module: typeof ${moduleDef}) {
+    super(${c.defName}, deps, module);
+  }
+
+  protected async run(job: JobRun): Promise<JobReport> {
+    // TODO: загрузить записи и пройти их через job.forEach
+    return job.forEach([], async () => ok());
+  }
+}
+`;
+  }
+}
+
+function implementationTest(c: Ctx): string {
+  const moduleDef = `${toPascal(c.m)}ModuleDef`;
+  const block = (test: string, ...lines: string[]) =>
+    sortImports([
+      `import { ${test} } from 'bun:test';`,
+      `import { ${moduleDef} } from '${c.domain}';`,
+      ...lines,
+      `import type { ${c.deps} } from '../../${c.m}.module';`,
+      `import { ${c.className} } from './${c.base}';`,
+    ]);
+  const deps = `    const { app } = testAppContext();
+    // TODO: подставьте репозитории и фасады, которые нужны операции
+    const deps = { app, facades: new ModuleFacades() } as ${c.deps};`;
+  switch (c.kind) {
+    case 'uc':
+      return `${block(
+        'describe, it',
+        "import { UserCaller } from 'dmg-core';",
+        "import { ModuleFacades, Trace } from 'dmg-core/app';",
+        "import { expectOk, testAppContext } from 'dmg-core/testing';",
+      )}
+
+describe('${c.className}', () => {
+  it('успешный вызов пользователем', async () => {
+${deps}
+    const uc = new ${c.className}(deps, ${moduleDef});
+    const res = await uc.handle(
+      {},
+      new UserCaller({ uuid: crypto.randomUUID() }),
+      Trace.fromRequest({ requestId: 'r-1' }),
+    );
+    expectOk(res);
+  });
+});
+`;
+    case 'er':
+      return `${block(
+        'describe, expect, it',
+        "import { ModuleFacades } from 'dmg-core/app';",
+        "import { testAppContext } from 'dmg-core/testing';",
+      )}
+
+describe('${c.className}', () => {
+  it('привязана к своему Def', () => {
+${deps}
+    const er = new ${c.className}(deps, ${moduleDef});
+    expect(er.def.name).toBe('${toCamel(c.name)}');
+  });
+});
+`;
+    case 'job':
+      return `${block(
+        'describe, expect, it',
+        "import { ModuleFacades, Trace } from 'dmg-core/app';",
+        "import { expectOk, testAppContext } from 'dmg-core/testing';",
+      )}
+
+describe('${c.className}', () => {
+  it('пустой прогон', async () => {
+${deps}
+    const job = new ${c.className}(deps, ${moduleDef});
+    const res = expectOk(await job.handle(Trace.forJob(job.def)));
+    expect(res).toEqual({ processed: 0, failed: 0 });
+  });
+});
+`;
+  }
+}
+
+export function planOperation(args: GenArgs): GenPlan {
+  const kind = args.kind as OpKind;
+  const { module: m, aggregate: a = '', name = '' } = args;
+  const names = kindNames(kind, name);
+  const domainDir = args.layout.domainDir(m);
+  const appDir = args.layout.appDir(m);
+  const c: Ctx = {
+    m,
+    a,
+    name,
+    kind,
+    deps: `${toPascal(m)}Deps`,
+    agg: toPascal(a),
+    className: names.className,
+    defName: names.defName,
+    base: names.fileName.replace(/\.ts$/, ''),
+    domain: args.layout.domainImport(m, join(appDir, a, kind)),
+  };
+
+  const rel = join(a, kind, names.fileName);
+  const relBase = `./${a}/${kind}/${c.base}`;
+  const domainModule = join(domainDir, `${m}.module.ts`);
+  const appModule = join(appDir, `${m}.module.ts`);
+  const list = LIST[kind];
+
+  const file = (
+    root: string,
+    ext: '' | '.test',
+    content: string,
+  ): PlannedFile => ({
+    path: join(root, ext === '' ? rel : rel.replace(/\.ts$/, '.test.ts')),
+    content,
+  });
+
+  return {
+    files: [
+      file(domainDir, '', contract(c)),
+      file(domainDir, '.test', contractTest(c)),
+      file(appDir, '', implementation(c)),
+      file(appDir, '.test', implementationTest(c)),
+    ],
+    edits: [
+      {
+        path: domainModule,
+        marker: '// gen:defs:imports',
+        line: `import { ${c.defName} } from '${relBase}';`,
+      },
+      {
+        path: domainModule,
+        marker: `// gen:defs:${list}`,
+        line: `    ${c.defName},`,
+      },
+      {
+        path: join(domainDir, 'index.ts'),
+        marker: '// gen:exports',
+        line: `export { ${c.defName} } from '${relBase}';`,
+      },
+      {
+        path: appModule,
+        marker: '// gen:defs:imports',
+        line: `import { ${c.className} } from '${relBase}';`,
+      },
+      {
+        path: appModule,
+        marker: `// gen:defs:${list}`,
+        line: `    ${toCamel(name)}: ${c.className},`,
+      },
+    ],
+  };
+}
