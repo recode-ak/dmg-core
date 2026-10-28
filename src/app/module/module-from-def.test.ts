@@ -2,14 +2,26 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import type { Command } from '#core/domain/contracts/command';
 import { JobDef } from '#core/domain/contracts/job-def';
 import { ModuleDef } from '#core/domain/contracts/module-def';
-import { SystemCaller, UserCaller } from '#core/kernel/caller/caller';
-import { ok } from '#core/kernel/result/result';
+import type {
+  OutputOf,
+  UseCaseErrorOf,
+} from '#core/domain/contracts/use-case-def';
+import {
+  type Caller,
+  DelegateCaller,
+  GuestCaller,
+  SystemCaller,
+  UserCaller,
+} from '#core/kernel/caller/caller';
+import { CoreErrors } from '#core/kernel/errors/core-errors';
+import { ok, type Result } from '#core/kernel/result/result';
 import { Trace } from '#core/kernel/trace/trace';
-import { testAppContext } from '#core/testing/app-context';
+import { TEST_NOW, testAppContext } from '#core/testing/app-context';
 import {
   ArchiveDoneTasksJobDef,
   CompleteTaskUcDef,
   CreateTaskUcDef,
+  ListTasksUcDef,
   ReleaseRemovedUserTasksErDef,
   TaskErrors,
 } from '#core/testing/example/todo/index';
@@ -21,6 +33,10 @@ import type { ModuleDeps } from '../context';
 import { ModuleFacades } from '../facade/module-facades';
 import { JobFromDef, type JobRun } from '../job/job-from-def';
 import { ReactionFromDef } from '../reaction/reaction-from-def';
+import {
+  DEFAULT_REPLAY_TTL_MS,
+  type ReplayStore,
+} from '../replay/replay-store';
 import { UseCaseFromDef } from '../use-case/use-case-from-def';
 import {
   type AnyModuleFromDef,
@@ -285,4 +301,248 @@ describe('ModuleMap — полнота проверяется компилято
     };
     expect(poor).toBeDefined();
   });
+});
+
+describe('ModuleFromDef.dispatch — отсев повторов command UC (D-56)', () => {
+  const ReplayModuleDef = ModuleDef.define({
+    name: 'replayed',
+    label: 'Повторы',
+    description: 'Модуль для проверки отсева повторов по requestId.',
+    dependsOn: [],
+    aggregates: [],
+    useCases: [CreateTaskUcDef, ListTasksUcDef],
+    reactions: [],
+    jobs: [],
+  });
+
+  type CreateResult = Result<
+    OutputOf<typeof CreateTaskUcDef>,
+    UseCaseErrorOf<typeof CreateTaskUcDef>
+  >;
+  type ReplayDeps = ModuleDeps & {
+    /** Сколько раз исполнялся каждый UC — UC не исполнен, если счёт тот же. */
+    readonly runs: { createTask: number; listTasks: number };
+    /** Ответ createTask; тест подменяет его (Err, исключение, ожидание). */
+    createTask: () => Promise<CreateResult>;
+  };
+
+  /** Счётчик вместо UC: проверяется исполнение, а не логика UC. */
+  class CountingCreateTask {
+    readonly def = CreateTaskUcDef;
+    constructor(private readonly deps: ReplayDeps) {}
+    readonly handle = async (): Promise<CreateResult> => {
+      this.deps.runs.createTask += 1;
+      return this.deps.createTask();
+    };
+  }
+
+  class CountingListTasks {
+    readonly def = ListTasksUcDef;
+    constructor(private readonly deps: ReplayDeps) {}
+    readonly handle = async () => {
+      this.deps.runs.listTasks += 1;
+      return ok([]);
+    };
+  }
+
+  const replayMap = {
+    useCases: { createTask: CountingCreateTask, listTasks: CountingListTasks },
+    reactions: {},
+    jobs: {},
+  } satisfies ModuleMap<typeof ReplayModuleDef, ReplayDeps, User>;
+
+  let ctx: ReturnType<typeof testAppContext>;
+  let rdeps: ReplayDeps;
+  let replayed: ModuleFromDef<typeof ReplayModuleDef, ReplayDeps, User>;
+
+  beforeEach(() => {
+    ctx = testAppContext();
+    rdeps = {
+      app: ctx.app,
+      facades,
+      runs: { createTask: 0, listTasks: 0 },
+      createTask: async () => ok({ taskId: TASK }),
+    };
+    replayed = new ModuleFromDef<typeof ReplayModuleDef, ReplayDeps, User>(
+      ReplayModuleDef,
+      replayMap,
+      rdeps,
+    );
+  });
+
+  const owner = new UserCaller(user);
+  const create = (title = 'Купить хлеб') => CreateTaskUcDef.command({ title });
+  const send = (caller: Caller<User> = owner, trace: Trace = REQ) =>
+    replayed.dispatch(create(), caller, trace);
+
+  test('повтор того же входа — сохранённый ответ, UC не исполнен', async () => {
+    const first = await send();
+    const again = await send();
+    expect(expectOk(again)).toEqual({ taskId: TASK });
+    expect(again).toEqual(first);
+    expect(rdeps.runs.createTask).toBe(1);
+  });
+
+  test('тот же вход с другим порядком ключей — тот же вход', async () => {
+    const any: AnyModuleFromDef<User> = replayed;
+    await any.dispatch(
+      { uc: 'createTask', input: { title: 'x', note: 'y' } },
+      owner,
+      REQ,
+    );
+    const again = await any.dispatch(
+      { uc: 'createTask', input: { note: 'y', title: 'x' } },
+      owner,
+      REQ,
+    );
+    expectOk(again);
+    expect(rdeps.runs.createTask).toBe(1);
+  });
+
+  test('другой вход с тем же requestId — REQUEST_CONFLICT input', async () => {
+    await send();
+    const res = await replayed.dispatch(create('Другое'), owner, REQ);
+    expect(expectErr(res, 'REQUEST_CONFLICT').payload).toEqual({
+      requestId: 'r-1',
+      reason: 'input',
+    });
+    expect(rdeps.runs.createTask).toBe(1);
+  });
+
+  test('параллельный повтор — REQUEST_CONFLICT in_progress', async () => {
+    let finish: (res: CreateResult) => void = () => {};
+    rdeps.createTask = () =>
+      new Promise<CreateResult>((resolve) => {
+        finish = resolve;
+      });
+    const first = send();
+    const again = await send();
+    expect(expectErr(again, 'REQUEST_CONFLICT').payload).toEqual({
+      requestId: 'r-1',
+      reason: 'in_progress',
+    });
+    finish(ok({ taskId: TASK }));
+    expectOk(await first);
+    expect(rdeps.runs.createTask).toBe(1);
+  });
+
+  test('Err — запись снята, повтор исполняется', async () => {
+    rdeps.createTask = async () =>
+      CoreErrors.VERSION_CONFLICT.err({ aggregate: 'task', uuid: TASK });
+    expectErr(await send(), 'VERSION_CONFLICT');
+    rdeps.createTask = async () => ok({ taskId: TASK });
+    expectOk(await send());
+    expect(rdeps.runs.createTask).toBe(2);
+  });
+
+  test('исключение UC — запись снята, исключение наружу, повтор исполняется', async () => {
+    rdeps.createTask = async () => {
+      throw new Error('сбой');
+    };
+    await expect(send()).rejects.toThrow('сбой');
+    rdeps.createTask = async () => ok({ taskId: TASK });
+    expectOk(await send());
+    expect(rdeps.runs.createTask).toBe(2);
+  });
+
+  test('другой вызывающий с тем же requestId — отдельный ключ', async () => {
+    await send();
+    await send(new UserCaller({ ...user, uuid: 'u-2' }));
+    await send(new DelegateCaller(user, { ...user, uuid: 'u-2' }, 'd-1'));
+    await send(new DelegateCaller(user, { ...user, uuid: 'u-3' }, 'd-2'));
+    expect(rdeps.runs.createTask).toBe(4);
+  });
+
+  test('гость с visitorId — отсев по посетителю', async () => {
+    const guest = new GuestCaller<User>();
+    const trace = (visitorId: string) =>
+      Trace.fromRequest({
+        requestId: 'r-1',
+        channel: { name: 'telegram', visitorId },
+      });
+    await send(guest, trace('42'));
+    await send(guest, trace('42'));
+    await send(guest, trace('43'));
+    expect(rdeps.runs.createTask).toBe(2);
+  });
+
+  test('без отсева: query, серверный requestId, system, гость без visitorId', async () => {
+    const list = () =>
+      replayed.dispatch(ListTasksUcDef.command({}), owner, REQ);
+    await list();
+    await list();
+    expect(rdeps.runs.listTasks).toBe(2);
+
+    const generated = Trace.fromRequest({}, () => {});
+    await send(owner, generated);
+    await send(owner, generated);
+
+    const system = new SystemCaller<User>(
+      { kind: 'useCase', module: 'other', name: 'notify' },
+      owner,
+    );
+    await send(system);
+    await send(system);
+
+    const guest = new GuestCaller<User>();
+    const web = Trace.fromRequest({
+      requestId: 'r-2',
+      channel: { name: 'web' },
+    });
+    await send(guest, web);
+    await send(guest, web);
+
+    const event = Trace.fromEvent({ eventId: 'e-1', correlationId: 'c-1' });
+    await send(owner, event);
+    await send(owner, event);
+    expect(rdeps.runs.createTask).toBe(8);
+  });
+
+  test('истёк TTL — команда исполняется снова', async () => {
+    await send();
+    ctx.setNow(TEST_NOW + DEFAULT_REPLAY_TTL_MS);
+    expectOk(await send());
+    expect(rdeps.runs.createTask).toBe(2);
+  });
+
+  test('сбой claim — SERVER_INTERNAL и error в логгер, UC не исполнен', async () => {
+    rdeps = { ...rdeps, app: { ...ctx.app, replay: failingReplay('claim') } };
+    replayed = new ModuleFromDef<typeof ReplayModuleDef, ReplayDeps, User>(
+      ReplayModuleDef,
+      replayMap,
+      rdeps,
+    );
+    expectErr(await send(), 'SERVER_INTERNAL');
+    expect(rdeps.runs.createTask).toBe(0);
+    expect(ctx.logs.map((r) => r.level)).toEqual(['error']);
+  });
+
+  test('сбой complete — Ok как есть и error в логгер', async () => {
+    rdeps = {
+      ...rdeps,
+      app: { ...ctx.app, replay: failingReplay('complete') },
+    };
+    replayed = new ModuleFromDef<typeof ReplayModuleDef, ReplayDeps, User>(
+      ReplayModuleDef,
+      replayMap,
+      rdeps,
+    );
+    expectOk(await send());
+    expect(ctx.logs.map((r) => r.level)).toEqual(['error']);
+  });
+
+  /** Хранилище, у которого сбоит один метод; остальные — как у пустого. */
+  function failingReplay(method: keyof ReplayStore): ReplayStore {
+    const store: ReplayStore = {
+      claim: async () => ({ kind: 'claimed' }),
+      complete: async () => {},
+      release: async () => {},
+    };
+    return {
+      ...store,
+      [method]: async () => {
+        throw new Error('хранилище недоступно');
+      },
+    };
+  }
 });

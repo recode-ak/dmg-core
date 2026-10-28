@@ -31,7 +31,8 @@ import { createTodoModule } from './todo.module';
 
 const OWNER = '5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6';
 const ASSIGNEE = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
-const REQ = Trace.fromRequest({ requestId: 'r-1' });
+/** След нового запроса: каждая команда — своё намерение клиента (D-49, D-56). */
+const req = (): Trace => Trace.fromRequest({ requestId: crypto.randomUUID() });
 const owner = new UserCaller<ExampleUser>({
   uuid: OWNER,
   hasRole: () => false,
@@ -94,7 +95,7 @@ const create = async (module: ReturnType<typeof createTodoModule>) =>
     await module.dispatch(
       CreateTaskUcDef.command({ title: 'Хлеб' }),
       owner,
-      REQ,
+      req(),
     ),
   ).taskId;
 
@@ -111,14 +112,18 @@ describe('createTodoModule', () => {
       await module.dispatch(
         AssignTaskUcDef.command({ taskId, assigneeId: ASSIGNEE }),
         owner,
-        REQ,
+        req(),
       ),
     );
     expectOk(
-      await module.dispatch(CompleteTaskUcDef.command({ taskId }), owner, REQ),
+      await module.dispatch(
+        CompleteTaskUcDef.command({ taskId }),
+        owner,
+        req(),
+      ),
     );
     const list = expectOk(
-      await module.dispatch(ListTasksUcDef.command({}), owner, REQ),
+      await module.dispatch(ListTasksUcDef.command({}), owner, req()),
     );
 
     expect(list).toEqual([{ uuid: taskId, title: 'Хлеб', status: 'done' }]);
@@ -130,7 +135,11 @@ describe('createTodoModule', () => {
     const { module, tasks } = makeModule();
     const taskId = await create(module);
     expectOk(
-      await module.dispatch(CompleteTaskUcDef.command({ taskId }), owner, REQ),
+      await module.dispatch(
+        CompleteTaskUcDef.command({ taskId }),
+        owner,
+        req(),
+      ),
     );
 
     const report = await module.runJob(

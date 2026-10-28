@@ -16,6 +16,7 @@ import type { ModuleDeps } from '../context';
 import type { EventBus } from '../events/event-bus';
 import type { JobFromDef, JobReport } from '../job/job-from-def';
 import type { ReactionFromDef } from '../reaction/reaction-from-def';
+import { CommandReplay } from '../replay/command-replay';
 import type { UseCaseHandler } from '../use-case/use-case-from-def';
 
 /**
@@ -118,6 +119,7 @@ export class ModuleFromDef<
     JobFromDef<AnyJobDef, ModuleDeps>
   >();
   private readonly bus: EventBus;
+  private readonly replay: CommandReplay;
 
   /**
    * `map` типизирован дважды: `ModuleMap` проверяет полноту по Def,
@@ -141,16 +143,17 @@ export class ModuleFromDef<
       this.jobs.set(job.def, job);
     }
     this.bus = deps.app.bus;
+    this.replay = new CommandReplay(def.name, deps.app);
   }
 
   /**
    * Исполнение команды (D-49): UC — по имени из команды, дальше обычный
    * конвейер UC. Команда UC другого модуля — ошибка компиляции; при стёртом
    * типе (команда из транспорта) — `OPERATION_NOT_FOUND`: это ответ клиенту
-   * другой версии, а не ошибка сборки.
+   * другой версии, а не ошибка сборки. Повтор command UC с `requestId`
+   * клиента отсеивает `CommandReplay` (D-56): сохранённый `Ok` или
+   * `REQUEST_CONFLICT`.
    */
-  // DEBT-1: `meta` не исполняется — повтор command UC с тем же `requestId`
-  // не отсеивается.
   dispatch<D extends M['useCases'][number]>(
     command: Command<D>,
     caller: Caller<U>,
@@ -165,7 +168,9 @@ export class ModuleFromDef<
         }),
       );
     }
-    return uc.handle(command.input, caller, trace);
+    return this.replay.run(uc.def, command, caller, trace, () =>
+      uc.handle(command.input, caller, trace),
+    );
   }
 
   /**

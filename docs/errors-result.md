@@ -31,7 +31,7 @@
 - Коды — UPPER_SNAKE с префиксом сущности, **уникальны в приложении** (контрактный тест).
 - Агрегат объявляет ошибки группой `ErrorDef.define`; UC и фасад **ссылаются** на них, результат Ar возвращается как есть.
 - Ошибки зависимостей — по ссылке через контракт фасада; перевод — только при смене смысла (см. [domain-modeling.md](./domain-modeling.md) §4).
-- Базовые (`UNAUTHORIZED`, `INPUT_VALIDATION`, `ACCESS_DENIED`, `OUTPUT_VALIDATION`, `VERSION_CONFLICT`, `OPERATION_NOT_FOUND`, `SERVER_INTERNAL`) подмешивает ядро. `OPERATION_NOT_FOUND` (`{ module, uc }`) — по адресу транспорта нет модуля или в модуле нет UC с именем из команды (D-49).
+- Базовые (`UNAUTHORIZED`, `INPUT_VALIDATION`, `ACCESS_DENIED`, `OUTPUT_VALIDATION`, `VERSION_CONFLICT`, `OPERATION_NOT_FOUND`, `REQUEST_CONFLICT`, `SERVER_INTERNAL`) подмешивает ядро. `OPERATION_NOT_FOUND` (`{ module, uc }`) — по адресу транспорта нет модуля или в модуле нет UC с именем из команды (D-49). `REQUEST_CONFLICT` (`{ requestId, reason: 'input' | 'in_progress' }`) — повтор command UC с тем же `requestId` клиента: другой вход или первый запрос ещё исполняется ([transport.md](./transport.md) §2, D-56).
 - **Сериализация** (D-49, [transport.md](./transport.md) §1): в ответе транспорта только `code`, `kind`, `payload` (`ErrorDef.serialize`); тексты клиент восстанавливает по Def (`ErrorDef.restore`, `UseCaseDef.restoreResult`). Код или payload вне контракта UC (другая версия сервиса) восстанавливаются как `SERVER_INTERNAL`, о расхождении сообщает клиент транспорта (`moduleApi`).
 
 ## 3. Исполнение UC (`handle`)

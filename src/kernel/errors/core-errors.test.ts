@@ -11,6 +11,7 @@ describe('CoreErrors', () => {
       ['OUTPUT_VALIDATION', 'internal'],
       ['VERSION_CONFLICT', 'conflict'],
       ['OPERATION_NOT_FOUND', 'not_found'],
+      ['REQUEST_CONFLICT', 'conflict'],
       ['SERVER_INTERNAL', 'internal'],
     ]);
   });
@@ -42,6 +43,16 @@ describe('CoreErrors', () => {
       uc: 'archiveTask',
     });
     expect(error.payload).toEqual({ module: 'todo', uc: 'archiveTask' });
+  });
+
+  it('REQUEST_CONFLICT несёт requestId и причину (D-56)', () => {
+    const error = CoreErrors.REQUEST_CONFLICT.make({
+      requestId: 'r-1',
+      reason: 'in_progress',
+    });
+    expect(error.payload).toEqual({ requestId: 'r-1', reason: 'in_progress' });
+    // @ts-expect-error причина — только input или in_progress
+    CoreErrors.REQUEST_CONFLICT.make({ requestId: 'r-1', reason: 'other' });
   });
 
   it('INPUT_VALIDATION несёт список проблем', () => {

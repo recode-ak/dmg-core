@@ -47,7 +47,8 @@ import type { ModuleFactory } from './api-app.types';
 const OWNER = '5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6';
 const OTHER = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
 const T0 = Date.UTC(2026, 9, 1);
-const REQ = Trace.fromRequest({ requestId: 'r-1' });
+/** След нового запроса: каждая команда — своё намерение клиента (D-49, D-56). */
+const req = (): Trace => Trace.fromRequest({ requestId: crypto.randomUUID() });
 
 const owner = new UserCaller<ExampleUser>({
   uuid: OWNER,
@@ -130,7 +131,7 @@ async function createTask(api: ApiApp<ExampleUser>, caller = owner) {
       TodoModuleDef,
       CreateTaskUcDef.command({ title: 'Хлеб' }),
       caller,
-      REQ,
+      req(),
     ),
   ).taskId;
 }
@@ -146,7 +147,7 @@ describe('ApiApp: сборка', () => {
         TodoModuleDef,
         AssignTaskUcDef.command({ taskId, assigneeId: OTHER }),
         owner,
-        REQ,
+        req(),
       ),
     );
 
@@ -167,11 +168,16 @@ describe('ApiApp: сборка', () => {
         GetUserUcDef,
         { userId: OWNER },
         adminPurge,
-        REQ,
+        req(),
       ),
     );
     await expect(
-      facadesOf('users').call(GetUserUcDef, { userId: OWNER }, adminPurge, REQ),
+      facadesOf('users').call(
+        GetUserUcDef,
+        { userId: OWNER },
+        adminPurge,
+        req(),
+      ),
     ).rejects.toThrow('Нет фасада модуля для UC getUser');
   });
 
@@ -247,7 +253,7 @@ describe('ApiApp.dispatch', () => {
       TodoModuleDef,
       CreateTaskUcDef.command({ title: 'Хлеб' }),
       owner,
-      REQ,
+      req(),
     );
 
     expect(expectErr(res, 'OPERATION_NOT_FOUND').payload).toEqual({
@@ -265,7 +271,7 @@ describe('ApiApp.dispatch', () => {
       // @ts-expect-error createTask не из модуля users
       CreateTaskUcDef.command({ title: 'Хлеб' }),
       owner,
-      REQ,
+      req(),
     );
 
     expectErr(res, 'OPERATION_NOT_FOUND');
@@ -281,7 +287,7 @@ describe('ApiApp.dispatchByName', () => {
       'todo',
       { uc: 'createTask', input: { title: 'Хлеб' } },
       owner,
-      REQ,
+      req(),
     );
 
     const { taskId } = expectOk(res) as { taskId: string };
@@ -296,7 +302,7 @@ describe('ApiApp.dispatchByName', () => {
       'todo',
       { uc: 'createTask', input: { title: 42 } },
       owner,
-      REQ,
+      req(),
     );
 
     expectErr(res, 'INPUT_VALIDATION');
@@ -310,7 +316,7 @@ describe('ApiApp.dispatchByName', () => {
       'todo',
       { uc: 'createTask', input: { title: 'Хлеб' } },
       new GuestCaller(),
-      REQ,
+      req(),
     );
 
     expect(res).toMatchObject({ ok: false, error: { code: 'UNAUTHORIZED' } });
@@ -325,7 +331,7 @@ describe('ApiApp.dispatchByName', () => {
       'todo',
       { uc: 'completeTask', input: { taskId } },
       other,
-      REQ,
+      req(),
     );
 
     expect(res).toMatchObject({ ok: false, error: { code: 'ACCESS_DENIED' } });
@@ -335,7 +341,7 @@ describe('ApiApp.dispatchByName', () => {
     const { app, usersModule, todoModule } = makeApp();
     const api = new ApiApp(app, [usersModule, todoModule]);
     const call = (module: string, uc: string) =>
-      api.dispatchByName(module, { uc, input: {} }, owner, REQ);
+      api.dispatchByName(module, { uc, input: {} }, owner, req());
 
     const notFound = (module: string, uc: string) => ({
       ok: false,
@@ -358,7 +364,7 @@ describe('ApiApp.runJob', () => {
         TodoModuleDef,
         CompleteTaskUcDef.command({ taskId }),
         owner,
-        REQ,
+        req(),
       ),
     );
 
@@ -392,7 +398,7 @@ describe('ApiApp.subscribe', () => {
       UsersModuleDef,
       RemoveUserUcDef.command({ userId }),
       adminPurge,
-      REQ,
+      req(),
     );
 
   it('событие users доходит до реакции todo; отписка снимает все', async () => {

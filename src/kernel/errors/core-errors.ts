@@ -65,6 +65,19 @@ export const CoreErrors = ErrorDef.define('', {
       uc: v.pipe(v.string(), v.description('Имя UC из команды')),
     }),
   },
+  REQUEST_CONFLICT: {
+    kind: 'conflict',
+    label: 'Запрос уже принят',
+    description:
+      'Команда с этим `requestId` от того же вызывающего уже есть (D-56): `input` — с другим входом (нужен новый `requestId`), `in_progress` — первый запрос ещё исполняется (повторите позже).',
+    payload: v.object({
+      requestId: v.pipe(v.string(), v.description('Id запроса клиента')),
+      reason: v.pipe(
+        v.picklist(['input', 'in_progress']),
+        v.description('Другой вход или первый запрос ещё исполняется'),
+      ),
+    }),
+  },
   SERVER_INTERNAL: {
     kind: 'internal',
     label: 'Внутренняя ошибка',

@@ -39,7 +39,8 @@ const OWNER = '5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6';
 const OTHER = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
 const STRANGER = '1f2e3d4c-5b6a-4978-8a1b-2c3d4e5f6a7b';
 const T0 = Date.UTC(2026, 9, 1);
-const REQ = Trace.fromRequest({ requestId: 'r-1' });
+/** След нового запроса: каждая команда — своё намерение клиента (D-49, D-56). */
+const req = (): Trace => Trace.fromRequest({ requestId: crypto.randomUUID() });
 const admin: OperationRef = { kind: 'useCase', module: 'admin', name: 'purge' };
 
 let dir: string;
@@ -58,7 +59,7 @@ function makeApp() {
 }
 
 async function userCaller(example: ExampleApp, uuid: string) {
-  const caller = await example.callers.resolve(uuid, REQ);
+  const caller = await example.callers.resolve(uuid, req());
   if (!(caller instanceof UserCaller)) {
     throw new Error(`Пользователь ${uuid} не распознан`);
   }
@@ -73,7 +74,7 @@ async function assignedTask(example: ExampleApp) {
       TodoModuleDef,
       CreateTaskUcDef.command({ title: 'Хлеб' }),
       owner,
-      REQ,
+      req(),
     ),
   );
   expectOk(
@@ -81,7 +82,7 @@ async function assignedTask(example: ExampleApp) {
       TodoModuleDef,
       AssignTaskUcDef.command({ taskId, assigneeId: OTHER }),
       owner,
-      REQ,
+      req(),
     ),
   );
   return { owner, taskId };
@@ -93,7 +94,7 @@ async function removeOther(example: ExampleApp) {
       UsersModuleDef,
       RemoveUserUcDef.command({ userId: OTHER }),
       new SystemCaller<ExampleUser>(admin),
-      REQ,
+      req(),
     ),
   );
 }
@@ -108,7 +109,7 @@ async function assigneeOf(
       TodoModuleDef,
       GetTaskUcDef.command({ taskId }),
       new SystemCaller(admin, owner),
-      REQ,
+      req(),
     ),
   );
   return task.assignment?.assigneeId;
@@ -130,7 +131,7 @@ describe('ExampleApp: сборка', () => {
         TodoModuleDef,
         CreateTaskUcDef.command({ title: 'Хлеб' }),
         owner,
-        REQ,
+        req(),
       ),
     );
 
@@ -138,7 +139,7 @@ describe('ExampleApp: сборка', () => {
       TodoModuleDef,
       AssignTaskUcDef.command({ taskId, assigneeId: STRANGER }),
       owner,
-      REQ,
+      req(),
     );
 
     expectErr(res, 'USER_NOT_FOUND');
@@ -152,7 +153,7 @@ describe('ExampleApp: сборка', () => {
         TodoModuleDef,
         CreateTaskUcDef.command({ title: 'Хлеб' }),
         owner,
-        REQ,
+        req(),
       ),
     );
 
@@ -187,7 +188,7 @@ describe('ExampleApp.callers', () => {
   it('неизвестный uuid — GuestCaller', async () => {
     const { example } = makeApp();
 
-    expect(await example.callers.resolve(STRANGER, REQ)).toBeInstanceOf(
+    expect(await example.callers.resolve(STRANGER, req())).toBeInstanceOf(
       GuestCaller,
     );
   });
@@ -195,7 +196,7 @@ describe('ExampleApp.callers', () => {
   it('нет идентичности — GuestCaller', async () => {
     const { example } = makeApp();
 
-    expect(await example.callers.resolve(undefined, REQ)).toBeInstanceOf(
+    expect(await example.callers.resolve(undefined, req())).toBeInstanceOf(
       GuestCaller,
     );
   });
@@ -204,14 +205,14 @@ describe('ExampleApp.callers', () => {
     const { example } = makeApp();
     await removeOther(example);
 
-    expect(await example.callers.resolve(OTHER, REQ)).toBeInstanceOf(
+    expect(await example.callers.resolve(OTHER, req())).toBeInstanceOf(
       GuestCaller,
     );
   });
 
   it('резолвер вызывает users от приложения — в oplog from.kind: app (D-51)', async () => {
     const { example } = makeApp();
-    await example.callers.resolve(OWNER, REQ);
+    await example.callers.resolve(OWNER, req());
 
     const records = readFileSync(join(dir, 'oplog', '2026-10-01.jsonl'), 'utf8')
       .trim()
@@ -236,7 +237,7 @@ describe('ExampleApp.callers', () => {
       new ApiApp<ExampleUser>(testAppContext().app, []),
     );
 
-    await expect(callers.resolve(OWNER, REQ)).rejects.toThrow(
+    await expect(callers.resolve(OWNER, req())).rejects.toThrow(
       'Резолвер Caller: users.getUser вернул OPERATION_NOT_FOUND',
     );
   });
