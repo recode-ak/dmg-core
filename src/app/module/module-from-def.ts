@@ -149,7 +149,7 @@ export class ModuleFromDef<
    * типе (команда из транспорта) — `OPERATION_NOT_FOUND`: это ответ клиенту
    * другой версии, а не ошибка сборки.
    */
-  // DEBT-36: `meta` не исполняется — повтор command UC с тем же `requestId`
+  // DEBT-1: `meta` не исполняется — повтор command UC с тем же `requestId`
   // не отсеивается.
   dispatch<D extends M['useCases'][number]>(
     command: Command<D>,
