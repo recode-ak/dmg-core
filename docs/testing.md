@@ -32,8 +32,8 @@ expect(res.ok ? undefined : res.error.code).toBe('TASK_ALREADY_DONE');
 | **Ar** | каждая ветка `Ok`/`Err` мутирующих методов, переходы статусов, события; подключение схемы — 1–2 теста | максимальный |
 | **Policy** | каждое правило: allowed и denied, роли, свой/чужой, контекст | все правила |
 | **DCS / DQS** | сценарии координации и вычисления на готовых агрегатах | все методы |
-| **Репозиторий** | контракт: restore/snapshot, поиск, `undefined` при отсутствии | контракт |
-| **UC / ER / Job** | цепочки: нет актора → `UNAUTHORIZED`, нет сущности → `*_NOT_FOUND`, политика → `ACCESS_DENIED`, успех → регистрация в UoW и события; каждая собственная ошибка | по ошибкам |
+| **Репозиторий** | контракт: restore/snapshot, поиск, `undefined` при отсутствии; временный каталог | контракт |
+| **UC / ER / Job** | цепочки: нет актора → `UNAUTHORIZED`, нет сущности → `*_NOT_FOUND`, политика → `ACCESS_DENIED`, успех → регистрация в UoW и события; каждая собственная ошибка. Порты — фейки (`MemoryRepo`, `StubFacade`) | по ошибкам |
 | **Модуль** | smoke: один успешный вызов каждого UC на реальных репозиториях (временный каталог) | по UC |
 | **Контрактные** | граф и правила MAN/ARC/ERR (`ArchChecker` из `dmg-core/arch`) | автоматически |
 
@@ -42,7 +42,9 @@ expect(res.ok ? undefined : res.error.code).toBe('TASK_ALREADY_DONE');
 - Домен не мокается: он чистый, тесты работают с настоящими агрегатами.
 - В прикладном слое мокаются порты (репозитории, фасады) — типизированно, без `any`.
 - Время (D-34): домен получает момент аргументом операции (`task.complete(at)`) — в тесте Ar это просто константа. Прикладной слой берёт его из часов приложения (`this.now()` в UC/ER/Job); в тесте — `testAppContext({ at })` и `ctx.setNow(ts)` (`dmg-core/testing`). Глобальных часов нет, `Date` напрямую не читается.
-- Готовые `testAppContext` (шина — `RecordingBus`, логгер — `MemoryLogger`), `MemoryBus` (доставляет события подписчикам), `StubFacade`, `expectIdempotentReaction` — для UC/ER без реального приложения ([testing/index.ts](../src/testing/index.ts)); учебный модуль — [src/testing/example](../src/testing/example/example.arch.ts).
+- Пирамида хранилища: UC/ER/Job — фейк порта; репозиторий (контракт, каждая выборка) и smoke модуля — настоящий репозиторий во временном каталоге; e2e UI — настоящие репозитории.
+- Фейк порта — `<A>RepoFake` в `<a>/<a>.repo.fake.ts` рядом с портом (создаёт `gen aggregate`): наследник `MemoryRepo` из `dmg-core/testing`. `save` сверяет версию, как настоящий репозиторий (`VersionConflict`); начальные записи — `seed(...)`; записанное — `saved` («ничего не записано» — `saved` пуст); чтение — `restored(uuid)`; сбой записи — `failOn(uuid)`. Тип снапшота — `StateOf<typeof <A>ArDef>` (DOM-01). Выборку `find*` фейк не реализует: метод порта объявлен `this.unanswered(...)`, ответ тест задаёт присваиванием (`tasks.findDone = async () => [...]`); корректность выборки — контрактный тест репозитория. Образец — [task.repo.fake.ts](../src/testing/example/app/todo/task/task.repo.fake.ts).
+- Готовые `testAppContext` (шина — `RecordingBus`, логгер — `MemoryLogger`), `MemoryBus` (доставляет события подписчикам), `MemoryRepo`, `StubFacade`, `expectIdempotentReaction` — для UC/ER без реального приложения ([testing/index.ts](../src/testing/index.ts)); учебный модуль — [src/testing/example](../src/testing/example/example.arch.ts).
 
 ## 5. Защита от регресса и чистота правок
 

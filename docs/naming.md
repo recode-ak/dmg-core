@@ -16,6 +16,7 @@
 | Dqs | DomainQueryService | `TaskProgressDqs` | `.dqs.ts` |
 | Def | манифест (экземпляр Def-класса, `XxxDef.define`) | `CompleteTaskUcDef` | — |
 | Repo | Repository | `TaskRepo`, `TaskJsonRepo` | `.repo.ts` |
+| RepoFake | фейк порта для тестов UC/ER/Job (`MemoryRepo`) | `TaskRepoFake` | `.repo.fake.ts` |
 | Uow | Unit of Work | `Uow` | — |
 | Vo | Value Object | `TaskAssignmentVo` | — |
 | Fqn | полное имя (`todo.task.completed`) | — | — |
@@ -55,6 +56,7 @@ index.ts                   вход пакета для корня сборки:
 <m>.module.ts              реализация модуля: карта Def → класс, резолвер
 <aggregate>/
   <aggregate>.repo.ts      порт репозитория
+  <aggregate>.repo.fake.ts фейк порта для тестов UC/ER/Job
   uc/<name>.uc.ts          реализация UC  (пара к <domain>/<m>/…/uc/<name>.uc.ts)
   er/<name>.er.ts
   job/<name>.job.ts
@@ -91,11 +93,11 @@ infra/<aggregate>.json-repo.ts
 | Команда | Что создаёт |
 |---|---|
 | `gen module <m>` | домен: `<m>.module.ts`, `contract.ts` (только паспорт: остальное в контракт добавляет автор, D-45), `index.ts`, тест; прикладной слой: `<m>.module.ts` (карта Def → класс, `Deps`, фабрика), вход `index.ts` для корня сборки и тест; с `gen.package` — пакет модуля (`package.json`, `tsconfig.json`). Подключает модуль к приложению: фабрика в корне сборки, `<M>ModuleDef` в `scripts/arch-check.ts`, с `gen.package` — зависимость в `package.json` пакета корня сборки ([project.md](./guides/project.md) §4). Фасада нет: он пишется руками по потребителю (D-42) |
-| `gen aggregate <m>.<a>` | домен: state, events, errors, Ar, Policy и тесты; прикладной слой: `<a>.repo.ts`, `infra/<a>.json-repo.ts` и тест; в корне сборки — `<a>Repo: new <A>JsonRepo(join(env.dataDir, '<m>.<a>.json'))` в фабрике модуля |
+| `gen aggregate <m>.<a>` | домен: state, events, errors, Ar, Policy и тесты; прикладной слой: `<a>.repo.ts`, фейк `<a>.repo.fake.ts`, `infra/<a>.json-repo.ts` и тест; в корне сборки — `<a>Repo: new <A>JsonRepo(join(env.dataDir, '<m>.<a>.json'))` в фабрике модуля |
 | `gen uc\|er\|job <m>.<a> <имя>` | пара: контракт в домене и реализация в прикладном слое по тому же относительному пути (`<a>/<вид>/`), плюс тесты. UC `create`/`create-*` — рабочий UC создания, прочие — загрузка агрегата по id ([use-case.md](./guides/use-case.md) §2) |
 | `gen dcs\|dqs <m> <имя>` | сервис в домене с тестом |
 
-Генератор правит существующие файлы только по маркерам: `// gen:exports` (`index.ts`), `// gen:defs:imports|aggregates|useCases|reactions|jobs` (паспорт и карта модуля), `// gen:deps` (`Deps` прикладного модуля); в корне сборки (`init` пишет их в каркас) — `// gen:imports` (конец блока импортов `app.ts` и `scripts/arch-check.ts`), `// gen:modules` (конец списка `modules` в них же), `// gen:repos:<m>` (внутри `create<M>Module({ ...deps, … })`); `dependencies` `package.json` пакета корня сборки правятся как JSON. Нет файла или маркера, конфликт имён импорта — команда печатает «Вставь вручную в <файл> перед <маркер>» с причиной и не падает. Повтор вставки не дублирует строку и импорт. Заготовки содержат `TODO` (названия, описания, схемы): их заполняет автор; тесты прикладного слоя берут настоящий JSON-репозиторий во временном каталоге. Импорты и переносы длинных строк — в форме biome: заготовки проходят `check` без правок. Подсказки печатаются после плана (например, MAN-06: «Событие created публикует UC создания»).
+Генератор правит существующие файлы только по маркерам: `// gen:exports` (`index.ts`), `// gen:defs:imports|aggregates|useCases|reactions|jobs` (паспорт и карта модуля), `// gen:deps` (`Deps` прикладного модуля); в корне сборки (`init` пишет их в каркас) — `// gen:imports` (конец блока импортов `app.ts` и `scripts/arch-check.ts`), `// gen:modules` (конец списка `modules` в них же), `// gen:repos:<m>` (внутри `create<M>Module({ ...deps, … })`); `dependencies` `package.json` пакета корня сборки правятся как JSON. Нет файла или маркера, конфликт имён импорта — команда печатает «Вставь вручную в <файл> перед <маркер>» с причиной и не падает. Повтор вставки не дублирует строку и импорт. Заготовки содержат `TODO` (названия, описания, схемы): их заполняет автор; тесты UC берут фейк порта `<a>.repo.fake.ts` (`gen uc` создаёт его, если агрегат сгенерирован без фейка), контрактный тест репозитория — настоящий JSON-репозиторий во временном каталоге. Импорты и переносы длинных строк — в форме biome: заготовки проходят `check` без правок. Подсказки печатаются после плана (например, MAN-06: «Событие created публикует UC создания»).
 
 `--adopt` — перевод существующего модуля на Def: `gen module` допускает каталог модуля без `<m>.module.ts`, `gen aggregate` — каталог агрегата без `<a>.state.ts`. Существующие `index.ts`, `contract.ts`, `package.json` и `tsconfig.json` не перезаписываются (печатается «Пропущен» с шаблоном, правки по маркерам идут в `index.ts`); пропуск — по имени файла. Остальные коллизии — ошибка.
 

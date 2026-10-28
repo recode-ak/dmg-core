@@ -54,4 +54,4 @@
 
 ## 7. Как тестировать
 
-Каждый случай реакции; повторное событие — ни записи, ни вызовов (`expectIdempotentReaction`); нет кандидатов — вызовов нет (`StubFacade.received`); отказ и исключение чужого UC — ошибка или `SERVER_INTERNAL`, ничего не записано, `logger.error` с именем ER, запись в `MemoryOperationLog`; доставка через `subscribe` на `MemoryBus`. Репозиторий — настоящий во временном каталоге; домен — unit-тесты DCS ([task-release.dcs.test.ts](../../src/testing/example/todo/task-release.dcs.test.ts)). Общее — [testing.md](../testing.md).
+Каждый случай реакции; повторное событие — ни записи, ни вызовов (`expectIdempotentReaction`); нет кандидатов — вызовов нет (`StubFacade.received`); отказ и исключение чужого UC — ошибка или `SERVER_INTERNAL`, ничего не записано, `logger.error` с именем ER, запись в `MemoryOperationLog`; доставка через `subscribe` на `MemoryBus`. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts)), ответ `find*` — присваиванием в тесте; домен — unit-тесты DCS ([task-release.dcs.test.ts](../../src/testing/example/todo/task-release.dcs.test.ts)). Общее — [testing.md](../testing.md).

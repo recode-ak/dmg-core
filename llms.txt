@@ -23,7 +23,7 @@
 
 - [Каталог правил](docs/rules.md): ID правил (ARC, DOM, MAN, ERR, API, CODE, TST), способ проверки, карта линтера «правило → каталоги слоёв»
 - [Решения](docs/decisions.md): реестр решений платформы D-NN
-- [Тестирование](docs/testing.md): принципы, пирамида, хелперы `dmg-core/testing`
+- [Тестирование](docs/testing.md): принципы, пирамида (UC/ER/Job — фейк порта `MemoryRepo`, репозиторий и smoke модуля — временный каталог), хелперы `dmg-core/testing`
 - [Стиль TypeScript](docs/typescript.md)
 
 ## Гайды по видам артефактов

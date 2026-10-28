@@ -14,12 +14,13 @@
 
 ## 2. Команда
 
-`dmg-core gen aggregate <m>.<a> --write` создаёт порт, `infra/<a>.json-repo.ts` и тест; в порт добавь `find*` под потребителей. `dmg-core gen dcs|dqs <m> <topic> --write` — заготовка сервиса с тестом.
+`dmg-core gen aggregate <m>.<a> --write` создаёт порт, фейк `<a>.repo.fake.ts`, `infra/<a>.json-repo.ts` и тест; в порт добавь `find*` под потребителей, в фейк — тот же метод через `this.unanswered(...)`. `dmg-core gen dcs|dqs <m> <topic> --write` — заготовка сервиса с тестом.
 
 ## 3. Образец
 
 - [task.repo.ts](../../src/testing/example/app/todo/task/task.repo.ts): `Repository<TaskAr>` и выборки `find*` — вход и выход `TaskAr`, `undefined` при отсутствии; `Result` в порте нет — `save` бросает `VersionConflict`, UoW превращает его в `VERSION_CONFLICT`.
 - [task.json-repo.ts](../../src/testing/example/app/todo/infra/task.json-repo.ts): наследник `VersionedRepository<TaskAr>` — `aggregate = TaskArDef`, `stored(uuid)` (запись файла по uuid) и `write(ar)` (запись `ar.snapshot()`); замок и сверку версии делает база; разбор через `TaskArDef.state`.
+- [task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts): `TaskRepoFake extends MemoryRepo` для тестов UC/ER/Job — `findById` через `restored`, прочие `find*` — `unanswered`, ответ задаёт тест ([testing.md](../testing.md) §4).
 - [task.json-repo.test.ts](../../src/testing/example/app/todo/infra/task.json-repo.test.ts): round trip, конфликт версии, параллельные записи, каждая выборка (`findActiveByParticipant` — без дублей).
 - [task-release.dcs.ts](../../src/testing/example/todo/task-release.dcs.ts), [task-release.types.ts](../../src/testing/example/todo/task-release.types.ts) и [тест](../../src/testing/example/todo/task-release.dcs.test.ts): DCS над несколькими задачами — свои в архив, назначенные возвращаются владельцам; решает каждый Ar, выборке вызывающего сервис не верит; повтор ничего не меняет.
 
@@ -45,4 +46,4 @@
 
 ## 6. Как тестировать
 
-Каждый `find*` — совпадение и отбор; `save` — round trip, устаревшая версия, новый агрегат при занятом uuid (файл не изменён), битая запись (исключение, файл не изменён). Временный каталог (`mkdtemp`), не рабочие данные. DCS — unit-тесты на готовых агрегатах: каждая ветка решения и повтор ([testing.md](../testing.md)).
+Каждый `find*` — совпадение и отбор; `save` — round trip, устаревшая версия, новый агрегат при занятом uuid (файл не изменён), битая запись (исключение, файл не изменён). Временный каталог (`mkdtemp`), не рабочие данные. Выборку проверяет только этот тест: в тестах UC/ER/Job порт — фейк. DCS — unit-тесты на готовых агрегатах: каждая ветка решения и повтор ([testing.md](../testing.md)).
