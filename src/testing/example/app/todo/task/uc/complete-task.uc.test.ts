@@ -1,7 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { beforeEach, describe, expect, it } from 'bun:test';
 import { ModuleFacades } from '#core/app/facade/module-facades';
 import {
   type Caller,
@@ -13,7 +10,7 @@ import type { ExampleUser } from '#core/testing/example/shared/app-user';
 import { TodoModuleDef } from '#core/testing/example/todo/index';
 import type { TaskState } from '#core/testing/example/todo/state';
 import { expectErr, expectOk, testAppContext } from '#core/testing/index';
-import { TaskJsonRepo } from '../../infra/task.json-repo';
+import { TaskRepoFake } from '../task.repo.fake';
 import { CompleteTaskUc } from './complete-task.uc';
 
 // Command над существующим агрегатом с Policy: каждый недопустимый статус —
@@ -29,54 +26,44 @@ const REQ = Trace.fromRequest({ requestId: 'r-1' });
 const as = (uuid: string, admin = false) =>
   new UserCaller<ExampleUser>({ uuid, hasRole: () => admin });
 
-let dir: string;
-let file: string;
-let tasks: TaskJsonRepo;
+let tasks: TaskRepoFake;
 let ctx: ReturnType<typeof testAppContext>;
 let uc: CompleteTaskUc;
 
 const seed = (status: TaskState['status'] = 'open') =>
-  Bun.write(
-    file,
-    JSON.stringify([
-      {
-        uuid: TASK,
-        ownerId: OWNER,
-        title: 'Купить хлеб',
-        status,
-        createdAt: T0,
-        updatedAt: T0,
-        version: 0,
-      } satisfies TaskState,
-    ]),
-  );
+  tasks.seed({
+    uuid: TASK,
+    ownerId: OWNER,
+    title: 'Купить хлеб',
+    status,
+    createdAt: T0,
+    updatedAt: T0,
+    version: 0,
+  });
 
-beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'complete-task-'));
-  file = join(dir, 'tasks.json');
-  tasks = new TaskJsonRepo(file);
+beforeEach(() => {
+  tasks = new TaskRepoFake();
   ctx = testAppContext({ at: T1 });
   uc = new CompleteTaskUc(
     { app: ctx.app, facades: new ModuleFacades(), tasks },
     TodoModuleDef,
   );
-  await seed();
+  seed();
 });
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 const complete = (caller: Caller<ExampleUser> = as(OWNER), taskId = TASK) =>
   uc.handle({ taskId }, caller, REQ);
 
-/** Отказ: файл задач не изменён, событий нет. */
-async function expectNothingWritten(before: string) {
-  expect(await Bun.file(file).text()).toBe(before);
+/** Отказ: задачи не записаны, событий нет. */
+function expectNothingWritten() {
+  expect(tasks.saved).toEqual([]);
   expect(ctx.published).toEqual([]);
 }
 
 describe('CompleteTaskUc', () => {
   it('владелец выполняет открытую задачу — done, событие completed', async () => {
     expect(expectOk(await complete())).toEqual({});
-    expect((await tasks.findById(TASK))?.snapshot()).toMatchObject({
+    expect(tasks.restored(TASK)?.snapshot()).toMatchObject({
       status: 'done',
       completedAt: T1,
       version: 1,
@@ -88,7 +75,7 @@ describe('CompleteTaskUc', () => {
 
   it('администратор выполняет чужую задачу', async () => {
     expectOk(await complete(as(STRANGER, true)));
-    expect((await tasks.findById(TASK))?.isDone()).toBe(true);
+    expect(tasks.restored(TASK)?.isDone()).toBe(true);
   });
 
   it('нет задачи — TASK_NOT_FOUND', async () => {
@@ -100,23 +87,20 @@ describe('CompleteTaskUc', () => {
   });
 
   it('не владелец — ACCESS_DENIED', async () => {
-    const before = await Bun.file(file).text();
     expectErr(await complete(as(STRANGER)), 'ACCESS_DENIED');
-    await expectNothingWritten(before);
+    expectNothingWritten();
   });
 
   it('уже выполнена — TASK_ALREADY_DONE', async () => {
-    await seed('done');
-    const before = await Bun.file(file).text();
+    seed('done');
     expectErr(await complete(), 'TASK_ALREADY_DONE');
-    await expectNothingWritten(before);
+    expectNothingWritten();
   });
 
   it('в архиве — TASK_ARCHIVED', async () => {
-    await seed('archived');
-    const before = await Bun.file(file).text();
+    seed('archived');
     expectErr(await complete(), 'TASK_ARCHIVED');
-    await expectNothingWritten(before);
+    expectNothingWritten();
   });
 
   it('системный вызов — UNAUTHORIZED: callers только user и delegate', async () => {

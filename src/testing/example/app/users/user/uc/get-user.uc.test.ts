@@ -9,8 +9,9 @@ import {
 import { Trace } from '#core/kernel/trace/trace';
 import type { ExampleUser } from '#core/testing/example/shared/app-user';
 import { UsersModuleDef } from '#core/testing/example/users/index';
+import type { UserState } from '#core/testing/example/users/user/user.state';
 import { expectErr, expectOk, testAppContext } from '#core/testing/index';
-import { UserMemoryRepo } from '../../infra/user.memory-repo';
+import { UserRepoFake } from '../user.repo.fake';
 import { GetUserUc } from './get-user.uc';
 
 // Query для других модулей: только `system`, ответ — «активна ли учётная
@@ -32,7 +33,7 @@ const person = new UserCaller<ExampleUser>({
 });
 const system = new SystemCaller(from, person);
 
-const row = (uuid: string, status: 'active' | 'removed') => ({
+const row = (uuid: string, status: 'active' | 'removed'): UserState => ({
   uuid,
   status,
   createdAt: T0,
@@ -40,12 +41,15 @@ const row = (uuid: string, status: 'active' | 'removed') => ({
   version: 0,
 });
 
-let users: UserMemoryRepo;
+let users: UserRepoFake;
 let ctx: ReturnType<typeof testAppContext>;
 let uc: GetUserUc;
 
 beforeEach(() => {
-  users = new UserMemoryRepo([row(ACTIVE, 'active'), row(REMOVED, 'removed')]);
+  users = new UserRepoFake().seed(
+    row(ACTIVE, 'active'),
+    row(REMOVED, 'removed'),
+  );
   ctx = testAppContext({ at: T0 });
   uc = new GetUserUc(
     { app: ctx.app, facades: new ModuleFacades(), users },
@@ -87,9 +91,10 @@ describe('GetUserUc', () => {
   });
 
   it('query ничего не пишет и не публикует', async () => {
-    const before = (await users.findById(ACTIVE))?.snapshot();
+    const before = users.restored(ACTIVE)?.snapshot();
     expectOk(await get(ACTIVE));
-    expect((await users.findById(ACTIVE))?.snapshot()).toEqual(before);
+    expect(users.restored(ACTIVE)?.snapshot()).toEqual(before);
+    expect(users.saved).toEqual([]);
     expect(ctx.published).toEqual([]);
   });
 });

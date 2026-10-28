@@ -1,7 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { beforeEach, describe, expect, it } from 'bun:test';
 import { ModuleFacades } from '#core/app/facade/module-facades';
 import {
   type OperationRef,
@@ -13,7 +10,7 @@ import type { ExampleUser } from '#core/testing/example/shared/app-user';
 import { TaskAr, TodoModuleDef } from '#core/testing/example/todo/index';
 import type { TaskState } from '#core/testing/example/todo/state';
 import { expectErr, expectOk, testAppContext } from '#core/testing/index';
-import { TaskJsonRepo } from '../../infra/task.json-repo';
+import { TaskRepoFake } from '../task.repo.fake';
 import { GetTaskUc } from './get-task.uc';
 
 // Query для других модулей (D-43): вызывается только системой, Policy —
@@ -40,26 +37,20 @@ const task: TaskState = {
   version: 0,
 };
 
-let dir: string;
-let file: string;
 let ctx: ReturnType<typeof testAppContext>;
 let uc: GetTaskUc;
 
-beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'get-task-'));
-  file = join(dir, 'tasks.json');
-  await Bun.write(file, JSON.stringify([task]));
+beforeEach(() => {
   ctx = testAppContext({ at: T0 });
   uc = new GetTaskUc(
     {
       app: ctx.app,
       facades: new ModuleFacades(),
-      tasks: new TaskJsonRepo(file),
+      tasks: new TaskRepoFake().seed(task),
     },
     TodoModuleDef,
   );
 });
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 describe('GetTaskUc', () => {
   it('по просьбе владельца — state задачи, из него собирается ReadonlyAr', async () => {

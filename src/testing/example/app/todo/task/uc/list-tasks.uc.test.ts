@@ -1,7 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { beforeEach, describe, expect, it } from 'bun:test';
 import { ModuleFacades } from '#core/app/facade/module-facades';
 import { SystemCaller, UserCaller } from '#core/kernel/caller/caller';
 import { Trace } from '#core/kernel/trace/trace';
@@ -9,7 +6,7 @@ import type { ExampleUser } from '#core/testing/example/shared/app-user';
 import { TodoModuleDef } from '#core/testing/example/todo/index';
 import type { TaskState } from '#core/testing/example/todo/state';
 import { expectErr, expectOk, testAppContext } from '#core/testing/index';
-import { TaskJsonRepo } from '../../infra/task.json-repo';
+import { TaskRepoFake } from '../task.repo.fake';
 import { ListTasksUc } from './list-tasks.uc';
 
 // Query субъекта: только свои данные (`userId` из вызывающего, не из
@@ -38,39 +35,39 @@ const row = (
   ...(status === 'done' && { completedAt: T0 }),
 });
 
-let dir: string;
-let file: string;
+let tasks: TaskRepoFake;
 let ctx: ReturnType<typeof testAppContext>;
 let uc: ListTasksUc;
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'list-tasks-'));
-  file = join(dir, 'tasks.json');
+  tasks = new TaskRepoFake();
   ctx = testAppContext({ at: T0 });
   uc = new ListTasksUc(
     {
       app: ctx.app,
       facades: new ModuleFacades(),
-      tasks: new TaskJsonRepo(file),
+      tasks,
     },
     TodoModuleDef,
   );
 });
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 describe('ListTasksUc', () => {
   it('неархивные задачи вызывающего — только uuid, title, status', async () => {
     const open = row(OWNER, 'Хлеб');
     const done = row(OWNER, 'Молоко', 'done');
-    await Bun.write(
-      file,
-      JSON.stringify([
-        open,
-        done,
-        row(OWNER, 'Старое', 'archived'),
-        row(OTHER, 'Чужое'),
-      ]),
+    tasks.seed(
+      open,
+      done,
+      row(OWNER, 'Старое', 'archived'),
+      row(OTHER, 'Чужое'),
     );
+    // Выборку неархивных задач владельца проверяет контрактный тест
+    // репозитория; здесь ответ порта — только для владельца из вызывающего.
+    tasks.findActiveByOwner = async (ownerId) =>
+      ownerId === OWNER
+        ? [tasks.restoredOrThrow(open.uuid), tasks.restoredOrThrow(done.uuid)]
+        : [];
 
     const res = await uc.handle({}, as(OWNER), REQ);
 
@@ -81,8 +78,9 @@ describe('ListTasksUc', () => {
   });
 
   it('задач нет — пустой список, ничего не записано', async () => {
+    tasks.findActiveByOwner = async () => [];
     expect(expectOk(await uc.handle({}, as(OWNER), REQ))).toEqual([]);
-    expect(await Bun.file(file).exists()).toBe(false);
+    expect(tasks.saved).toEqual([]);
     expect(ctx.published).toEqual([]);
   });
 
