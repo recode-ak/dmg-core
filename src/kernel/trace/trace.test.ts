@@ -46,6 +46,35 @@ describe('Trace.fromRequest', () => {
     Trace.fromRequest({ requestId: '' }, (m) => missing.push(m));
     expect(missing).toHaveLength(1);
   });
+
+  test('id клиента — без признака generated, clientRequestId — он (D-56)', () => {
+    const trace = Trace.fromRequest({ requestId: 'r-1' }, () => {});
+    expect(trace.cause).toStrictEqual({ kind: 'request', requestId: 'r-1' });
+    expect(trace.clientRequestId).toBe('r-1');
+  });
+
+  test('нет id — причина с generated: true, clientRequestId нет (D-56)', () => {
+    const trace = Trace.fromRequest({}, () => {});
+    const { cause } = trace;
+    if (cause.kind !== 'request') throw new Error('причина — не запрос');
+    expect(cause).toStrictEqual({
+      kind: 'request',
+      requestId: cause.requestId,
+      generated: true,
+    });
+    expect(trace.clientRequestId).toBeUndefined();
+  });
+});
+
+describe('Trace.clientRequestId', () => {
+  test('событие и прогон Job — нет id клиента', () => {
+    expect(
+      Trace.fromEvent({ eventId: 'e-1', correlationId: 'c-1' }).clientRequestId,
+    ).toBeUndefined();
+    expect(
+      Trace.forJob({ name: 'archiveDoneTasks' }).clientRequestId,
+    ).toBeUndefined();
+  });
 });
 
 describe('Trace.fromEvent', () => {
@@ -130,6 +159,10 @@ describe('Trace.toJSON / fromJSON — круг через JSON (D-46)', () => {
       trace: Trace.fromEvent({ eventId: 'e-1', correlationId: 'c-1' }),
     },
     { name: 'прогон Job', trace: Trace.forJob({ name: 'archiveDoneTasks' }) },
+    {
+      name: 'серверный requestId',
+      trace: Trace.fromRequest({ channel: { name: 'web' } }, () => {}),
+    },
   ];
 
   for (const { name, trace } of cases) {
@@ -159,6 +192,26 @@ describe('Trace.toJSON / fromJSON — круг через JSON (D-46)', () => {
     });
   });
 
+  test('серверный requestId — признак generated в JSON и обратно (D-56)', () => {
+    const trace = Trace.fromRequest({}, () => {});
+    const json = trace.toJSON();
+    expect(json.cause).toMatchObject({ kind: 'request', generated: true });
+    const restored = Trace.fromJSON(wire(json));
+    expect(restored.cause).toStrictEqual(trace.cause);
+    expect(restored.clientRequestId).toBeUndefined();
+  });
+
+  test('id клиента — без поля generated в JSON и обратно', () => {
+    const trace = Trace.fromRequest({ requestId: 'r-1' });
+    expect(wire(trace.toJSON())).toStrictEqual({
+      cause: { kind: 'request', requestId: 'r-1' },
+      correlationId: 'r-1',
+    });
+    const restored = Trace.fromJSON(wire(trace.toJSON()));
+    expect(restored.cause).toStrictEqual({ kind: 'request', requestId: 'r-1' });
+    expect(restored.clientRequestId).toBe('r-1');
+  });
+
   test('невалидный JSON — Error с понятным текстом', () => {
     for (const bad of [
       null,
@@ -166,6 +219,10 @@ describe('Trace.toJSON / fromJSON — круг через JSON (D-46)', () => {
       { cause: { kind: 'request', requestId: 'r-1' } },
       { cause: { kind: 'timer' }, correlationId: 'c-1' },
       { cause: { kind: 'job', job: 'x' }, correlationId: 'c-1' },
+      {
+        cause: { kind: 'request', requestId: 'r-1', generated: false },
+        correlationId: 'r-1',
+      },
       {
         cause: { kind: 'event', eventId: 'e-1' },
         correlationId: 'c-1',

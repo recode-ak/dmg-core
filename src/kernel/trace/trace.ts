@@ -1,8 +1,16 @@
 import * as v from 'valibot';
 
-/** Непосредственная причина операции и её событий. */
+/**
+ * Непосредственная причина операции и её событий. У запроса `generated:
+ * true` — `requestId` создал сервер, клиент его не прислал (D-56): такой id
+ * не ключ идемпотентности. Id клиента — без поля.
+ */
 export type Cause =
-  | { readonly kind: 'request'; readonly requestId: string }
+  | {
+      readonly kind: 'request';
+      readonly requestId: string;
+      readonly generated?: true;
+    }
   | { readonly kind: 'event'; readonly eventId: string }
   | { readonly kind: 'job'; readonly job: string; readonly runId: string };
 
@@ -36,7 +44,11 @@ export type TraceJson = TraceLog;
 
 const TraceJsonSchema = v.object({
   cause: v.variant('kind', [
-    v.object({ kind: v.literal('request'), requestId: v.string() }),
+    v.object({
+      kind: v.literal('request'),
+      requestId: v.string(),
+      generated: v.optional(v.literal(true)),
+    }),
     v.object({ kind: v.literal('event'), eventId: v.string() }),
     v.object({ kind: v.literal('job'), job: v.string(), runId: v.string() }),
   ]),
@@ -76,8 +88,9 @@ export class Trace {
 
   /**
    * След запроса транспорта. Клиент обязан передать `requestId`; не
-   * передал (или пустая строка) — id создаётся, а `onMissing` получает
-   * сообщение (минимум `warn`, ERR-07). Без `onMissing` тип требует id.
+   * передал (или пустая строка) — id создаётся с признаком `generated`
+   * (D-56), а `onMissing` получает сообщение (минимум `warn`, ERR-07).
+   * Без `onMissing` тип требует id.
    */
   static fromRequest(meta: RequestMeta & { readonly requestId: string }): Trace;
   static fromRequest(
@@ -88,10 +101,10 @@ export class Trace {
     meta: RequestMeta,
     onMissing?: (message: string) => void,
   ): Trace {
-    const requestId = Trace.requestIdOf(meta.requestId, onMissing);
+    const cause = Trace.requestCauseOf(meta.requestId, onMissing);
     return new Trace(
-      { kind: 'request', requestId },
-      meta.correlationId ?? requestId,
+      cause,
+      meta.correlationId ?? cause.requestId,
       meta.channel,
     );
   }
@@ -131,6 +144,16 @@ export class Trace {
     return new Trace(cause, correlationId, channel);
   }
 
+  /**
+   * `requestId`, который прислал клиент, — ключ идемпотентности команды
+   * (D-56). Нет — у следа события, Job и у запроса с серверным id.
+   */
+  get clientRequestId(): string | undefined {
+    const { cause } = this;
+    if (cause.kind !== 'request' || cause.generated) return undefined;
+    return cause.requestId;
+  }
+
   /** След для записи лога операций; без канала — без поля. */
   toLog(): TraceLog {
     return this.toJSON();
@@ -151,16 +174,18 @@ export class Trace {
     return { cause: this.cause, correlationId: this.correlationId };
   }
 
-  private static requestIdOf(
+  private static requestCauseOf(
     raw: string | undefined,
     onMissing: ((message: string) => void) | undefined,
-  ): string {
-    if (raw !== undefined && raw !== '') return raw;
+  ): Extract<Cause, { readonly kind: 'request' }> {
+    if (raw !== undefined && raw !== '') {
+      return { kind: 'request', requestId: raw };
+    }
     if (onMissing === undefined) {
       throw new Error('Trace.fromRequest: нет requestId и нет onMissing');
     }
     const requestId = crypto.randomUUID();
     onMissing(`Клиент не передал requestId — создан ${requestId}`);
-    return requestId;
+    return { kind: 'request', requestId, generated: true };
   }
 }
