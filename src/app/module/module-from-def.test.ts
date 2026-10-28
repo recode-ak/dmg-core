@@ -466,24 +466,32 @@ describe('ModuleFromDef.dispatch — отсев повторов command UC (D-5
     expect(rdeps.runs.createTask).toBe(2);
   });
 
-  test('без отсева: query, серверный requestId, system, гость без visitorId', async () => {
+  test('без отсева: query', async () => {
     const list = () =>
       replayed.dispatch(ListTasksUcDef.command({}), owner, REQ);
     await list();
     await list();
     expect(rdeps.runs.listTasks).toBe(2);
+  });
 
+  test('без отсева: серверный requestId', async () => {
     const generated = Trace.fromRequest({}, () => {});
     await send(owner, generated);
     await send(owner, generated);
+    expect(rdeps.runs.createTask).toBe(2);
+  });
 
+  test('без отсева: вызывающий system', async () => {
     const system = new SystemCaller<User>(
       { kind: 'useCase', module: 'other', name: 'notify' },
       owner,
     );
     await send(system);
     await send(system);
+    expect(rdeps.runs.createTask).toBe(2);
+  });
 
+  test('без отсева: гость без visitorId', async () => {
     const guest = new GuestCaller<User>();
     const web = Trace.fromRequest({
       requestId: 'r-2',
@@ -491,11 +499,50 @@ describe('ModuleFromDef.dispatch — отсев повторов command UC (D-5
     });
     await send(guest, web);
     await send(guest, web);
+    expect(rdeps.runs.createTask).toBe(2);
+  });
 
+  test('без отсева: след события', async () => {
     const event = Trace.fromEvent({ eventId: 'e-1', correlationId: 'c-1' });
     await send(owner, event);
     await send(owner, event);
-    expect(rdeps.runs.createTask).toBe(8);
+    expect(rdeps.runs.createTask).toBe(2);
+  });
+
+  test('гость с тем же visitorId в разных каналах — разные ключи', async () => {
+    const guest = new GuestCaller<User>();
+    const trace = (name: string) =>
+      Trace.fromRequest({
+        requestId: 'r-1',
+        channel: { name, visitorId: '42' },
+      });
+    await send(guest, trace('telegram'));
+    await send(guest, trace('web'));
+    expect(rdeps.runs.createTask).toBe(2);
+  });
+
+  test('повтор с сохранённым ответом — info в логгер', async () => {
+    await send();
+    await send();
+    expect(ctx.logs).toEqual([
+      {
+        level: 'info',
+        source: 'replayed.createTask',
+        message: 'Повтор запроса r-1: сохранённый ответ',
+      },
+    ]);
+  });
+
+  test('REQUEST_CONFLICT — info в логгер с причиной', async () => {
+    await send();
+    await replayed.dispatch(create('Другое'), owner, REQ);
+    expect(ctx.logs).toEqual([
+      {
+        level: 'info',
+        source: 'replayed.createTask',
+        message: 'Повтор запроса r-1 отклонён: input',
+      },
+    ]);
   });
 
   test('истёк TTL — команда исполняется снова', async () => {
@@ -531,10 +578,26 @@ describe('ModuleFromDef.dispatch — отсев повторов command UC (D-5
     expect(ctx.logs.map((r) => r.level)).toEqual(['error']);
   });
 
+  test('сбой release после Err — Err как есть и error в логгер', async () => {
+    rdeps = {
+      ...rdeps,
+      app: { ...ctx.app, replay: failingReplay('release') },
+      createTask: async () =>
+        CoreErrors.VERSION_CONFLICT.err({ aggregate: 'task', uuid: TASK }),
+    };
+    replayed = new ModuleFromDef<typeof ReplayModuleDef, ReplayDeps, User>(
+      ReplayModuleDef,
+      replayMap,
+      rdeps,
+    );
+    expectErr(await send(), 'VERSION_CONFLICT');
+    expect(ctx.logs.map((r) => r.level)).toEqual(['error']);
+  });
+
   /** Хранилище, у которого сбоит один метод; остальные — как у пустого. */
   function failingReplay(method: keyof ReplayStore): ReplayStore {
     const store: ReplayStore = {
-      claim: async () => ({ kind: 'claimed' }),
+      claim: async () => ({ kind: 'claimed', token: 't-1' }),
       complete: async () => {},
       release: async () => {},
     };

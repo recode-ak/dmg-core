@@ -19,8 +19,9 @@ import type { ReplayClaim } from './replay-store';
  * Ключ — модуль, вызывающий и `requestId`; вход — канонический JSON
  * `{ uc, input }`. Повтор того же входа получает сохранённый `Ok` без
  * исполнения UC; другой вход или незавершённый первый запрос —
- * `REQUEST_CONFLICT`. Сохраняется только `Ok`: после `Err` или исключения
- * запись снимается, повтор исполнится заново.
+ * `REQUEST_CONFLICT`; оба случая — `info` в логгер. Сохраняется только
+ * `Ok`: после `Err` или исключения запись снимается (токеном владельца из
+ * `claim`), повтор исполнится заново.
  *
  * Сбой хранилища наружу не выходит (ERR-07): сбой `claim` — `SERVER_INTERNAL`
  * и `error` в логгер, UC не исполняется; сбой `complete` или `release` —
@@ -66,27 +67,38 @@ export class CommandReplay {
       return CoreErrors.SERVER_INTERNAL.err();
     }
     if (claim.kind === 'answered') {
+      this.app.logger.info(
+        source,
+        `Повтор запроса ${requestId}: сохранённый ответ`,
+      );
       // Ответ сохранён под тем же ключом и тем же `{ uc, input }`, а имя UC
       // в модуле уникально: это `Ok` того же UC, то есть его выход `O`.
       return ok(claim.answer as O);
     }
     if (claim.kind === 'conflict') {
+      this.app.logger.info(
+        source,
+        `Повтор запроса ${requestId} отклонён: ${claim.reason}`,
+      );
       return CoreErrors.REQUEST_CONFLICT.err({
         requestId,
         reason: claim.reason,
       });
     }
+    const { token } = claim;
     let res: Result<O, E>;
     try {
       res = await execute();
     } catch (error) {
-      await this.settle(source, requestId, () => this.app.replay.release(key));
+      await this.settle(source, requestId, () =>
+        this.app.replay.release(key, token),
+      );
       throw error;
     }
     await this.settle(source, requestId, () =>
       res.ok
-        ? this.app.replay.complete(key, res.value)
-        : this.app.replay.release(key),
+        ? this.app.replay.complete(key, token, res.value)
+        : this.app.replay.release(key, token),
     );
     return res;
   }
@@ -125,9 +137,9 @@ export class CommandReplay {
       case 'delegate':
         return ['delegate', log.subjectId, log.actorId];
       case 'guest': {
-        const visitorId = trace.channel?.visitorId;
-        if (visitorId === undefined) return undefined;
-        return ['guest', trace.channel?.name ?? '', visitorId];
+        const { channel } = trace;
+        if (channel?.visitorId === undefined) return undefined;
+        return ['guest', channel.name, channel.visitorId];
       }
       case 'system':
         return undefined;

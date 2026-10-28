@@ -3,12 +3,12 @@ import type { Clock } from '../context';
 
 /**
  * Итог `ReplayStore.claim`: `claimed` — ключ занят, команду можно
- * исполнять; `answered` — тот же вход уже исполнен, `answer` — сохранённый
+ * исполнять, `token` — владелец записи для `complete`/`release`; `answered` — тот же вход уже исполнен, `answer` — сохранённый
  * ответ; `conflict` — `input`: тот же ключ с другим входом, `in_progress`:
  * первый запрос ещё исполняется (D-56).
  */
 export type ReplayClaim =
-  | { readonly kind: 'claimed' }
+  | { readonly kind: 'claimed'; readonly token: string }
   | { readonly kind: 'answered'; readonly answer: unknown }
   | { readonly kind: 'conflict'; readonly reason: 'input' | 'in_progress' };
 
@@ -16,14 +16,20 @@ export type ReplayClaim =
  * Порт отсева повторов command UC по `requestId` (D-56) — аналог inbox
  * событий для входа транспорта. `key` — модуль, вызывающий и `requestId`;
  * `input` — канонический JSON `{ uc, input }`; обе строки строит `dispatch`.
- * `claim` занимает ключ до исполнения (запись «в работе») или сообщает, что
- * он уже есть; `complete` сохраняет ответ `Ok` (JSON-совместимый);
- * `release` снимает запись после `Err` — повтор исполнится заново.
+ * `claim` занимает ключ до исполнения (запись «в работе») и выдаёт токен
+ * владельца или сообщает, что ключ уже есть. Проверка и занятие — одна
+ * атомарная операция: два параллельных `claim` не займут ключ оба
+ * (файловое или общее хранилище — блокировка или сравнение с заменой).
+ * `complete` сохраняет ответ `Ok`, `release` снимает запись после `Err` —
+ * повтор исполнится заново; оба — только владельцу: запись под ключом с
+ * другим токеном (прежняя истекла или вытеснена, ключ занял новый запрос)
+ * они не трогают. Ответ — JSON-совместимые данные; хранилище отдаёт копию,
+ * а не сохранённый объект.
  */
 export type ReplayStore = {
   claim(key: string, input: string): Promise<ReplayClaim>;
-  complete(key: string, answer: unknown): Promise<void>;
-  release(key: string): Promise<void>;
+  complete(key: string, token: string, answer: unknown): Promise<void>;
+  release(key: string, token: string): Promise<void>;
 };
 
 /** Сколько живёт запись отсева по умолчанию: 24 ч (D-56). */
@@ -32,8 +38,9 @@ export const DEFAULT_REPLAY_TTL_MS = 24 * 60 * 60 * 1000;
 /** Сколько последних записей помнит хранилище в процессе по умолчанию. */
 export const DEFAULT_REPLAY_CAPACITY = 10_000;
 
-/** Запись хранилища: вход, ответ (нет — «в работе») и срок жизни. */
+/** Запись хранилища: владелец, вход, ответ (нет — «в работе»), срок жизни. */
 type ReplayEntry = {
+  readonly token: string;
   readonly input: string;
   readonly answered: boolean;
   readonly answer: unknown;
@@ -42,10 +49,14 @@ type ReplayEntry = {
 
 /**
  * `ReplayStore` в памяти по умолчанию: записи живут `ttlMs` от последней
- * записи (`claim`, `complete`), время — из часов приложения (D-34). Помнит
- * не больше `capacity` записей — самые старые забываются, память процесса
- * не растёт без предела. Рестарт процесса забывает всё: хранилище,
- * переживающее рестарт, даёт приложение.
+ * записи (`claim`, `complete`), время — из часов приложения (D-34); часы
+ * предполагаются монотонными — иначе порядок записей перестаёт совпадать
+ * с порядком истечения и истёкшие записи снимаются позже. Помнит не больше
+ * `capacity` записей — самые старые забываются, в том числе «в работе»:
+ * повтор такого запроса исполнится снова. Ответ хранится и отдаётся
+ * копией (`structuredClone`). Атомарность `claim` даёт однопоточность
+ * процесса: между проверкой и занятием нет `await`. Рестарт процесса
+ * забывает всё: хранилище, переживающее рестарт, даёт приложение.
  */
 export class InProcReplayStore implements ReplayStore {
   /** Порядок вставки — порядок последней записи, значит и истечения срока. */
@@ -68,23 +79,29 @@ export class InProcReplayStore implements ReplayStore {
     this.forgetExpired();
     const entry = this.entries.get(key);
     if (entry === undefined) {
-      this.put(key, { input, answered: false, answer: undefined });
-      return { kind: 'claimed' };
+      const token = crypto.randomUUID();
+      this.put(key, { token, input, answered: false, answer: undefined });
+      return { kind: 'claimed', token };
     }
     if (entry.input !== input) return { kind: 'conflict', reason: 'input' };
     if (!entry.answered) return { kind: 'conflict', reason: 'in_progress' };
-    return { kind: 'answered', answer: entry.answer };
+    return { kind: 'answered', answer: structuredClone(entry.answer) };
   }
 
-  async complete(key: string, answer: unknown): Promise<void> {
+  async complete(key: string, token: string, answer: unknown): Promise<void> {
     this.forgetExpired();
     const entry = this.entries.get(key);
-    if (entry === undefined) return;
-    this.put(key, { input: entry.input, answered: true, answer });
+    if (entry?.token !== token) return;
+    this.put(key, {
+      token,
+      input: entry.input,
+      answered: true,
+      answer: structuredClone(answer),
+    });
   }
 
-  async release(key: string): Promise<void> {
-    this.entries.delete(key);
+  async release(key: string, token: string): Promise<void> {
+    if (this.entries.get(key)?.token === token) this.entries.delete(key);
   }
 
   /** Записывает в конец порядка со свежим сроком и соблюдает ёмкость. */
