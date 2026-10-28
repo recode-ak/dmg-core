@@ -24,13 +24,16 @@ export type MemoryAr<S extends MemorySnapshot> = Versioned & {
  * выборки проверяет контрактный тест настоящего репозитория.
  *
  * @example
- * class MemoryTaskRepo extends MemoryRepo<TaskAr, TaskState> implements TaskRepo {
+ * class TaskRepoFake
+ *   extends MemoryRepo<TaskAr, StateOf<typeof TaskArDef>>
+ *   implements TaskRepo
+ * {
  *   constructor() { super(TaskArDef, TaskAr.restore); }
  *   findById = async (uuid: string) => this.restored(uuid);
  *   findDone = this.unanswered<[], TaskAr[]>('findDone');
  *   // … прочие методы порта
  * }
- * const tasks = new MemoryTaskRepo().seed(taskRow(TASK, 'done'));
+ * const tasks = new TaskRepoFake().seed(taskRow(TASK, 'done'));
  * tasks.findDone = async () => [tasks.restoredOrThrow(TASK)];
  */
 export class MemoryRepo<
