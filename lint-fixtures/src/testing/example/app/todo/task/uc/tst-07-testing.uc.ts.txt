@@ -1,0 +1,4 @@
+// expect: TST-07 error
+import { MemoryRepo } from '#core/testing/memory-repo';
+
+export { MemoryRepo };

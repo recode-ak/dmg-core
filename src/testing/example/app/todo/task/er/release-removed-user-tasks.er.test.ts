@@ -121,7 +121,7 @@ describe('ReleaseRemovedUserTasksEr', () => {
     ]);
   });
 
-  test('задач у пользователя нет — Ok, файл не создан', async () => {
+  test('задач у пользователя нет — Ok, ничего не записано', async () => {
     expectOk(await er.handle(removed));
     expect(tasks.saved).toEqual([]);
     expect(ctx.published).toEqual([]);

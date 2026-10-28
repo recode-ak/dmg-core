@@ -39,6 +39,27 @@ describe('LintMap: repeats', () => {
       'Карта линтера: DOM-01 повторяет DOM-14 — нет строки с запретом импортов',
     );
   });
+
+  it('повторяет ближайшую строку выше с этим ID', () => {
+    const ban = (message: string) => ({ group: ['**/state'], message });
+    const map = new LintMap([
+      { id: 'DOM-01', includes: ['a/**'], imports: [ban('DOM-01: домен')] },
+      {
+        id: 'DOM-01',
+        includes: ['b/**'],
+        imports: [ban('DOM-01: прикладной')],
+      },
+      {
+        id: 'TST-07',
+        includes: ['b/**'],
+        imports: [{ group: ['**/*.repo.fake'], message: 'TST-07: …' }],
+        repeats: ['DOM-01'],
+      },
+    ]);
+
+    expect(JSON.stringify(map.overrides()[2])).toContain('DOM-01: прикладной');
+    expect(JSON.stringify(map.overrides()[2])).not.toContain('DOM-01: домен');
+  });
 });
 
 // Раздел «Карта линтера» в rules.md пишется по LintMap: каждая строка

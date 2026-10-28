@@ -1,0 +1,5 @@
+// expect: none
+import { MemoryRepo } from '#core/testing/memory-repo';
+import { TaskRepoFake } from '../task.repo.fake';
+
+export { MemoryRepo, TaskRepoFake };

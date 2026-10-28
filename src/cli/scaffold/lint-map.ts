@@ -17,6 +17,9 @@ const OPERATIONS = ['ar', 'dcs', 'facade', 'uc', 'er'];
 /** Запрет импорта entity (`…/state`, `*.state`). */
 const STATE = ['**/*.state', '**/state'];
 
+/** Фейки портов (`*.repo.fake.ts`) — их видят только тесты и сами фейки (TST-07). */
+const FAKES = '**/*.repo.fake.ts';
+
 /**
  * Карта «правило → каталоги» проекта: по ней каркас строит `overrides`
  * biome.json, по ней же пишется раздел карты в `rules.md`. Одна таблица
@@ -121,6 +124,28 @@ export class LintMap {
         ],
       },
       {
+        // Те же файлы, что у DOM-01 выше, кроме самих фейков: им
+        // `dmg-core/testing` нужен, DOM-01 на них действует по своей секции.
+        id: 'TST-07',
+        includes: [
+          ...dirs.app.map((dir) => `${dir}/**`),
+          '!**/infra/**',
+          `!${FAKES}`,
+        ],
+        imports: [
+          {
+            group: [
+              '**/*.repo.fake',
+              'dmg-core/testing',
+              'dmg-core/testing/**',
+            ],
+            message:
+              'TST-07: фейки (*.repo.fake) и dmg-core/testing видят только тесты и сами фейки; в рабочем коде — настоящий порт',
+          },
+        ],
+        repeats: ['DOM-01'],
+      },
+      {
         id: 'ARC-09',
         plugin: 'arc-09-no-env',
         includes: [...all('**'), `!${dirs.main}`],
@@ -151,13 +176,13 @@ export class LintMap {
 
   /** Секции `overrides` biome.json: по одной на строку карты. */
   overrides(): BiomeOverride[] {
-    return this.rules.map((rule) => {
+    return this.rules.map((rule, index) => {
       const includes = [...rule.includes, NOT_TESTS];
       if ('plugin' in rule) {
         return { includes, plugins: [`${PLUGINS}/${rule.plugin}.grit`] };
       }
       const bans = [
-        ...(rule.repeats ?? []).flatMap((id) => this.bans(rule.id, id)),
+        ...(rule.repeats ?? []).flatMap((id) => this.bans(rule.id, id, index)),
         ...rule.imports,
       ];
       return {
@@ -181,9 +206,14 @@ export class LintMap {
     });
   }
 
-  /** Запреты импортов строки `id` для повтора в строке `by`; нет — дефект таблицы. */
-  private bans(by: string, id: string): readonly ImportBan[] {
-    const rule = this.rules.find((r) => r.id === id && 'imports' in r);
+  /**
+   * Запреты импортов ближайшей строки `id` выше строки `by` (номер `index`)
+   * для повтора в ней; нет — дефект таблицы.
+   */
+  private bans(by: string, id: string, index: number): readonly ImportBan[] {
+    const rule = this.rules
+      .slice(0, index)
+      .findLast((r) => r.id === id && 'imports' in r);
     if (rule === undefined || !('imports' in rule)) {
       throw new Error(
         `Карта линтера: ${by} повторяет ${id} — нет строки с запретом импортов`,

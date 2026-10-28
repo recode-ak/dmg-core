@@ -1,5 +1,5 @@
 /**
- * Тесты lint-правил пакета (rules.md: ARC, DOM, ERR, API, CODE) на его
+ * Тесты lint-правил пакета (rules.md: ARC, DOM, ERR, API, CODE, TST) на его
  * собственном коде.
  *
  * Фикстуры лежат в `lint-fixtures/` (расширение `.txt` — чтобы их не видели
@@ -69,7 +69,7 @@ const ruleDiagnostics = (target: string) =>
   diagnostics.filter(
     (d) =>
       d.location?.path === target &&
-      /^(ARC|DOM|ERR|API|CODE)-\d+:/.test(d.message),
+      /^(ARC|DOM|ERR|API|CODE|TST)-\d+:/.test(d.message),
   );
 
 /** Группы ARC-10 в `biome.json` пакета (белый список импортов) */

@@ -201,6 +201,25 @@ const SINGLE_VIOLATIONS: Violations = {
     code: 'export class K {\n  public x = 1;\n}\n',
     ids: ['CODE-02'],
   },
+  // TST-07: фейк и dmg-core/testing — только тестам и самим фейкам;
+  // DOM-01 на тех же файлах действует (одна секция noRestrictedImports).
+  'src/app/v/a/uc/fake.uc.ts': {
+    code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { S } from '../../../../domain/v/a/a.state';\nimport { FakeRepo } from '../a.repo.fake';\nexport { FakeRepo, MemoryRepo, S };\n",
+    ids: ['DOM-01', 'TST-07'],
+  },
+  'src/app/v/wire.ts': {
+    code: "import { StubFacade } from 'dmg-core/testing';\nexport { StubFacade };\n",
+    ids: ['TST-07'],
+  },
+  // Фейку dmg-core/testing можно, entity — нет (DOM-01 не ослаб).
+  'src/app/v/a/a.repo.fake.ts': {
+    code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { S } from '../../../domain/v/a/a.state';\nexport { MemoryRepo, S };\n",
+    ids: ['DOM-01'],
+  },
+  'src/app/v/a/uc/fake.uc.test.ts': {
+    code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { FakeRepo } from '../a.repo.fake';\nexport { FakeRepo, MemoryRepo };\n",
+    ids: [],
+  },
   // Вне includes: infra видит state, репозиторий берёт снимок.
   'src/app/v/infra/a.json-repo.ts': {
     code: "import { S } from '../../../domain/v/a/a.state';\nexport const f = (ar: { snapshot(): unknown }) => [S, ar.snapshot()];\n",
@@ -268,6 +287,22 @@ const MONOREPO_VIOLATIONS: Violations = {
   'modules/v/src/a/uc/do.uc.ts': {
     code: "import { S } from '../../../../../domain/src/v/a/a.state';\nexport const f = (bus: { publish(x: unknown): void }) => bus.publish(S);\n",
     ids: ['API-02', 'DOM-01'],
+  },
+  'modules/v/src/a/uc/fake.uc.ts': {
+    code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { S } from '../../../../../domain/src/v/a/a.state';\nimport { FakeRepo } from '../a.repo.fake';\nexport { FakeRepo, MemoryRepo, S };\n",
+    ids: ['DOM-01', 'TST-07'],
+  },
+  'app/src/wire.ts': {
+    code: "import { FakeRepo } from '@acme/v/a/a.repo.fake';\nexport { FakeRepo };\n",
+    ids: ['TST-07'],
+  },
+  'modules/v/src/a/a.repo.fake.ts': {
+    code: "import { MemoryRepo } from 'dmg-core/testing';\nexport { MemoryRepo };\n",
+    ids: [],
+  },
+  'modules/v/src/a/uc/fake.uc.test.ts': {
+    code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { FakeRepo } from '../a.repo.fake';\nexport { FakeRepo, MemoryRepo };\n",
+    ids: [],
   },
   'modules/v/src/view.ts': {
     code: 'export const f = (ar: { snapshot(): unknown }) => ar.snapshot();\n',

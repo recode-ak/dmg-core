@@ -1,0 +1,4 @@
+// expect: TST-07 error
+import { TaskRepoFake } from '../task.repo.fake';
+
+export { TaskRepoFake };

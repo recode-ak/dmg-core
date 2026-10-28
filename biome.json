@@ -171,6 +171,57 @@
     },
     {
       "includes": [
+        "src/testing/example/app/**",
+        "!**/*.test.ts",
+        "!**/infra/**",
+        "!**/*.repo.fake.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "**",
+                      "!valibot",
+                      "!@valibot/to-json-schema",
+                      "!node:*",
+                      "!node:*/**",
+                      "!bun:*",
+                      "!dmg-core",
+                      "!dmg-core/**",
+                      "!#core/**",
+                      "!./**",
+                      "!../**"
+                    ],
+                    "message": "ARC-10: платформа импортирует только свои модули (#core/*, dmg-core), peer-зависимости и встроенные модули — не код приложения"
+                  },
+                  {
+                    "group": ["**/*.state", "**/state"],
+                    "message": "DOM-01: entity видят только Ar своего агрегата и рендереры UI; используй доменный API"
+                  },
+                  {
+                    "group": [
+                      "**/*.repo.fake",
+                      "#core/testing",
+                      "#core/testing/*",
+                      "dmg-core/testing",
+                      "dmg-core/testing/**"
+                    ],
+                    "message": "TST-07: фейки (*.repo.fake) и dmg-core/testing видят только тесты и сами фейки; в рабочем коде — настоящий порт"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
         "src/kernel/**",
         "src/domain/**",
         "src/testing/example/todo/**",

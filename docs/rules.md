@@ -19,6 +19,7 @@
 | DOM-14 | `dom-14-no-clock.grit` | домен | `src/domain` | `domain/src` |
 | DOM-11 | `dom-11-base-fields.grit` | домен: `*.state.ts` | `src/domain` | `domain/src` |
 | DOM-01 | `noRestrictedImports`: без `…/state` | прикладной слой и корень сборки, кроме `infra/` | `src/app` | `app/src`, `modules/*/src` |
+| TST-07 | `noRestrictedImports`: без `*.repo.fake` и `dmg-core/testing` (плюс запреты DOM-01) | файлы DOM-01 выше, кроме `*.repo.fake.ts` | `src/app` | `app/src`, `modules/*/src` |
 | ARC-09 | `arc-09-no-env.grit` | все исходники, кроме точки входа раннера | `src`, кроме `src/runner/main.ts` | все `src`, кроме `runners/*/src/main.ts` |
 | CODE-02 | `code-02-class-members.grit` | все исходники | `src` | `domain/src`, `app/src`, `modules/*/src`, `runners/*/src` |
 | DOM-12 | `dom-12-no-iso-dates.grit` | все исходники | то же | то же |
@@ -127,5 +128,6 @@
 | TST-04 | Тесты изолированы, 10–20 строк; smoke-тест модуля на реальных репозиториях | review |
 | TST-05 | Правки не выходят за область задачи; регресс соседнего функционала запрещён | review |
 | TST-06 | `check` проекта (lint, типы, тесты, `ArchChecker`) зелёный после каждого шага | test |
+| TST-07 | Рабочий код прикладного слоя и корня сборки не импортирует фейки (`*.repo.fake`) и `dmg-core/testing` — их видят только тесты и сами фейки | lint |
 
 Детали тестирования — [testing.md](./testing.md).

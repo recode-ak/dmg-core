@@ -1,0 +1,4 @@
+// expect: none
+import { MemoryRepo } from '#core/testing/memory-repo';
+
+export { MemoryRepo };
