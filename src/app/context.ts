@@ -4,6 +4,7 @@ import type { Inbox } from './events/inbox';
 import type { Outbox } from './events/outbox';
 import type { ModuleFacades } from './facade/module-facades';
 import type { OperationLog } from './oplog/operation-record';
+import type { ReplayStore } from './replay/replay-store';
 
 /** Режим запуска приложения. */
 export type AppMode = 'test' | 'development' | 'production';
@@ -33,6 +34,8 @@ export type AppContext = {
   readonly outbox: Outbox;
   /** Отсев повторной доставки событий реакциям (D-47); in-proc — `InProcInbox`. */
   readonly inbox: Inbox;
+  /** Отсев повторов command UC по `requestId` (D-56); in-proc — `InProcReplayStore`. */
+  readonly replay: ReplayStore;
   readonly clock: Clock;
   readonly logger: Logger;
   readonly mode: AppMode;

@@ -189,6 +189,7 @@ export type CallerResolver = {
           'InProcEventBus',
           'InProcInbox',
           'InProcOutbox',
+          'InProcReplayStore',
           'JsonlOperationLog',
           'type ModuleFactory',
           'systemClock',
@@ -233,11 +234,13 @@ export class App {
   private static context(env: AppEnv, ports: AppPorts): AppContext {
     const logger = ports.logger ?? new ConsoleLogger();
     const bus = ports.bus ?? new InProcEventBus(logger);
+    const clock = ports.clock ?? systemClock;
     return {
       bus,
       outbox: new InProcOutbox(bus),
       inbox: new InProcInbox(),
-      clock: ports.clock ?? systemClock,
+      replay: new InProcReplayStore({ clock }),
+      clock,
       logger,
       mode: env.mode,
       oplog: new JsonlOperationLog(join(env.dataDir, 'oplog')),

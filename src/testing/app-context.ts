@@ -3,6 +3,7 @@ import type { EventEnvelope } from '../app/events/event-envelope';
 import { InProcInbox } from '../app/events/inbox';
 import { InProcOutbox } from '../app/events/outbox';
 import type { OperationLog } from '../app/oplog/operation-record';
+import { InProcReplayStore } from '../app/replay/replay-store';
 import type { Timestamp } from '../kernel/time/timestamp';
 import { RecordingBus } from './memory-bus';
 import { type LogRecord, MemoryLogger } from './memory-logger';
@@ -14,7 +15,7 @@ export const TEST_NOW: Timestamp = Date.UTC(2026, 0, 1);
 /**
  * Контекст приложения для тестов прикладного слоя: всё видно в массивах
  * (`published` — отданное в outbox, `oplog.records` — лог операций в
- * памяти; outbox и inbox — in-proc), часы стоят на `at` и
+ * памяти; outbox, inbox и replay — in-proc), часы стоят на `at` и
  * переводятся `setNow` — без глобального состояния. `options.oplog` —
  * подмена лога операций (например, сбойного); тогда `oplog` пуст.
  */
@@ -30,11 +31,13 @@ export function testAppContext(
   const oplog = new MemoryOperationLog();
   let at = options.at ?? TEST_NOW;
   const bus = new RecordingBus(published);
+  const clock = (): Timestamp => at;
   const app: AppContext = {
     bus,
     outbox: new InProcOutbox(bus),
     inbox: new InProcInbox(),
-    clock: () => at,
+    replay: new InProcReplayStore({ clock }),
+    clock,
     logger: new MemoryLogger(logs),
     mode: options.mode ?? 'test',
     oplog: options.oplog ?? oplog,

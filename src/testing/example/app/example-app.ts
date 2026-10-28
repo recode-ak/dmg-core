@@ -7,6 +7,7 @@ import { InProcInbox } from '#core/app/events/inbox';
 import { InProcOutbox } from '#core/app/events/outbox';
 import { ConsoleLogger } from '#core/app/logger/console-logger';
 import { JsonlOperationLog } from '#core/app/oplog/jsonl-operation-log';
+import { InProcReplayStore } from '#core/app/replay/replay-store';
 import { TodoModuleDef } from '#core/testing/example/todo/contract';
 import { UsersModuleDef } from '#core/testing/example/users/contract';
 import type { ExampleUser } from '../shared/app-user';
@@ -63,11 +64,13 @@ export class ExampleApp {
   ): AppContext {
     const logger = ports.logger ?? new ConsoleLogger();
     const bus = ports.bus ?? new InProcEventBus(logger);
+    const clock = ports.clock ?? systemClock;
     return {
       bus,
       outbox: new InProcOutbox(bus),
       inbox: new InProcInbox(),
-      clock: ports.clock ?? systemClock,
+      replay: new InProcReplayStore({ clock }),
+      clock,
       logger,
       mode: env.mode,
       oplog: new JsonlOperationLog(join(env.dataDir, 'oplog')),

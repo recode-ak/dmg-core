@@ -69,6 +69,13 @@ export {
   type ReactionEnvelopeOf,
   ReactionFromDef,
 } from './reaction/reaction-from-def';
+export {
+  DEFAULT_REPLAY_CAPACITY,
+  DEFAULT_REPLAY_TTL_MS,
+  InProcReplayStore,
+  type ReplayClaim,
+  type ReplayStore,
+} from './replay/replay-store';
 export { Lock } from './uow/lock';
 export {
   type Repository,
