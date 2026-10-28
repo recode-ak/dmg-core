@@ -1,21 +1,18 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { beforeEach, describe, expect, it } from 'bun:test';
 import { ModuleFacades } from '#core/app/facade/module-facades';
 import { Trace } from '#core/kernel/trace/trace';
 import {
   ArchiveDoneTasksJobDef,
-  type TaskAr,
   TodoModuleDef,
 } from '#core/testing/example/todo/index';
 import type { TaskState } from '#core/testing/example/todo/state';
 import { expectOk, testAppContext } from '#core/testing/index';
-import { TaskJsonRepo } from '../../infra/task.json-repo';
+import { TaskRepoFake } from '../task.repo.fake';
 import { ArchiveDoneTasksJob } from './archive-done-tasks.job';
 
 // Обход выполненных задач: у каждой своя UoW, сбой одной записи не
 // прерывает обход; повторный прогон ничего не находит (идемпотентность).
+// Репозиторий — фейк в памяти; выборку выполненных задаёт тест (`seed`).
 
 const OWNER = '5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6';
 const T0 = Date.UTC(2026, 9, 1);
@@ -32,33 +29,27 @@ const row = (status: TaskState['status']): TaskState => ({
   ...(status === 'done' && { completedAt: T0 }),
 });
 
-/** Репозиторий, у которого запись одной задачи падает — сбой диска. */
-class FailingRepo extends TaskJsonRepo {
-  constructor(
-    filePath: string,
-    private readonly failOn: string,
-  ) {
-    super(filePath);
-  }
-
-  override async save(ar: TaskAr): Promise<void> {
-    if (ar.uuid === this.failOn) throw new Error('диск недоступен');
-    return super.save(ar);
-  }
-}
-
-let dir: string;
-let file: string;
+let tasks: TaskRepoFake;
 let ctx: ReturnType<typeof testAppContext>;
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'archive-done-'));
-  file = join(dir, 'tasks.json');
+  tasks = new TaskRepoFake();
   ctx = testAppContext({ at: T1 });
 });
-afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-const makeJob = (tasks: TaskJsonRepo) =>
+/**
+ * Задачи в базе и ответ выборки выполненных: из этих задач — те, что
+ * сейчас выполнены (свежие Ar из текущего состояния базы).
+ */
+const seed = (...rows: TaskState[]) => {
+  tasks.seed(...rows);
+  tasks.findDone = async () =>
+    rows
+      .map((r) => tasks.restoredOrThrow(r.uuid))
+      .filter((task) => task.isDone());
+};
+
+const makeJob = () =>
   new ArchiveDoneTasksJob(
     { app: ctx.app, facades: new ModuleFacades(), tasks },
     TodoModuleDef,
@@ -72,15 +63,14 @@ describe('ArchiveDoneTasksJob', () => {
     const done1 = row('done');
     const done2 = row('done');
     const open = row('open');
-    await Bun.write(file, JSON.stringify([done1, open, done2]));
-    const tasks = new TaskJsonRepo(file);
+    seed(done1, open, done2);
 
-    const report = expectOk(await run(makeJob(tasks)));
+    const report = expectOk(await run(makeJob()));
 
     expect(report).toEqual({ processed: 2, failed: 0 });
-    expect((await tasks.findById(done1.uuid))?.isArchived()).toBe(true);
-    expect((await tasks.findById(done2.uuid))?.isArchived()).toBe(true);
-    expect((await tasks.findById(open.uuid))?.snapshot()).toEqual(open);
+    expect(tasks.restored(done1.uuid)?.isArchived()).toBe(true);
+    expect(tasks.restored(done2.uuid)?.isArchived()).toBe(true);
+    expect(tasks.restored(open.uuid)?.snapshot()).toEqual(open);
     expect(ctx.published.map((e) => [e.name, e.payload])).toEqual([
       ['todo.task.archived', { taskId: done1.uuid, ownerId: OWNER }],
       ['todo.task.archived', { taskId: done2.uuid, ownerId: OWNER }],
@@ -88,28 +78,28 @@ describe('ArchiveDoneTasksJob', () => {
   });
 
   it('повторный прогон — ничего не находит и не пишет', async () => {
-    await Bun.write(file, JSON.stringify([row('done')]));
-    const job = makeJob(new TaskJsonRepo(file));
+    seed(row('done'));
+    const job = makeJob();
     expectOk(await run(job));
-    const before = await Bun.file(file).text();
+    const before = [...tasks.saved];
     const sent = ctx.published.length;
 
     expect(expectOk(await run(job))).toEqual({ processed: 0, failed: 0 });
-    expect(await Bun.file(file).text()).toBe(before);
+    expect(tasks.saved).toEqual(before);
     expect(ctx.published).toHaveLength(sent);
   });
 
   it('сбой записи одной задачи — остальные архивированы, сбой в логе', async () => {
     const broken = row('done');
     const fine = row('done');
-    await Bun.write(file, JSON.stringify([broken, fine]));
-    const tasks = new FailingRepo(file, broken.uuid);
+    seed(broken, fine);
+    tasks.failOn(broken.uuid);
 
-    const report = expectOk(await run(makeJob(tasks)));
+    const report = expectOk(await run(makeJob()));
 
     expect(report).toEqual({ processed: 1, failed: 1 });
-    expect((await tasks.findById(broken.uuid))?.isDone()).toBe(true);
-    expect((await tasks.findById(fine.uuid))?.isArchived()).toBe(true);
+    expect(tasks.restored(broken.uuid)?.isDone()).toBe(true);
+    expect(tasks.restored(fine.uuid)?.isArchived()).toBe(true);
     expect(ctx.logs).toContainEqual(
       expect.objectContaining({ level: 'error', source: 'archiveDoneTasks' }),
     );
