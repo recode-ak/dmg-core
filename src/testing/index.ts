@@ -16,6 +16,11 @@ export { MemoryBus, RecordingBus } from './memory-bus';
 export { type LogRecord, MemoryLogger } from './memory-logger';
 export { MemoryOperationLog } from './memory-operation-log';
 export {
+  type MemoryAr,
+  MemoryRepo,
+  type MemorySnapshot,
+} from './memory-repo';
+export {
   expectIdempotentReaction,
   type ReactionIdempotencySpec,
 } from './reaction-idempotency';
