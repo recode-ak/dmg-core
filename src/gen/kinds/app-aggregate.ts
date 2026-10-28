@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import type { GenArgs } from '../cli';
 import { namedImport, sortImports, sortNames } from '../import-order';
 import { toCamel, toPascal } from '../naming';
-import type { GenPlan } from '../plan';
+import type { GenPlan, PlannedFile } from '../plan';
 import { fit, list } from '../wrap';
 import { createInputConst } from './aggregate';
 import { AppWiring } from './app-wiring';
@@ -22,6 +22,51 @@ function classHeader(name: string, base: string, port: string): string {
   return line.length <= 80
     ? line
     : `export class ${name}\n  extends ${base}\n  implements ${port}\n{`;
+}
+
+/** Путь фейка порта от каталога прикладного пакета: рядом с портом. */
+export const repoFakeRel = (a: string): string => join(a, `${a}.repo.fake.ts`);
+
+/**
+ * Фейк порта \`<A>Repo\` для тестов UC/ER/Job: \`MemoryRepo\` из
+ * \`dmg-core/testing\`, снапшот — \`StateOf<typeof <A>ArDef>\` (state
+ * агрегата вне \`infra/**\` не импортируется, DOM-01). Создаёт
+ * \`gen aggregate\`, а для агрегата от старой версии \`gen\` — \`gen uc\`.
+ */
+export function planRepoFake(args: GenArgs): PlannedFile {
+  const { module: m, aggregate: a = '' } = args;
+  const P = toPascal(a);
+  const src = args.layout.appDir(m);
+  const base = `MemoryRepo<${P}Ar, StateOf<typeof ${P}ArDef>>`;
+  const header = fit(
+    `export class ${P}RepoFake extends ${base} implements ${P}Repo {`,
+    `export class ${P}RepoFake\n  extends ${base}\n  implements ${P}Repo\n{`,
+    `export class ${P}RepoFake\n  extends MemoryRepo<\n    ${P}Ar,\n    StateOf<typeof ${P}ArDef>\n  >\n  implements ${P}Repo\n{`,
+  );
+  const content = `${sortImports([
+    namedImport(
+      [`${P}Ar`, `${P}ArDef`],
+      args.layout.domainImport(m, join(src, a)),
+    ),
+    "import type { StateOf } from 'dmg-core';",
+    "import { MemoryRepo } from 'dmg-core/testing';",
+    `import type { ${P}Repo } from './${a}.repo';`,
+  ])}
+
+/**
+ * Фейк порта \`${P}Repo\` для тестов UC/ER/Job: запись — память базы,
+ * \`findById\` — по uuid из памяти. Выборки порта (\`find*\`) — через
+ * \`this.unanswered\`: ответ задаёт тест присваиванием поля.
+ */
+${header}
+  constructor() {
+${list('    ', 'super(', [`${P}ArDef`, `${P}Ar.restore`], ');')}
+  }
+
+  findById = async (uuid: string) => this.restored(uuid);
+}
+`;
+  return { path: join(src, repoFakeRel(a)), content };
 }
 
 export function planAppAggregate(args: GenArgs): GenPlan {
@@ -161,6 +206,7 @@ ${newRepo}
   return {
     files: [
       { path: join(src, a, `${a}.repo.ts`), content: repoSrc },
+      planRepoFake(args),
       { path: join(src, 'infra', `${a}.json-repo.ts`), content: jsonRepoSrc },
       {
         path: join(src, 'infra', `${a}.json-repo.test.ts`),

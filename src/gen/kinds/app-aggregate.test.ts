@@ -14,9 +14,10 @@ const plan = planAppAggregate(
 const file = (rel: string) =>
   plan.files.find((f) => f.path === `/p/stream/src/${rel}`)?.content ?? '';
 
-test('файлы: порт репозитория, JSON-репозиторий и его тест', () => {
+test('файлы: порт репозитория, его фейк, JSON-репозиторий и его тест', () => {
   expect(plan.files.map((f) => f.path)).toEqual([
     '/p/stream/src/student/student.repo.ts',
+    '/p/stream/src/student/student.repo.fake.ts',
     '/p/stream/src/infra/student.json-repo.ts',
     '/p/stream/src/infra/student.json-repo.test.ts',
   ]);
@@ -28,6 +29,55 @@ test('порт: Repository<Ar> с поиском по uuid', () => {
   expect(src).toContain(
     'findById(uuid: string): Promise<StudentAr | undefined>',
   );
+});
+
+test('фейк порта: MemoryRepo со снапшотом StateOf<typeof ArDef>, findById через restored', () => {
+  expect(
+    file('student/student.repo.fake.ts'),
+  ).toBe(`import { StudentAr, StudentArDef } from '@acme/domain/stream';
+import type { StateOf } from 'dmg-core';
+import { MemoryRepo } from 'dmg-core/testing';
+import type { StudentRepo } from './student.repo';
+
+/**
+ * Фейк порта \`StudentRepo\` для тестов UC/ER/Job: запись — память базы,
+ * \`findById\` — по uuid из памяти. Выборки порта (\`find*\`) — через
+ * \`this.unanswered\`: ответ задаёт тест присваиванием поля.
+ */
+export class StudentRepoFake
+  extends MemoryRepo<StudentAr, StateOf<typeof StudentArDef>>
+  implements StudentRepo
+{
+  constructor() {
+    super(StudentArDef, StudentAr.restore);
+  }
+
+  findById = async (uuid: string) => this.restored(uuid);
+}
+`);
+});
+
+test('фейк порта: длинные имена переносятся, как у biome', () => {
+  const long = planAppAggregate(
+    parseArgs(['aggregate', 'stream.questionnaire-response-revision'], layout),
+  );
+  const src =
+    long.files.find(
+      (f) =>
+        f.path ===
+        '/p/stream/src/questionnaire-response-revision/questionnaire-response-revision.repo.fake.ts',
+    )?.content ?? '';
+  expect(src).toContain(`export class QuestionnaireResponseRevisionRepoFake
+  extends MemoryRepo<
+    QuestionnaireResponseRevisionAr,
+    StateOf<typeof QuestionnaireResponseRevisionArDef>
+  >
+  implements QuestionnaireResponseRevisionRepo
+{`);
+  expect(src).toContain(`    super(
+      QuestionnaireResponseRevisionArDef,
+      QuestionnaireResponseRevisionAr.restore,
+    );`);
 });
 
 test('JSON-репозиторий: реализует порт, состояние разбирает схема Def', () => {

@@ -12,6 +12,7 @@ import { kindNames, toCamel, toPascal, toUpperSnake } from '../naming';
 import type { GenPlan, PlannedFile } from '../plan';
 import { fit, list } from '../wrap';
 import { createInputConst } from './aggregate';
+import { planRepoFake, repoFakeRel } from './app-aggregate';
 
 type OpKind = 'uc' | 'er' | 'job';
 
@@ -364,7 +365,7 @@ ${this.register(key)}
     return this.creates ? this.createTest() : this.updateTest();
   }
 
-  /** Импорты теста: временный каталог и JSON-репозиторий агрегата. */
+  /** Импорты теста: фейк порта репозитория агрегата. */
   private repoTestImports(
     test: string,
     domain: string[],
@@ -373,14 +374,11 @@ ${this.register(key)}
     const c = this.c;
     return sortImports([
       `import { ${test} } from 'bun:test';`,
-      "import { mkdtempSync, rmSync } from 'node:fs';",
-      "import { tmpdir } from 'node:os';",
-      "import { join } from 'node:path';",
       namedImport(sortNames([...domain, this.moduleDef]), c.domain),
       "import { type InputOf, UserCaller } from 'dmg-core';",
       "import { ModuleFacades, Trace } from 'dmg-core/app';",
       `import { ${check} } from 'dmg-core/testing';`,
-      `import { ${c.agg}JsonRepo } from '../../infra/${c.a}.json-repo';`,
+      `import { ${c.agg}RepoFake } from '../${c.a}.repo.fake';`,
       `import type { ${c.deps} } from '../../${c.m}.module';`,
       `import { ${c.className} } from './${c.base}';`,
     ]);
@@ -398,18 +396,16 @@ ${this.register(key)}
       : list('', `${head} {`, fields, '};', { space: true });
   }
 
-  /** Резолвер с JSON-репозиторием во временном каталоге — до каждого теста. */
+  /** Резолвер с фейком порта репозитория — до каждого теста. */
   private get repoSetup(): string {
     const c = this.c;
     return `const user = new UserCaller({ uuid: crypto.randomUUID() });
 const trace = Trace.fromRequest({ requestId: 'r-1' });
 
-let dir: string;
-let repo: ${c.agg}JsonRepo;
+let repo: ${c.agg}RepoFake;
 let uc: ${c.className};
 beforeEach(() => {
-${list('  ', 'dir = mkdtempSync(', [`join(tmpdir(), '${c.name}-')`], ');')}
-${list('  ', `repo = new ${c.agg}JsonRepo(`, [`join(dir, '${c.a}.json')`], ');')}
+  repo = new ${c.agg}RepoFake();
   // Остальные зависимости модуля — по мере надобности операции.
   const deps = {
     app: testAppContext().app,
@@ -417,14 +413,13 @@ ${list('  ', `repo = new ${c.agg}JsonRepo(`, [`join(dir, '${c.a}.json')`], ');')
     ${this.repo}: repo,
   } as ${c.deps};
 ${this.newImpl('  ', 'uc = ')}
-});
-afterEach(() => rmSync(dir, { recursive: true, force: true }));`;
+});`;
   }
 
   private createTest(): string {
     const c = this.c;
     return `${this.repoTestImports(
-      'afterEach, beforeEach, describe, expect, it',
+      'beforeEach, describe, expect, it',
       [`type ${c.defName}`],
       'expectOk, testAppContext',
     )}
@@ -435,7 +430,8 @@ ${this.repoSetup}
 describe('${c.className}', () => {
   it('создаёт агрегат и сохраняет его', async () => {
     const out = expectOk(await uc.handle(input, user, trace));
-${list('    ', 'expect(', [`await repo.findById(out.${this.idField})`], ').toBeDefined();')}
+    expect(repo.saved).toHaveLength(1);
+${list('    ', 'expect(', [`repo.restored(out.${this.idField})`], ').toBeDefined();')}
   });
 });
 `;
@@ -446,7 +442,7 @@ ${list('    ', 'expect(', [`await repo.findById(out.${this.idField})`], ').toBeD
     const A = c.agg;
     const code = `${toUpperSnake(c.a)}_NOT_FOUND`;
     return `${this.repoTestImports(
-      'afterEach, beforeEach, describe, expect, it',
+      'beforeEach, describe, expect, it',
       [`type ${c.defName}`, `type Create${A}`, `${A}Ar`],
       'expectErr, expectOk, testAppContext',
     )}
@@ -460,14 +456,16 @@ ${this.repoSetup}
 describe('${c.className}', () => {
   it('загружает агрегат и сохраняет его', async () => {
 ${list('    ', 'const ar = expectOk(', [`${A}Ar.create(createInput, T0)`], ');')}
-    await repo.save(ar);
+    repo.seed(ar.snapshot());
     expectOk(await uc.handle(input, user, trace));
+    expect(repo.saved.map((s) => s.uuid)).toEqual([ID]);
   });
 
   it('нет агрегата — ${code}', async () => {
     const res = await uc.handle(input, user, trace);
 ${list('    ', 'const error = expectErr(', ['res', `'${code}'`], ');')}
     expect(error.payload).toEqual(input);
+    expect(repo.saved).toEqual([]);
   });
 });
 `;
@@ -637,6 +635,22 @@ function callNotes(args: GenArgs, kind: OpKind): string[] {
   return [`Вызов: call ${args.module}.${toCamel(args.name ?? '')}`];
 }
 
+/**
+ * Тест UC — на фейке порта \`<a>/<a>.repo.fake.ts\`. Агрегат от старой версии
+ * \`gen aggregate\` фейка не имеет: \`gen uc\` создаёт его сам (иначе тест
+ * заготовки не компилируется) и подсказывает дописать выборки порта.
+ */
+function repoFake(args: GenArgs, kind: OpKind): PlannedFile[] {
+  const { module: m, aggregate: a = '' } = args;
+  if (kind !== 'uc') return [];
+  const path = join(args.layout.appDir(m), repoFakeRel(a));
+  return existsSync(path) ? [] : [planRepoFake(args)];
+}
+
+/** Подсказка: фейк порта создан при генерации UC. */
+const fakeNote = (a: string): string =>
+  `Фейк порта для тестов UC создан: ${repoFakeRel(a)}; выборки порта (find*) — допиши через this.unanswered`;
+
 /** Подсказка: событие `created` публикует UC создания (MAN-06). */
 export const createdNote = (m: string, a: string): string =>
   `Событие created публикует UC создания (MAN-06): dmg-core gen uc ${m}.${a} create`;
@@ -660,6 +674,7 @@ export function planOperation(args: GenArgs): GenPlan {
     domain: args.layout.domainImport(m, join(appDir, a, kind)),
   };
   const t = new TEMPLATES[kind](c);
+  const fake = repoFake(args, kind);
 
   const rel = join(a, kind, names.fileName);
   const relBase = `./${a}/${kind}/${c.base}`;
@@ -681,6 +696,7 @@ export function planOperation(args: GenArgs): GenPlan {
       file(domainDir, '.test', t.contractTest()),
       file(appDir, '', t.implementation()),
       file(appDir, '.test', t.implementationTest()),
+      ...fake,
     ],
     edits: [
       {
@@ -712,6 +728,10 @@ export function planOperation(args: GenArgs): GenPlan {
         ),
       },
     ],
-    notes: [...createNotes(args, kind), ...callNotes(args, kind)],
+    notes: [
+      ...createNotes(args, kind),
+      ...callNotes(args, kind),
+      ...(fake.length > 0 ? [fakeNote(a)] : []),
+    ],
   };
 }

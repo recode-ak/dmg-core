@@ -15,9 +15,11 @@ test.each(['uc', 'er', 'job'] as const)(
     const plan = planOperation(
       parseArgs([kind, 'stream.student', 'do-thing'], layout),
     );
+    // Фейк порта (`gen uc` у агрегата без него) — не часть пары.
     const rels = (root: string) =>
       plan.files
         .filter((f) => f.path.startsWith(`${root}/`))
+        .filter((f) => !f.path.endsWith('.repo.fake.ts'))
         .map((f) => relative(root, f.path));
     expect(rels(DOMAIN)).toEqual([
       `student/${kind}/do-thing.${kind}.ts`,

@@ -16,14 +16,46 @@ const plan = (kind: 'uc' | 'er' | 'job', name: string) =>
 const content = (p: ReturnType<typeof plan>, path: string) =>
   p.files.find((f) => f.path === path)?.content ?? '';
 
-test('uc: пара контракт ↔ реализация с одинаковым относительным путём', () => {
+test('uc: пара контракт ↔ реализация с одинаковым относительным путём; нет фейка порта — он тоже', () => {
   const p = plan('uc', 'complete-student');
   expect(p.files.map((f) => f.path)).toEqual([
     '/d/stream/student/uc/complete-student.uc.ts',
     '/d/stream/student/uc/complete-student.uc.test.ts',
     '/p/stream/src/student/uc/complete-student.uc.ts',
     '/p/stream/src/student/uc/complete-student.uc.test.ts',
+    '/p/stream/src/student/student.repo.fake.ts',
   ]);
+  expect(content(p, '/p/stream/src/student/student.repo.fake.ts')).toContain(
+    'export class StudentRepoFake',
+  );
+  expect(p.notes).toContainEqual(FAKE_NOTE);
+});
+
+test('uc: фейк порта уже есть — не создаётся заново, подсказки нет', () => {
+  const root = mkdtempSync(join(tmpdir(), 'gen-op-'));
+  try {
+    mkdirSync(join(root, 'stream/src/student'), { recursive: true });
+    writeFileSync(join(root, 'stream/src/student/student.repo.fake.ts'), '');
+    const withFake = new GenLayout(
+      { domain: '/d/{m}', app: `${root}/{m}/src` },
+      '.',
+    );
+    const p = planOperation(
+      parseArgs(['uc', 'stream.student', 'complete-student'], withFake),
+    );
+    expect(p.files.map((f) => f.path)).not.toContain(
+      join(root, 'stream/src/student/student.repo.fake.ts'),
+    );
+    expect(p.notes).not.toContainEqual(FAKE_NOTE);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('er и job: фейк порта не нужен — не создаётся', () => {
+  for (const kind of ['er', 'job'] as const) {
+    expect(plan(kind, 'fulfill-wish').files).toHaveLength(4);
+  }
 });
 
 test('uc: контракт — UseCaseDef на агрегат', () => {
@@ -168,17 +200,30 @@ test('uc create: реализация создаёт агрегат и реги�
   expect(src).toContain('_caller: Caller<Identified>,');
 });
 
-test('uc create: тест реализации — JSON-репозиторий во временном каталоге', () => {
+test('uc create: тест реализации — фейк порта, без временного каталога', () => {
   const src = content(
     plan('uc', 'create-student'),
     '/p/stream/src/student/uc/create-student.uc.test.ts',
   );
   expect(src).toContain(
-    "import { StudentJsonRepo } from '../../infra/student.json-repo';",
+    "import { StudentRepoFake } from '../student.repo.fake';",
   );
-  expect(src).toContain('mkdtempSync(');
+  expect(src).toContain(
+    "import { beforeEach, describe, expect, it } from 'bun:test';",
+  );
+  expect(src).toContain('repo = new StudentRepoFake();');
   expect(src).toContain('studentRepo: repo,');
-  expect(src).toContain('await repo.findById(out.studentId)');
+  expect(src).toContain('expect(repo.saved).toHaveLength(1);');
+  expect(src).toContain('expect(repo.restored(out.studentId)).toBeDefined();');
+  for (const gone of [
+    'JsonRepo',
+    'mkdtempSync',
+    'tmpdir',
+    'rmSync',
+    'afterEach',
+  ]) {
+    expect(src).not.toContain(gone);
+  }
   expect(src).not.toContain('TODO');
 });
 
@@ -220,9 +265,22 @@ test('uc не create: тест реализации — успех на сохр
     '/p/stream/src/student/uc/complete-student.uc.test.ts',
   );
   expect(src).toContain(
-    "import { StudentJsonRepo } from '../../infra/student.json-repo';",
+    "import { StudentRepoFake } from '../student.repo.fake';",
   );
+  expect(src).toContain('repo.seed(ar.snapshot());');
+  expect(src).not.toContain('repo.save(');
+  expect(src).toContain('expect(repo.saved.map((s) => s.uuid)).toEqual([ID]);');
   expect(src).toContain("expectErr(res, 'STUDENT_NOT_FOUND')");
+  expect(src).toContain('expect(repo.saved).toEqual([]);');
+  for (const gone of [
+    'JsonRepo',
+    'mkdtempSync',
+    'tmpdir',
+    'rmSync',
+    'afterEach',
+  ]) {
+    expect(src).not.toContain(gone);
+  }
   expect(src).not.toContain('TODO');
 });
 
@@ -273,12 +331,16 @@ test('тест контракта: длинное имя разбито по с�
   );
 });
 
+const FAKE_NOTE =
+  'Фейк порта для тестов UC создан: student/student.repo.fake.ts; выборки порта (find*) — допиши через this.unanswered';
+
 const NOTE =
   'Событие created публикует UC создания (MAN-06): dmg-core gen uc stream.student create';
 
 test('uc — адрес вызова раннером: call <модуль>.<имя UC>', () => {
   expect(plan('uc', 'create-student').notes).toEqual([
     'Вызов: call stream.createStudent',
+    FAKE_NOTE,
   ]);
   expect(plan('er', 'fulfill-wish').notes).not.toContainEqual(
     expect.stringContaining('Вызов:'),
@@ -289,6 +351,7 @@ test('MAN-06: без UC создания в каталоге — подсказ�
   expect(plan('uc', 'complete-student').notes).toEqual([
     NOTE,
     'Вызов: call stream.completeStudent',
+    FAKE_NOTE,
   ]);
   expect(plan('er', 'fulfill-wish').notes).toEqual([NOTE]);
   expect(plan('job', 'inactivity-sweep').notes).toEqual([]);
@@ -306,7 +369,7 @@ test('MAN-06: UC создания уже есть — подсказки нет'
     const notes = planOperation(
       parseArgs(['uc', 'stream.student', 'complete-student'], withCreate),
     ).notes;
-    expect(notes).toEqual(['Вызов: call stream.completeStudent']);
+    expect(notes).toEqual(['Вызов: call stream.completeStudent', FAKE_NOTE]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
