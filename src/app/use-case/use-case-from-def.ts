@@ -36,7 +36,7 @@ export type UseCaseSubjectOf<D extends AnyUseCaseDef> = RuleSubjectOf<
 > &
   Identified;
 
-/** Контекст Policy UC: что `load` обязан загрузить. */
+/** Контекст Policy UC: что `load` обязан загрузить (D-58). */
 export type UseCaseContextOf<D extends AnyUseCaseDef> = RuleContextOf<
   D['policy']
 >;
@@ -52,12 +52,13 @@ export type UseCaseRulesContextOf<D extends AnyUseCaseDef> = RuleContexts<
 >;
 
 /**
- * Доменное правило UC так, как его видит исполнение: контекст — загруженное,
- * ошибка — из `errors` UC (ERR-02). Правило с необъявленной ошибкой не
- * подходит конструктору; рантайм-проверку того же делает `DefChecker`.
+ * Доменное правило UC так, как его видит исполнение: контекст — загруженное
+ * `load` и `fetch` вместе (`C`), ошибка — из `errors` UC (ERR-02). Правило с
+ * чужим контекстом или необъявленной ошибкой не подходит конструктору;
+ * рантайм-проверку ошибки делает `DefChecker`.
  */
-type UseCaseRule<D extends AnyUseCaseDef> = DomainRuleDef<
-  UseCaseRulesContextOf<D>,
+type UseCaseRule<D extends AnyUseCaseDef, C> = DomainRuleDef<
+  C,
   D['errors'][number]
 >;
 
@@ -81,17 +82,20 @@ export type UseCaseHandler<
 };
 
 /**
- * Реализация UC по Def (API-05). Наследник пишет только `load` (загрузить
- * то, что нужно Policy и операции) и `execute` (операция домена +
- * `uow.register`). Порядок, Policy, ошибки ядра, фиксация и публикация —
+ * Реализация UC по Def (API-05). Наследник пишет `load` (контекст Policy),
+ * при необходимости `fetch` (вызовы чужих модулей — после права, D-58) и
+ * `execute` (операция домена + `uow.register`). Порядок, Policy, ошибки ядра, фиксация и публикация —
  * здесь (errors-result.md §3); свойства Def в наследнике не повторяются.
  * Шаги — `protected`: наследник может их переопределить (например,
  * ослабить `checkPolicy` для системного вызова, D-43) — под свою
  * ответственность.
  *
- * `L` — загруженное: подтип контекста Policy и контекстов всех доменных
- * правил (например, `{ task: TaskAr }` для `{ task: ReadonlyAr<TaskAr> }`),
- * поэтому Policy, правила и операция видят одни и те же агрегаты.
+ * `L` — загруженное `load`: подтип контекста Policy (например,
+ * `{ task: TaskAr }` для `{ task: ReadonlyAr<TaskAr> }`), поэтому Policy,
+ * правила и операция видят одни и те же агрегаты. `F` — добытое `fetch`
+ * (объект; без `fetch` — `unknown`, и `L & F` остаётся `L`); `L & F`
+ * обязано подходить контекстам всех доменных правил (проверяет
+ * конструктор).
  *
  * `U` — субъект вызывающего, который знает реализация: тип пользователя
  * замыкает приложение (D-04). Он не уже субъекта Policy; при `allowAll`
@@ -100,11 +104,12 @@ export type UseCaseHandler<
 export abstract class UseCaseFromDef<
   D extends AnyUseCaseDef,
   R extends ModuleDeps,
-  L extends UseCaseContextOf<D> & UseCaseRulesContextOf<D>,
+  L extends UseCaseContextOf<D>,
   U extends UseCaseSubjectOf<D> = UseCaseSubjectOf<D>,
+  F = unknown,
 > extends OperationFromDef<D, R> {
   private readonly policy: Rule<UseCaseSubjectOf<D>, UseCaseContextOf<D>>;
-  private readonly rules: readonly UseCaseRule<D>[];
+  private readonly rules: readonly UseCaseRule<D, L & F>[];
 
   /**
    * `module` — Def модуля-владельца: его передаёт `ModuleFromDef` (D-43),
@@ -114,7 +119,7 @@ export abstract class UseCaseFromDef<
   constructor(
     def: D & {
       readonly policy: Rule<UseCaseSubjectOf<D>, UseCaseContextOf<D>>;
-      readonly rules?: readonly UseCaseRule<D>[];
+      readonly rules?: readonly UseCaseRule<D, L & F>[];
     },
     resolve: R,
     module: AnyModuleDef,
@@ -136,9 +141,26 @@ export abstract class UseCaseFromDef<
     trace: Trace,
   ): Promise<Result<L, UseCaseErrorOf<D>>>;
 
+  /**
+   * Вызовы чужих модулей (`this.call`) и всё, что нужно только правилам и
+   * операции, — после Policy (D-58): не-владелец не узнаёт ответ
+   * зависимости, зависимость не получает лишний вызов. По умолчанию —
+   * ничего; наследник, задавший `F`, обязан переопределить шаг. Ошибка
+   * возвращается как есть, до UoW.
+   */
+  protected fetch(
+    _input: ParsedInputOf<D>,
+    _loaded: L,
+    _caller: Caller<U>,
+    _trace: Trace,
+  ): Promise<Result<F, UseCaseErrorOf<D>>> {
+    // `undefined` подходит только `F = unknown` — по умолчанию.
+    return Promise.resolve(ok(undefined as F));
+  }
+
   protected abstract execute(
     input: ParsedInputOf<D>,
-    loaded: L,
+    loaded: L & F,
     uow: UnitOfWork,
     caller: Caller<U>,
     trace: Trace,
@@ -161,7 +183,7 @@ export abstract class UseCaseFromDef<
 
   /**
    * Шаги: `checkCaller` → `parseInput` → `load` → `checkPolicy` →
-   * `checkRules` → `execute` → `parseOutput` → фиксация (с публикацией) →
+   * `fetch` → `checkRules` → `execute` → `parseOutput` → фиксация (с публикацией) →
    * запись в лог операций (любой исход). Непредвиденное исключение —
    * `SERVER_INTERNAL` с записью в лог.
    */
@@ -228,7 +250,7 @@ export abstract class UseCaseFromDef<
    * текущей — `VERSION_CONFLICT`, не прислана — сверки нет. Шаг явный:
    * какой агрегат сверять, знает только UC. Вызывать первым шагом
    * `execute`, до операции: сверка идёт с текущей версией, после мутации
-   * конфликт будет ложным. Policy и `rules` Def проверяются раньше.
+   * конфликт будет ложным. Policy, `fetch` и `rules` Def — раньше.
    */
   protected expectVersion(
     ar: {
@@ -249,7 +271,7 @@ export abstract class UseCaseFromDef<
    * Доменные правила Def: субъекта не знают — проверяются для любого
    * вызывающего. Отказ — до UoW: следов не остаётся.
    */
-  protected checkRules(loaded: L): Result<void, UseCaseErrorOf<D>> {
+  protected checkRules(loaded: L & F): Result<void, UseCaseErrorOf<D>> {
     for (const r of this.rules) {
       const checked = r.check(loaded);
       if (!checked.ok) return checked;
@@ -285,16 +307,13 @@ export abstract class UseCaseFromDef<
     if (!loaded.ok) return loaded;
     const permitted = this.checkPolicy(loaded.value, caller);
     if (!permitted.ok) return permitted;
-    const checked = this.checkRules(loaded.value);
+    const fetched = await this.fetch(parsed.value, loaded.value, caller, trace);
+    if (!fetched.ok) return fetched;
+    const context = merge(loaded.value, fetched.value);
+    const checked = this.checkRules(context);
     if (!checked.ok) return checked;
     const uow = run.track(this.createUow(trace));
-    const res = await this.execute(
-      parsed.value,
-      loaded.value,
-      uow,
-      caller,
-      trace,
-    );
+    const res = await this.execute(parsed.value, context, uow, caller, trace);
     if (!res.ok) return res;
     const output = this.parseOutput(res.value);
     if (!output.ok) return output;
@@ -302,6 +321,12 @@ export abstract class UseCaseFromDef<
     if (!committed.ok) return committed;
     return output;
   }
+}
+
+/** Контекст правил и `execute`: загруженное, дополненное добытым `fetch`. */
+function merge<L, F>(loaded: L, fetched: F): L & F {
+  if (fetched === undefined) return loaded as L & F;
+  return Object.assign({}, loaded, fetched);
 }
 
 type Issue = { readonly path: string; readonly message: string };

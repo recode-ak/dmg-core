@@ -19,7 +19,7 @@ import {
   UserCaller,
 } from '#core/kernel/caller/caller';
 import { ErrorDef } from '#core/kernel/errors/error-def';
-import { ok } from '#core/kernel/result/result';
+import { ok, type Result } from '#core/kernel/result/result';
 import {
   CompleteTaskUcDef,
   type TaskAr,
@@ -674,7 +674,7 @@ describe('UseCaseFromDef — доменные правила', () => {
     expect(Undeclared).toBeDefined();
   });
 
-  test('загруженный контекст обязан подходить каждому правилу', () => {
+  test('контекст load и fetch вместе обязан подходить каждому правилу (D-58)', () => {
     const fewOpen = DomainRuleDef.define({
       name: 'fewOpen',
       label: 'Мало открытых',
@@ -687,12 +687,163 @@ describe('UseCaseFromDef — доменные правила', () => {
       ...CompleteTaskUcDef,
       rules: [notDone, fewOpen],
     });
-    type Uc = typeof TwoRulesUcDef;
-    // @ts-expect-error: нет openCount — правилу fewOpen нечего проверять
-    type Missing = UseCaseFromDef<Uc, Deps, Loaded>;
-    type Full = UseCaseFromDef<Uc, Deps, Loaded & { openCount: number }>;
-    expectTypeOf<Missing>().not.toBeNever();
-    expectTypeOf<Full>().not.toBeNever();
+    type Fetched = { openCount: number };
+    abstract class Missing extends UseCaseFromDef<
+      typeof TwoRulesUcDef,
+      Deps,
+      Loaded
+    > {
+      constructor() {
+        super(
+          // @ts-expect-error: нет openCount — правилу fewOpen нечего проверять
+          TwoRulesUcDef,
+          { app: ctx.app, facades, tasks },
+          moduleOf(TwoRulesUcDef),
+        );
+      }
+    }
+    abstract class FromFetch extends UseCaseFromDef<
+      typeof TwoRulesUcDef,
+      Deps,
+      Loaded,
+      User,
+      Fetched
+    > {
+      constructor() {
+        super(
+          TwoRulesUcDef,
+          { app: ctx.app, facades, tasks },
+          moduleOf(TwoRulesUcDef),
+        );
+      }
+    }
+    expect([Missing, FromFetch]).toHaveLength(2);
+  });
+});
+
+describe('UseCaseFromDef.fetch — чужие вызовы после Policy (D-58)', () => {
+  let calls: string[];
+  let fetched: Result<{ assignee: { active: boolean } }, OtherError>;
+
+  type OtherError = ReturnType<typeof OtherErrors.FAILED.err>['error'];
+  type Fetched = { assignee: { active: boolean } };
+
+  const assigneeActive = DomainRuleDef.define({
+    name: 'assigneeActive',
+    label: 'Исполнитель активен',
+    description: 'Правило над ответом зависимости из fetch.',
+    error: OtherErrors.FAILED,
+    check: (c: { readonly assignee: { readonly active: boolean } }) => {
+      calls.push('rule');
+      return c.assignee.active ? ok() : OtherErrors.FAILED.err();
+    },
+  });
+
+  const FetchingUcDef = UseCaseDef.define({
+    ...CompleteTaskUcDef,
+    rules: [assigneeActive],
+    errors: [...CompleteTaskUcDef.errors, OtherErrors.FAILED],
+  });
+
+  class Fetching extends UseCaseFromDef<
+    typeof FetchingUcDef,
+    Deps,
+    Loaded,
+    User,
+    Fetched
+  > {
+    seen: (Loaded & Fetched) | undefined;
+    constructor() {
+      super(
+        FetchingUcDef,
+        { app: ctx.app, facades, tasks },
+        moduleOf(FetchingUcDef),
+      );
+    }
+    protected load(i: { taskId: string }) {
+      calls.push('load');
+      return loadTask(tasks, i);
+    }
+    protected override async fetch(_: { taskId: string }, loaded: Loaded) {
+      calls.push('fetch');
+      expect(loaded.task.uuid).toBe(TASK);
+      return fetched;
+    }
+    protected async execute(
+      _: unknown,
+      loaded: Loaded & Fetched,
+      uow: UnitOfWork,
+    ) {
+      calls.push('execute');
+      this.seen = loaded;
+      loaded.task.complete(T0);
+      uow.register(loaded.task, tasks);
+      return ok({});
+    }
+  }
+
+  beforeEach(() => {
+    calls = [];
+    fetched = ok({ assignee: { active: true } });
+  });
+
+  test('порядок: load → fetch → правила → execute', async () => {
+    expectOk(await new Fetching().handle({ taskId: TASK }, user(OWNER), REQ));
+    expect(calls).toEqual(['load', 'fetch', 'rule', 'execute']);
+  });
+
+  test('Policy отказала → fetch не вызван', async () => {
+    const res = await new Fetching().handle(
+      { taskId: TASK },
+      user('чужой'),
+      REQ,
+    );
+    expectErr(res, 'ACCESS_DENIED');
+    expect(calls).toEqual(['load']);
+  });
+
+  test('правила видят результат fetch', async () => {
+    fetched = ok({ assignee: { active: false } });
+    const res = await new Fetching().handle({ taskId: TASK }, user(OWNER), REQ);
+    expectErr(res, 'OTHER_FAILED');
+    expect(calls).toEqual(['load', 'fetch', 'rule']);
+  });
+
+  test('execute получает загруженное и результат fetch одним объектом', async () => {
+    const uc = new Fetching();
+    expectOk(await uc.handle({ taskId: TASK }, user(OWNER), REQ));
+    expect(uc.seen?.assignee).toEqual({ active: true });
+    expect(uc.seen?.task.uuid).toBe(TASK);
+  });
+
+  test('ошибка fetch возвращается как есть: правила и execute не вызваны, ничего не зафиксировано', async () => {
+    fetched = OtherErrors.FAILED.err();
+    const res = await new Fetching().handle({ taskId: TASK }, user(OWNER), REQ);
+    expectErr(res, 'OTHER_FAILED');
+    expect(calls).toEqual(['load', 'fetch']);
+    expect(tasks.rows.get(TASK)?.status).toBe('open');
+    expect(ctx.published).toEqual([]);
+  });
+
+  test('UC без fetch — execute получает только загруженное', async () => {
+    let seen: unknown;
+    class NoFetch extends CompleteTask {
+      protected override async execute(
+        i: { taskId: string },
+        l: Loaded,
+        uow: UnitOfWork,
+      ) {
+        seen = l;
+        return super.execute(i, l, uow);
+      }
+    }
+    const res = await new NoFetch({ app: ctx.app, facades, tasks }).handle(
+      { taskId: TASK },
+      user(OWNER),
+      REQ,
+    );
+    expectOk(res);
+    expect(Object.keys(seen as object)).toEqual(['task']);
   });
 });
 
