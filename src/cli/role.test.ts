@@ -102,3 +102,27 @@ describe('Role.render', () => {
     expect(plain.render('claude', marker)).not.toContain('model:');
   });
 });
+
+describe('Role.renderEnv', () => {
+  const role = Role.parse(SRC, REVIEWER);
+  const comment = '<!-- Сгенерировано сборщиком проекта — не править. -->';
+
+  test('копия среды со своей меткой сборщика и общим блоком', () => {
+    expect(role.renderEnv('claude', comment, 'Общий блок.')).toBe(
+      role
+        .render('claude', marker, 'Общий блок.')
+        .replace(marker.comment, comment),
+    );
+  });
+
+  test('description экранируется и разбирается обратно', () => {
+    const tricky = Role.parse(
+      SRC,
+      source('name: reviewer\ndescription: \'a: "b" # c\'\ntools: [read]'),
+    );
+    const fm = Bun.YAML.parse(
+      tricky.renderEnv('pi', comment).split('---')[1] ?? '',
+    ) as { description: string };
+    expect(fm.description).toBe('a: "b" # c');
+  });
+});

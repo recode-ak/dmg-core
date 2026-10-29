@@ -95,15 +95,23 @@ export class Role {
    */
   render(format: RoleFormat, marker: Marker, common = ''): string {
     if (format === 'neutral') return marker.mark(this.source);
+    return this.renderEnv(format, marker.comment, common);
+  }
+
+  /**
+   * Готовая роль среды с меткой comment после frontmatter — для сборщика
+   * проекта со своей меткой; общий блок — в конце.
+   */
+  renderEnv(env: AgentEnv, comment: string, common = ''): string {
     const lines = [
       '---',
       `name: ${this.name}`,
       `description: ${JSON.stringify(this.description)}`,
-      `tools: ${this.tools.map((tool) => TOOLS[tool][format]).join(', ')}`,
+      `tools: ${this.tools.map((tool) => TOOLS[tool][env]).join(', ')}`,
     ];
-    const model = this.model[format];
+    const model = this.model[env];
     if (model) lines.push(`model: ${model}`);
-    lines.push('---', '', marker.comment, '', this.body, '');
+    lines.push('---', '', comment, '', this.body, '');
     if (common.trim()) lines.push(common.trim(), '');
     return lines.join('\n');
   }
