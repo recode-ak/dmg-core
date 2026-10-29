@@ -17,7 +17,7 @@
 - [Манифесты](docs/manifests.md): Def-классы (`XxxDef.define`), обязательные описания, схемы, граф L0/L1/L2
 - [Ошибки и Result](docs/errors-result.md): модель ошибки, `kind`, исполнение UC, UoW
 - [Caller и Trace](docs/caller.md): кто вызывает, субъект, след вызова
-- [Транспорт](docs/transport.md): HTTP (JSON-команда), MCP, in-proc
+- [Транспорт](docs/transport.md): HTTP (JSON-команда, `meta.requestId`, ожидаемая версия — поле входа `expectedVersion`), MCP, in-proc
 
 ## Правила и качество
 

@@ -49,7 +49,7 @@ export const CoreErrors = ErrorDef.define('', {
     kind: 'conflict',
     label: 'Данные изменились',
     description:
-      'Запись изменили параллельно, пока шла операция; повторите её с актуальными данными.',
+      'Запись изменили — параллельно с операцией или после того, как клиент её видел; повторите операцию с актуальными данными.',
     payload: v.object({
       aggregate: v.pipe(v.string(), v.description('Агрегат')),
       uuid: v.pipe(v.string(), v.description('Идентификатор записи')),

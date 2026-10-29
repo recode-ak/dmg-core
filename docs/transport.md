@@ -21,10 +21,11 @@
 
 - Всегда `POST /api/<module>` с телом JSON-команды:
   ```json
-  { "uc": "completeTask", "input": { }, "meta": { "requestId": "…", "version": 1 } }
+  { "uc": "completeTask", "input": { "taskId": "…", "expectedVersion": 3 }, "meta": { "requestId": "…" } }
   ```
 - Команда — простые данные (D-49): `uc` — `name` Def UC, имени модуля в ней нет. Клиент собирает её из Def: `ucDef.command(input)` → `Command<D>`.
-- `meta` — расширение без смены протокола: `requestId`, `version`.
+- `meta` — расширение без смены протокола: `requestId`.
+- **Ожидаемая версия (D-57)** — не `meta`, а поле входа UC `expectedVersion` (схема `F.expectedVersion()`): версия агрегата, которую видел клиент (кнопка бота, открытая форма). UC сверяет её шагом `this.expectVersion(ar, expectedVersion)`: расходится — `VERSION_CONFLICT` (409) без записи; не прислана — сверки нет. Поле видно в контракте UC (`OPTIONS`) и входит во вход отсева повторов.
 - **`requestId` — одно намерение клиента:** клиент создаёт его один раз и повторяет при ретраях. Это и след (`Trace`, `correlationId`), и ключ идемпотентности: повтор command UC с тем же `requestId` от того же caller не исполняется дважды, клиент получает сохранённый ответ; тот же `requestId` с другим входом — конфликт. Отдельного ключа идемпотентности нет. `requestId`, созданный сервером (клиент его не прислал), в отсев не идёт; query не отсеиваются.
 - **Один `Trace` с id клиента — одна команда.** Новая команда — новый `requestId` и новый `Trace`; один след на несколько разных команд даёт `REQUEST_CONFLICT` `input` (тот же вход — сохранённый ответ первой). В тестах — фабрика следа, а не константа: `const req = () => Trace.fromRequest({ requestId: crypto.randomUUID() })`.
 - **Отсев повторов (D-56)** — в `dispatch` модуля, через порт `ReplayStore` (`AppContext.replay`; по умолчанию `InProcReplayStore`, TTL 24 ч и ёмкость; хранилище, переживающее рестарт, даёт приложение). Отсеивается command UC со следом запроса, `requestId` которого прислал клиент (`trace.clientRequestId`). Ключ — модуль + вызывающий (`user` — субъект, `delegate` — субъект и заместитель, гость — канал и `channel.visitorId`) + `requestId`; вход — канонический JSON `{ uc, input }` (ключи объектов отсортированы). Без отсева: query, серверный `requestId`, след события или Job, вызывающий `system`, гость без `visitorId`.

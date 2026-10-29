@@ -42,6 +42,7 @@
   Тип пользователя — `Identified` в заготовке; тип приложения (D-53, `AppUser`) нужен, только если Policy или UC читают его поля. Параметры методов TS проверяет бивариантно: сменил тип субъекта в Policy — сверь и `execute`.
 - Зависимости модуля (репозитории, фасады, порты из `<M>Deps`) — `this.resolve.<имя>`; поля `deps` наружу нет.
 - Субъект — `this.subject(caller)`, время — `this.now()`; UoW создаёт база.
+- **Ожидаемая версия от клиента (D-57)** — по выбору UC, когда устаревшее действие клиента (кнопка бота, давно открытая форма) не должно пройти молча: поле входа `expectedVersion: F.expectedVersion()` и первым шагом `execute` — `const expected = this.expectVersion(task, input.expectedVersion); if (!expected.ok) return expected;`. Расходится с `ar.version` — `VERSION_CONFLICT` (агрегат и uuid), до операции: записи и событий нет; не прислана — сверки нет. Несколько агрегатов — несколько полей (`expectedTaskVersion`, …). Версию клиент берёт из выхода query (`version` во `view()`).
 - Новый `uuid` агрегата — в UC (`crypto.randomUUID()`) или из входа, если id выдаёт вызывающий; Ar и домен uuid не создают (детерминизм, DOM-14).
 
 ## 4. Command и query
@@ -52,7 +53,7 @@
 | `load` | агрегат(ы) и ответы зависимостей — контекст Policy и `rules` | контекст Policy, если он нужен; иначе `ok(undefined)` |
 | `execute` | метод Ar → `uow.register`; ошибка Ar — `return` как есть | чтение репозитория → выход; `uow` не трогается |
 | `rules`, `emits` | по смыслу | нет |
-| схемы входа и выхода | из state: `v.object({ taskId: TaskState.entries.uuid, title: TaskState.entries.title })` — не копия поля (D-39) | `v.pick(<A>State, …)` |
+| схемы входа и выхода | из state: `v.object({ taskId: TaskState.entries.uuid, title: TaskState.entries.title })` — не копия поля (D-39); ожидаемая версия — `F.expectedVersion()` | `v.pick(<A>State, …)` |
 | выход | ответ методом Ar или `{}` | форма из state (`v.pick`, без копии схемы), значение — `view()` (D-44; `snapshot()` — только репозиторий, DOM-17) |
 
 - Нет агрегата при загрузке → `NOT_FOUND` из `load` (отказ загрузки, не решение по состоянию): Policy требует агрегат в контексте.
@@ -63,7 +64,7 @@
 
 - Command с вызовом чужого модуля: [assign-task.uc.ts (Def)](../../src/testing/example/todo/task/uc/assign-task.uc.ts) — `policy: canManage`, `rules: [assigneeActive]`, `calls: [GetUserUcDef]`, `UserErrors.NOT_FOUND` по ссылке, `emits` — оба события назначения; [реализация](../../src/testing/example/app/todo/task/uc/assign-task.uc.ts) — `load` кладёт задачу и ответ `users` в контекст, `execute` — `TaskAr.assign` → `uow.register`.
 - Command с доменным правилом при создании: [create-task.uc.ts (Def)](../../src/testing/example/todo/task/uc/create-task.uc.ts) — `allowAll`, `rules: [withinOpenLimit]`; [реализация](../../src/testing/example/app/todo/task/uc/create-task.uc.ts) — владелец из `this.subject(caller)`.
-- Command над агрегатом с Policy: [complete-task.uc.ts](../../src/testing/example/app/todo/task/uc/complete-task.uc.ts).
+- Command над агрегатом с Policy и ожидаемой версией: [complete-task.uc.ts](../../src/testing/example/app/todo/task/uc/complete-task.uc.ts).
 - Query субъекта: [list-tasks.uc.ts (Def)](../../src/testing/example/todo/task/uc/list-tasks.uc.ts) (`v.array(v.pick(TaskState, …))`) и [реализация](../../src/testing/example/app/todo/task/uc/list-tasks.uc.ts) (`task.view()`); query для других модулей — [get-task.uc.ts](../../src/testing/example/app/todo/task/uc/get-task.uc.ts), [get-user.uc.ts](../../src/testing/example/app/users/user/uc/get-user.uc.ts).
 - [todo.module.ts (карта)](../../src/testing/example/app/todo/todo.module.ts): `TodoDeps = ModuleDeps & { tasks }` — фасады зависимостей уже в `ModuleDeps.facades`.
 
@@ -91,4 +92,4 @@
 
 ## 8. Как тестировать
 
-Каждая ошибка UC — с `code` и «ничего не записано» (`expectErr(res, 'TASK_NOT_FOUND')` из `dmg-core/testing`: код — `<ПРЕФИКС ГРУППЫ>_<КЛЮЧ>` в UPPER_SNAKE, ERR-04, [errors.md](./errors.md)); порядок отказов (первый при нарушении нескольких); каждый исход выхода; сбой вызова чужого модуля (`StubFacade.answer` с ошибкой) — ответ UC и отсутствие записи; вызовы чужих UC — `received` (`SystemCaller` от UC, человек исходного вызова); недопустимый вызывающий — `UNAUTHORIZED`; у query — «ничего не записано» и только данные субъекта; у command над агрегатом — отказ Policy (`ACCESS_DENIED`) и каждый недопустимый статус. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts)): начальное состояние — `seed`, «ничего не записано» — `saved` пуст, ответ `find*` — присваиванием в тесте; выборку проверяет контрактный тест репозитория ([assign-task.uc.test.ts](../../src/testing/example/app/todo/task/uc/assign-task.uc.test.ts)); вход через модуль — smoke [todo.module.test.ts](../../src/testing/example/app/todo/todo.module.test.ts); лог операций — `MemoryOperationLog` из `testAppContext()`. Общее — [testing.md](../testing.md).
+Каждая ошибка UC — с `code` и «ничего не записано» (`expectErr(res, 'TASK_NOT_FOUND')` из `dmg-core/testing`: код — `<ПРЕФИКС ГРУППЫ>_<КЛЮЧ>` в UPPER_SNAKE, ERR-04, [errors.md](./errors.md)); порядок отказов (первый при нарушении нескольких); каждый исход выхода; сбой вызова чужого модуля (`StubFacade.answer` с ошибкой) — ответ UC и отсутствие записи; вызовы чужих UC — `received` (`SystemCaller` от UC, человек исходного вызова); недопустимый вызывающий — `UNAUTHORIZED`; у query — «ничего не записано» и только данные субъекта; у command над агрегатом — отказ Policy (`ACCESS_DENIED`) и каждый недопустимый статус; с ожидаемой версией — совпала, расходится (`VERSION_CONFLICT`, ничего не записано), не прислана. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts)): начальное состояние — `seed`, «ничего не записано» — `saved` пуст, ответ `find*` — присваиванием в тесте; выборку проверяет контрактный тест репозитория ([assign-task.uc.test.ts](../../src/testing/example/app/todo/task/uc/assign-task.uc.test.ts)); вход через модуль — smoke [todo.module.test.ts](../../src/testing/example/app/todo/todo.module.test.ts); лог операций — `MemoryOperationLog` из `testAppContext()`. Общее — [testing.md](../testing.md).
