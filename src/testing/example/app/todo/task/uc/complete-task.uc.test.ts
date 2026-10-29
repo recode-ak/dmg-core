@@ -112,3 +112,34 @@ describe('CompleteTaskUc', () => {
     expectErr(await complete(job), 'UNAUTHORIZED');
   });
 });
+
+// Ожидаемая версия от клиента (D-57): клиент присылает версию задачи,
+// которую видел; устаревшее действие отклоняется без записи.
+describe('CompleteTaskUc — ожидаемая версия', () => {
+  const completeSeen = (expectedVersion: number) =>
+    uc.handle({ taskId: TASK, expectedVersion }, as(OWNER), REQ);
+
+  it('совпала — задача выполнена', async () => {
+    expectOk(await completeSeen(0));
+    expect(tasks.restored(TASK)?.isDone()).toBe(true);
+  });
+
+  it('расходится — VERSION_CONFLICT, ничего не записано', async () => {
+    const res = await completeSeen(1);
+    expect(expectErr(res, 'VERSION_CONFLICT').payload).toEqual({
+      aggregate: 'task',
+      uuid: TASK,
+    });
+    expectNothingWritten();
+  });
+
+  it('не прислана — сверки нет', async () => {
+    expectOk(await complete());
+  });
+
+  it('отрицательная — INPUT_VALIDATION по полю expectedVersion', async () => {
+    const res = await completeSeen(-1);
+    const issues = expectErr(res, 'INPUT_VALIDATION').payload.issues;
+    expect(issues.map((i) => i.path)).toEqual(['expectedVersion']);
+  });
+});

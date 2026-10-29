@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 import { UseCaseDef } from '#core/domain/contracts/use-case-def';
+import { F } from '#core/kernel/fields/fields';
 import { TaskArDef } from '../task.ar';
 import { TaskErrors } from '../task.errors';
 import { TaskEvents } from '../task.events';
@@ -14,7 +15,10 @@ export const CompleteTaskUcDef = UseCaseDef.define({
   aggregate: TaskArDef,
   callers: ['user', 'delegate'],
   policy: TaskPolicy.rules.canManage,
-  input: v.object({ taskId: TaskState.entries.uuid }),
+  input: v.object({
+    taskId: TaskState.entries.uuid,
+    expectedVersion: F.expectedVersion(),
+  }),
   output: v.object({}),
   errors: [TaskErrors.NOT_FOUND, TaskErrors.ALREADY_DONE, TaskErrors.ARCHIVED],
   emits: [TaskEvents.completed],

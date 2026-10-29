@@ -27,7 +27,14 @@ export class CompleteTaskUc extends UseCaseFromDef<
     return task ? ok({ task }) : TaskErrors.NOT_FOUND.err({ taskId });
   }
 
-  protected async execute(_: unknown, { task }: Loaded, uow: UnitOfWork) {
+  protected async execute(
+    { expectedVersion }: { expectedVersion?: number },
+    { task }: Loaded,
+    uow: UnitOfWork,
+  ) {
+    // Устаревшее действие клиента — отказ до операции (D-57).
+    const expected = this.expectVersion(task, expectedVersion);
+    if (!expected.ok) return expected;
     const res = task.complete(this.now());
     if (!res.ok) return res;
     uow.register(task, this.resolve.tasks);
