@@ -17,7 +17,7 @@
 
 - Критерий — **участвует ли субъект**, а не число агрегатов (D-40): Policy может смотреть на несколько агрегатов. Ответ зависит только от состояний — это не Policy.
 - Право, которое выполняется всегда, не заводи: «создаю задачу за себя» при `ownerId` из субъекта — `allowAll` в Def UC.
-- Подключение — полями `policy` и `rules` Def UC: `UseCaseFromDef` исполняет `load → Policy → rules → execute` ([use-case.md](./use-case.md)).
+- Подключение — полями `policy` и `rules` Def UC: `UseCaseFromDef` исполняет `load → Policy → fetch → rules → execute` (D-58) ([use-case.md](./use-case.md)).
 
 ## 2. Правила `Rule`
 

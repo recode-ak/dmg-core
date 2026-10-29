@@ -39,7 +39,7 @@
 - ❌ *Всё в `TaskPolicy`:* Policy спрашивает `users` и разбирает его ответ — знание чужого модуля утекло в право субъекта.
 - ❌ *Проверка в UC:* `if (!user.active) return err(...)` в `execute` — доменное решение в прикладном слое (API-01).
 - ❌ *Активность исполнителя — в Policy:* ответ не зависит от того, кто назначает, — это не право, а доменное правило (D-40).
-- ✅ *Итог:* Policy `todo` отвечает только «может ли этот субъект назначать» (`canManage`: владелец или администратор). UC `assignTask` в `load` спрашивает `users` (`this.call(GetUserUcDef, …)`, Def — в `calls`) и кладёт ответ в контекст; доменное правило `assigneeActive` решает о допуске и при отказе возвращает ошибку `todo` (`TASK_ASSIGNEE_INACTIVE`); `USER_NOT_FOUND` пробрасывается по ссылке. Образец — [assign-task.uc.ts](../src/testing/example/todo/task/uc/assign-task.uc.ts), [task.rules.ts](../src/testing/example/todo/task/task.rules.ts).
+- ✅ *Итог:* Policy `todo` отвечает только «может ли этот субъект назначать» (`canManage`: владелец или администратор). UC `assignTask` после Policy, в `fetch`, спрашивает `users` (`this.call(GetUserUcDef, …)`, Def — в `calls`, D-58) и кладёт ответ в контекст правил; доменное правило `assigneeActive` решает о допуске и при отказе возвращает ошибку `todo` (`TASK_ASSIGNEE_INACTIVE`); `USER_NOT_FOUND` пробрасывается по ссылке. Образец — [assign-task.uc.ts](../src/testing/example/todo/task/uc/assign-task.uc.ts), [task.rules.ts](../src/testing/example/todo/task/task.rules.ts).
 
 ## 4. Границы модулей
 

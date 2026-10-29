@@ -27,8 +27,9 @@
 ## 3. Устройство реализации
 
 - Конструктор `(deps, module: typeof <M>ModuleDef)` → `super(<N>UcDef, deps, module)`: модуль передаёт себя, из него — `this.ref` для `SystemCaller` и лога операций.
-- Шаги базы — `protected`, порядок фиксирован: `checkCaller` → `parseInput` → `load` → `checkPolicy` → `checkRules` → `execute` → `parseOutput` → фиксация (`uow.commit()`, публикация через outbox, запись в `OperationLog` — инвариант базы). Наследник пишет `load` и `execute` методами; переопределение `checkPolicy` — только для системного вызова без субъекта.
-- `load(input, caller, trace)` собирает контекст Policy и правил; `execute(input, loaded, uow, caller, trace)` — домен и `uow.register`. `caller` и `trace` передаются в `this.call` как пришли.
+- Шаги базы — `protected`, порядок фиксирован: `checkCaller` → `parseInput` → `load` → `checkPolicy` → `fetch` → `checkRules` → `execute` → `parseOutput` → фиксация (`uow.commit()`, публикация через outbox, запись в `OperationLog` — инвариант базы). Наследник пишет `load` и `execute` методами, при вызовах чужих модулей — и `fetch`; переопределение `checkPolicy` — только для системного вызова без субъекта.
+- `load(input, caller, trace)` собирает контекст Policy — обычно свои агрегаты из репозитория. `fetch(input, loaded, caller, trace)` — после права (D-58): вызовы чужих модулей (`this.call`) и всё, что нужно только правилам и операции; не переопределён — ничего. `execute(input, loaded, uow, caller, trace)` получает загруженное и добытое одним объектом (`Loaded & Fetched`) — домен и `uow.register`. `caller` и `trace` передаются в `this.call` как пришли.
+- `this.call` в `load` — ошибка lint (API-07): Policy проверяется после `load`, и до права не-владелец узнал бы ответ зависимости, а она получила бы лишний вызов. Вызов, ответ которого нужен самой Policy, остаётся в `load` с причиной: `// biome-ignore lint/plugin: <что из ответа нужно Policy>`.
 - Сигнатуры с типами (`ParsedInputOf` и `UnitOfWork` — из `dmg-core/app`, `Caller` и `Identified` — из `dmg-core`):
 
   ```ts
@@ -39,10 +40,25 @@
   protected async execute(input: Input, { task }: Loaded, uow: UnitOfWork, caller: Caller<Identified>) { … }
   ```
 
+  С вызовом чужого модуля — пятый параметр `UseCaseFromDef<D, Deps, Loaded, User, Fetched>` и `fetch` с `override`:
+
+  ```ts
+  type Fetched = { readonly assignee: UserActivity };
+
+  protected override async fetch({ assigneeId }: Input, _loaded: Loaded, caller: Caller<Identified>, trace: Trace) {
+    const assignee = await this.call(GetUserUcDef, { userId: assigneeId }, caller, trace);
+    if (!assignee.ok) return assignee;
+    return ok({ assignee: assignee.value });
+  }
+  protected async execute(input: Input, { task, assignee }: Loaded & Fetched, uow: UnitOfWork) { … }
+  ```
+
+  Контексты всех `rules` должны покрываться `Loaded & Fetched` — иначе ошибка типа в `super(...)`. Задал `Fetched`, но не переопределил `fetch` — компилятор не заметит, правила получат `undefined`: тест UC это ловит.
+
   Тип пользователя — `Identified` в заготовке; тип приложения (D-53, `AppUser`) нужен, только если Policy или UC читают его поля. Параметры методов TS проверяет бивариантно: сменил тип субъекта в Policy — сверь и `execute`.
 - Зависимости модуля (репозитории, фасады, порты из `<M>Deps`) — `this.resolve.<имя>`; поля `deps` наружу нет.
 - Субъект — `this.subject(caller)`, время — `this.now()`; UoW создаёт база.
-- **Ожидаемая версия от клиента (D-57)** — по выбору UC, когда устаревшее действие клиента (кнопка бота, давно открытая форма) не должно пройти молча: поле входа `expectedVersion: F.expectedVersion('задачи')` и первым шагом `execute` — `const expected = this.expectVersion(task, input.expectedVersion); if (!expected.ok) return expected;`. Расходится с `ar.version` — `VERSION_CONFLICT` (агрегат и uuid), до операции: записи и событий нет; не прислана — сверки нет. Сверка идёт с текущей версией: после мутации конфликт ложный. Policy и `rules` Def проверяются раньше — устаревший клиент может получить их отказ, а не конфликт. Это технический шаг базы (оптимистичная блокировка), не решение по состоянию: API-01 не нарушает. Несколько агрегатов — несколько полей (`expectedTaskVersion`, …). Версию клиент берёт из выхода query (`version` во `view()`).
+- **Ожидаемая версия от клиента (D-57)** — по выбору UC, когда устаревшее действие клиента (кнопка бота, давно открытая форма) не должно пройти молча: поле входа `expectedVersion: F.expectedVersion('задачи')` и первым шагом `execute` — `const expected = this.expectVersion(task, input.expectedVersion); if (!expected.ok) return expected;`. Расходится с `ar.version` — `VERSION_CONFLICT` (агрегат и uuid), до операции: записи и событий нет; не прислана — сверки нет. Сверка идёт с текущей версией: после мутации конфликт ложный. Policy, `fetch` и `rules` Def — раньше: устаревший клиент может получить их отказ, а не конфликт. Это технический шаг базы (оптимистичная блокировка), не решение по состоянию: API-01 не нарушает. Несколько агрегатов — несколько полей (`expectedTaskVersion`, …). Версию клиент берёт из выхода query (`version` во `view()`).
 - Новый `uuid` агрегата — в UC (`crypto.randomUUID()`) или из входа, если id выдаёт вызывающий; Ar и домен uuid не создают (детерминизм, DOM-14).
 
 ## 4. Command и query
@@ -50,7 +66,8 @@
 | | command | query |
 |---|---|---|
 | `type` | `'command'` | `'query'` |
-| `load` | агрегат(ы) и ответы зависимостей — контекст Policy и `rules` | контекст Policy, если он нужен; иначе `ok(undefined)` |
+| `load` | агрегат(ы) — контекст Policy | контекст Policy, если он нужен; иначе `ok(undefined)` |
+| `fetch` | ответы зависимостей — контекст `rules` и операции | ответы зависимостей для выхода |
 | `execute` | метод Ar → `uow.register`; ошибка Ar — `return` как есть | чтение репозитория → выход; `uow` не трогается |
 | `rules`, `emits` | по смыслу | нет |
 | схемы входа и выхода | из state: `v.object({ taskId: TaskState.entries.uuid, title: TaskState.entries.title })` — не копия поля (D-39); ожидаемая версия — `F.expectedVersion('<агрегата>')` | `v.pick(<A>State, …)` |
@@ -62,7 +79,7 @@
 
 ## 5. Образец
 
-- Command с вызовом чужого модуля: [assign-task.uc.ts (Def)](../../src/testing/example/todo/task/uc/assign-task.uc.ts) — `policy: canManage`, `rules: [assigneeActive]`, `calls: [GetUserUcDef]`, `UserErrors.NOT_FOUND` по ссылке, `emits` — оба события назначения; [реализация](../../src/testing/example/app/todo/task/uc/assign-task.uc.ts) — `load` кладёт задачу и ответ `users` в контекст, `execute` — `TaskAr.assign` → `uow.register`.
+- Command с вызовом чужого модуля: [assign-task.uc.ts (Def)](../../src/testing/example/todo/task/uc/assign-task.uc.ts) — `policy: canManage`, `rules: [assigneeActive]`, `calls: [GetUserUcDef]`, `UserErrors.NOT_FOUND` по ссылке, `emits` — оба события назначения; [реализация](../../src/testing/example/app/todo/task/uc/assign-task.uc.ts) — `load` кладёт задачу (контекст `canManage`), `fetch` — ответ `users` после права (контекст `assigneeActive`), `execute` — `TaskAr.assign` → `uow.register`.
 - Command с доменным правилом при создании: [create-task.uc.ts (Def)](../../src/testing/example/todo/task/uc/create-task.uc.ts) — `allowAll`, `rules: [withinOpenLimit]`; [реализация](../../src/testing/example/app/todo/task/uc/create-task.uc.ts) — владелец из `this.subject(caller)`.
 - Command над агрегатом с Policy и ожидаемой версией: [complete-task.uc.ts](../../src/testing/example/app/todo/task/uc/complete-task.uc.ts).
 - Query субъекта: [list-tasks.uc.ts (Def)](../../src/testing/example/todo/task/uc/list-tasks.uc.ts) (`v.array(v.pick(TaskState, …))`) и [реализация](../../src/testing/example/app/todo/task/uc/list-tasks.uc.ts) (`task.view()`); query для других модулей — [get-task.uc.ts](../../src/testing/example/app/todo/task/uc/get-task.uc.ts), [get-user.uc.ts](../../src/testing/example/app/users/user/uc/get-user.uc.ts).
@@ -75,6 +92,7 @@
 - API-05 — реализация наследует `UseCaseFromDef`, свойства Def не повторяются (MAN-09).
 - MAN-04 — публикуются только события из `emits`.
 - MAN-05 — каждый `this.call` покрыт `calls` (иначе ошибка типа); вызываемый UC объявляет `'system'` в `callers`.
+- API-07 — `this.call` — в `fetch`, не в `load` (D-58); в `load` — только для Policy, с `biome-ignore` и причиной.
 - MAN-11 — `callers` объявлены; субъект — через `this.subject(caller)`, не через `kind`; Policy вызывается всегда.
 - DOM-17 — состояние агрегата наружу — `view()`, не `snapshot()`.
 - ERR-02 — ошибки каждого правила и проброшенные ошибки зависимостей — в `errors`.
@@ -83,10 +101,10 @@
 ## 7. Типичные ловушки
 
 - Решение «исполнитель неактивен → ошибка» в `load` через `if` → доменное правило в `rules`, `load` только кладёт ответ в контекст.
-- Вызов чужого модуля в `load` идёт до Policy (D-58): отказ зависимости возвращается раньше отказа права — не-владелец по коду (`USER_NOT_FOUND` вместо `ACCESS_DENIED`) узнаёт, есть ли запись, а зависимость получает лишний вызов. Обычно это неважно (случайные uuid, вызов в процессе). Если важно:
-  - ответ секретен → `load` кладёт ответ в контекст значением, не возвращая отказ: `assignee: res.ok ? res.value : undefined`; отказ даёт доменное правило своей группы (`TaskErrors.ASSIGNEE_NOT_FOUND`) — правила идут после Policy. Отказ доступа самой зависимости (`ACCESS_DENIED` чужого модуля) — так же, иначе он всплывёт до Policy;
-  - вызов нельзя делать до права (дорогой, с побочным эффектом) → право проверяет отдельный UC или Story до вызова;
-  - разница во времени ответа остаётся — закрывать её не нужно.
+- Вызов чужого модуля в `load` → в `fetch` (API-07): иначе не-владелец по коду ошибки зависимости (`USER_NOT_FOUND` вместо `ACCESS_DENIED`) узнаёт, есть ли запись, зависимость получает вызов на каждый запрос, которому всё равно откажут, а её сбой подменяет отказ права.
+- Ответ зависимости нужен Policy (право зависит от чужих данных) → вызов остаётся в `load` с `biome-ignore` и причиной; не-владелец тогда видит отказ зависимости — если это секрет, сделай Policy, которой хватает своих данных, а ответ зависимости проверь правилом после `fetch`.
+- Правило над данными `load` проверяется после `fetch` — чужой вызов уже сделан. Если это дорого или отказ частый, вопрос, скорее всего, — право субъекта (Policy) или метод Ar, а не правило.
+- Задан `Fetched`, а `fetch` не переопределён → правила и `execute` получают только `Loaded`; тип этого не ловит, ловит тест UC.
 - UC знает, что передать в чужой контракт или какой ответ вернуть → это отвечает Ar методом из state.
 - Ручной `new SystemCaller(...)` в UC → только `this.call`.
 - `load`/`execute` полем-стрелкой (`protected load = async () => …`) → методом: это шаги базы.
@@ -95,4 +113,4 @@
 
 ## 8. Как тестировать
 
-Каждая ошибка UC — с `code` и «ничего не записано» (`expectErr(res, 'TASK_NOT_FOUND')` из `dmg-core/testing`: код — `<ПРЕФИКС ГРУППЫ>_<КЛЮЧ>` в UPPER_SNAKE, ERR-04, [errors.md](./errors.md)); порядок отказов (первый при нарушении нескольких); каждый исход выхода; сбой вызова чужого модуля (`StubFacade.answer` с ошибкой) — ответ UC и отсутствие записи; вызовы чужих UC — `received` (`SystemCaller` от UC, человек исходного вызова); недопустимый вызывающий — `UNAUTHORIZED`; у query — «ничего не записано» и только данные субъекта; у command над агрегатом — отказ Policy (`ACCESS_DENIED`) и каждый недопустимый статус; с ожидаемой версией — совпала, расходится (`VERSION_CONFLICT`, ничего не записано), не прислана. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts)): начальное состояние — `seed`, «ничего не записано» — `saved` пуст, ответ `find*` — присваиванием в тесте; выборку проверяет контрактный тест репозитория ([assign-task.uc.test.ts](../../src/testing/example/app/todo/task/uc/assign-task.uc.test.ts)); вход через модуль — smoke [todo.module.test.ts](../../src/testing/example/app/todo/todo.module.test.ts); лог операций — `MemoryOperationLog` из `testAppContext()`. Общее — [testing.md](../testing.md).
+Каждая ошибка UC — с `code` и «ничего не записано» (`expectErr(res, 'TASK_NOT_FOUND')` из `dmg-core/testing`: код — `<ПРЕФИКС ГРУППЫ>_<КЛЮЧ>` в UPPER_SNAKE, ERR-04, [errors.md](./errors.md)); порядок отказов (первый при нарушении нескольких); каждый исход выхода; сбой вызова чужого модуля (`StubFacade.answer` с ошибкой) — ответ UC и отсутствие записи; отказ Policy — чужой модуль не спрошен (`received` пуст, D-58); вызовы чужих UC — `received` (`SystemCaller` от UC, человек исходного вызова); недопустимый вызывающий — `UNAUTHORIZED`; у query — «ничего не записано» и только данные субъекта; у command над агрегатом — отказ Policy (`ACCESS_DENIED`) и каждый недопустимый статус; с ожидаемой версией — совпала, расходится (`VERSION_CONFLICT`, ничего не записано), не прислана. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts)): начальное состояние — `seed`, «ничего не записано» — `saved` пуст, ответ `find*` — присваиванием в тесте; выборку проверяет контрактный тест репозитория ([assign-task.uc.test.ts](../../src/testing/example/app/todo/task/uc/assign-task.uc.test.ts)); вход через модуль — smoke [todo.module.test.ts](../../src/testing/example/app/todo/todo.module.test.ts); лог операций — `MemoryOperationLog` из `testAppContext()`. Общее — [testing.md](../testing.md).
