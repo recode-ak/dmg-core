@@ -168,6 +168,16 @@ describe('AssignTaskUc', () => {
     expectNothingWritten();
   });
 
+  it('не владелец не узнаёт о пользователе: ACCESS_DENIED, users не спрошен (D-58)', async () => {
+    users.answer(GetUserUcDef, ({ userId }) =>
+      UserErrors.NOT_FOUND.err({ userId }),
+    );
+
+    expectErr(await assign(as(ASSIGNEE)), 'ACCESS_DENIED');
+    expect(users.received).toEqual([]);
+    expectNothingWritten();
+  });
+
   it('исполнитель неактивен — TASK_ASSIGNEE_INACTIVE', async () => {
     answer({ userId: ASSIGNEE, active: false });
 

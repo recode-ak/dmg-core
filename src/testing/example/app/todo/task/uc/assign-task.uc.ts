@@ -18,32 +18,43 @@ import {
 
 type Input = { readonly taskId: string; readonly assigneeId: string };
 
-/** Контекст Policy `canManage` и правила `assigneeActive`. */
-type Loaded = { readonly task: TaskAr; readonly assignee: UserActivity };
+/** Контекст Policy `canManage`. */
+type Loaded = { readonly task: TaskAr };
+
+/** Контекст правила `assigneeActive` — ответ `users`. */
+type Fetched = { readonly assignee: UserActivity };
 
 /**
- * Назначение исполнителя: `load` кладёт задачу и ответ `users` в контекст
- * Policy и правила `assigneeActive`, `execute` — переход `TaskAr.assign`.
- * Решений по ответу `users` в UC нет (API-01).
+ * Назначение исполнителя: `load` — задача (контекст Policy), `fetch` — ответ
+ * `users` после права (D-58: не-владелец не узнаёт о пользователе), правило
+ * `assigneeActive` — над ним, `execute` — переход `TaskAr.assign`. Решений
+ * по ответу `users` в UC нет (API-01).
  */
 export class AssignTaskUc extends UseCaseFromDef<
   typeof AssignTaskUcDef,
   TodoDeps,
   Loaded,
-  ExampleUser
+  ExampleUser,
+  Fetched
 > {
   constructor(deps: TodoDeps, module: typeof TodoModuleDef) {
     super(AssignTaskUcDef, deps, module);
   }
 
-  /** Задача — из репозитория, исполнитель — ответ `users` через фасад. */
-  protected async load(
-    { taskId, assigneeId }: Input,
+  /** Задача — из репозитория. */
+  protected async load({ taskId }: Input) {
+    const task = await this.resolve.tasks.findById(taskId);
+    if (!task) return TaskErrors.NOT_FOUND.err({ taskId });
+    return ok({ task });
+  }
+
+  /** Исполнитель — ответ `users` через фасад, после Policy. */
+  protected override async fetch(
+    { assigneeId }: Input,
+    _loaded: Loaded,
     caller: Caller<ExampleUser>,
     trace: Trace,
   ) {
-    const task = await this.resolve.tasks.findById(taskId);
-    if (!task) return TaskErrors.NOT_FOUND.err({ taskId });
     const assignee = await this.call(
       GetUserUcDef,
       { userId: assigneeId },
@@ -51,12 +62,12 @@ export class AssignTaskUc extends UseCaseFromDef<
       trace,
     );
     if (!assignee.ok) return assignee;
-    return ok({ task, assignee: assignee.value });
+    return ok({ assignee: assignee.value });
   }
 
   protected async execute(
     { assigneeId }: Input,
-    { task }: Loaded,
+    { task }: Loaded & Fetched,
     uow: UnitOfWork,
   ) {
     const res = task.assign(assigneeId, this.now());
