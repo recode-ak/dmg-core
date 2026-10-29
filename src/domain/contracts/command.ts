@@ -2,14 +2,16 @@ import type { AnyUseCaseDef, InputOf } from './use-case-def.types';
 
 declare const def: unique symbol;
 
-/** Расширение команды без смены протокола (transport.md §2). */
+/**
+ * Расширение команды без смены протокола (transport.md §2). Ожидаемая
+ * версия агрегата сюда не входит — это поле входа UC (D-57).
+ */
 export type CommandMeta = {
   /**
    * Одно намерение клиента: клиент создаёт его один раз и повторяет при
    * ретраях — это и след, и ключ идемпотентности command UC (transport.md §2).
    */
   readonly requestId?: string;
-  readonly version?: number;
 };
 
 /**

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, expectTypeOf, it } from 'bun:test';
 import * as v from 'valibot';
 import { toJsonSchema } from '../schema/json-schema';
 import { BaseEntityFields, F, withEntityDefaults } from './fields';
@@ -57,6 +57,42 @@ describe('простые поля', () => {
   it('F.string отклоняет пустую строку, F.int — дробь', () => {
     expect(v.safeParse(F.string('Название'), '').success).toBe(false);
     expect(v.safeParse(F.int('Порядок'), 1.5).success).toBe(false);
+  });
+});
+
+describe('F.expectedVersion (D-57)', () => {
+  const schema = v.object({ expectedVersion: F.expectedVersion() });
+
+  it('целое ≥ 0 принимается как есть', () => {
+    expect(v.parse(schema, { expectedVersion: 0 })).toEqual({
+      expectedVersion: 0,
+    });
+    expect(v.parse(schema, { expectedVersion: 3 })).toEqual({
+      expectedVersion: 3,
+    });
+  });
+
+  it('необязательное: без поля — undefined, без подстановки', () => {
+    const parsed = v.parse(schema, {});
+    expect(parsed).toEqual({});
+    expect('expectedVersion' in parsed).toBe(false);
+  });
+
+  it('отклоняет отрицательное, дробное и строку', () => {
+    for (const value of [-1, 1.5, '1']) {
+      expect(v.safeParse(schema, { expectedVersion: value }).success).toBe(
+        false,
+      );
+    }
+  });
+
+  it('тип — number | undefined, описание задано', () => {
+    expectTypeOf<v.InferOutput<typeof schema>>().toEqualTypeOf<{
+      expectedVersion?: number | undefined;
+    }>();
+    expect(descriptionOf(F.expectedVersion())).toBe(
+      'Версия сущности, которую видел клиент (сверка в UC)',
+    );
   });
 });
 

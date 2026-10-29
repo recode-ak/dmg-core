@@ -47,10 +47,29 @@ function picklist<const T extends readonly [string, ...string[]]>(
 }
 
 /**
+ * Ожидаемая версия во входе UC (D-57): версия entity, которую видел клиент.
+ * Необязательная и без подстановки — не прислана, значит сверки нет.
+ */
+function expectedVersion() {
+  return v.pipe(
+    v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))),
+    v.description('Версия сущности, которую видел клиент (сверка в UC)'),
+  );
+}
+
+/**
  * Базовые поля схем (DOM-11): описание ставится из метки.
  * `uuid` и `timestamp` принимают метку в родительном падеже: `F.uuid('задачи')`.
  */
-export const F = { uuid, timestamp, string, int, boolean, picklist };
+export const F = {
+  uuid,
+  timestamp,
+  string,
+  int,
+  boolean,
+  picklist,
+  expectedVersion,
+};
 
 /**
  * Версия entity для оптимистичной блокировки (D-36): растёт с каждой

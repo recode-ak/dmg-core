@@ -22,11 +22,15 @@ describe('UseCaseDef.command', () => {
   });
 
   it('meta передаётся в команду', () => {
-    const meta: CommandMeta = { requestId: 'r-1', version: 1 };
+    const meta: CommandMeta = { requestId: 'r-1' };
 
     const command = ListTasksUcDef.command({}, meta);
 
     expect(command).toEqual({ uc: 'listTasks', input: {}, meta });
+  });
+
+  it('meta — только requestId: версии в meta нет (D-57)', () => {
+    expectTypeOf<keyof CommandMeta>().toEqualTypeOf<'requestId'>();
   });
 
   it('команда — простые данные: JSON туда и обратно без потерь', () => {
