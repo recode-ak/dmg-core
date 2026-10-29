@@ -10,10 +10,7 @@ import type {
   RuleContextOf,
   RuleSubjectOf,
 } from '#core/domain/policy/rule';
-import type {
-  DomainRuleContextOf,
-  DomainRuleDef,
-} from '#core/domain/rules/domain-rule-def';
+import type { DomainRuleDef } from '#core/domain/rules/domain-rule-def';
 import type { Caller, Identified } from '#core/kernel/caller/caller';
 import { CoreErrors } from '#core/kernel/errors/core-errors';
 import { serializeError } from '#core/kernel/errors/serialize-error';
@@ -39,16 +36,6 @@ export type UseCaseSubjectOf<D extends AnyUseCaseDef> = RuleSubjectOf<
 /** Контекст Policy UC: что `load` обязан загрузить (D-58). */
 export type UseCaseContextOf<D extends AnyUseCaseDef> = RuleContextOf<
   D['policy']
->;
-
-// Рекурсия по кортежу, а не union: `unknown | Ctx` схлопнулся бы в `unknown`.
-type RuleContexts<R> = R extends readonly [infer H, ...infer T]
-  ? DomainRuleContextOf<H> & RuleContexts<T>
-  : unknown;
-
-/** Контекст доменных правил UC — пересечение контекстов всех `rules`. */
-export type UseCaseRulesContextOf<D extends AnyUseCaseDef> = RuleContexts<
-  D['rules']
 >;
 
 /**
@@ -323,7 +310,11 @@ export abstract class UseCaseFromDef<
   }
 }
 
-/** Контекст правил и `execute`: загруженное, дополненное добытым `fetch`. */
+/**
+ * Контекст правил и `execute`: загруженное, дополненное добытым `fetch`.
+ * Оба — записи (контекст Policy и ответы зависимостей), поэтому
+ * поверхностная склейка; общее поле берётся из `fetch`.
+ */
 function merge<L, F>(loaded: L, fetched: F): L & F {
   if (fetched === undefined) return loaded as L & F;
   return Object.assign({}, loaded, fetched);

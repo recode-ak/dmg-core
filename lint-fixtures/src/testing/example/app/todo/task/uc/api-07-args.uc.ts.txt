@@ -1,0 +1,9 @@
+// expect: API-07 error
+export class A {
+  protected async load(id: string, caller: unknown, trace: unknown) {
+    return await this.call(id, { id }, caller, trace);
+  }
+  private call(..._args: unknown[]) {
+    return _args[0];
+  }
+}
