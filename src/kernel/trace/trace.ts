@@ -122,7 +122,7 @@ export class Trace {
 
   /**
    * След одного прогона Job: свой `runId` — причина и `correlationId` всех
-   * его событий. Создаёт вызывающий прогон (планировщик, мост legacy).
+   * его событий. Создаёт вызывающий прогон (планировщик, мост внешнего кода).
    */
   static forJob(def: { readonly name: string }): Trace {
     const runId = crypto.randomUUID();
@@ -169,7 +169,7 @@ export class Trace {
     return json;
   }
 
-  /** Поля следа в конверте события (UoW, мосты legacy). */
+  /** Поля следа в конверте события (UoW, мосты внешнего кода). */
   toEnvelope(): TraceStamp {
     return { cause: this.cause, correlationId: this.correlationId };
   }
