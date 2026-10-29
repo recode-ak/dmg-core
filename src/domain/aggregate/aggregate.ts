@@ -91,6 +91,11 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
     return this.current.uuid;
   }
 
+  /** Имя Def агрегата — для ошибок о записи (`VERSION_CONFLICT`, D-57). */
+  get aggregateName(): string {
+    return this.def.name;
+  }
+
   /** Текущая версия: растёт с каждой мутацией (D-36). */
   get version(): number {
     return this.current.version;

@@ -312,6 +312,73 @@ describe('UseCaseFromDef — параллельное изменение', () =>
   });
 });
 
+describe('UseCaseFromDef.expectVersion — ожидаемая версия от клиента (D-57)', () => {
+  /** UC сверяет версию первым шагом операции — до мутации и UoW. */
+  class CompleteExpecting extends UseCaseFromDef<
+    typeof CompleteTaskUcDef,
+    Deps,
+    Loaded
+  > {
+    expected: number | undefined;
+
+    constructor(deps: Deps) {
+      super(CompleteTaskUcDef, deps, TodoModuleDef);
+    }
+
+    protected load(input: { taskId: string }) {
+      return loadTask(this.resolve.tasks, input);
+    }
+
+    protected async execute(
+      _input: { taskId: string },
+      { task }: Loaded,
+      uow: UnitOfWork,
+    ) {
+      const expected = this.expectVersion(task, this.expected);
+      if (!expected.ok) return expected;
+      const res = task.complete(this.now());
+      if (!res.ok) return res;
+      uow.register(task, this.resolve.tasks);
+      return ok({});
+    }
+  }
+
+  let expecting: CompleteExpecting;
+
+  beforeEach(() => {
+    expecting = new CompleteExpecting({ app: ctx.app, facades, tasks });
+  });
+
+  test('совпала — операция идёт', async () => {
+    expecting.expected = 0;
+    expectOk(await expecting.handle({ taskId: TASK }, user(OWNER), REQ));
+    expect(tasks.rows.get(TASK)?.status).toBe('done');
+    expect(ctx.published.map((e) => e.name)).toEqual([
+      TaskEvents.completed.name,
+    ]);
+  });
+
+  test('расходится — VERSION_CONFLICT с агрегатом и uuid, без записи и событий', async () => {
+    expecting.expected = 3;
+    const res = await expecting.handle({ taskId: TASK }, user(OWNER), REQ);
+    expect(expectErr(res, 'VERSION_CONFLICT').payload).toEqual({
+      aggregate: TaskArDef.name,
+      uuid: TASK,
+    });
+    expect(tasks.rows.get(TASK)?.status).toBe('open');
+    expect(tasks.rows.get(TASK)?.version).toBe(0);
+    expect(ctx.published).toEqual([]);
+  });
+
+  test('не прислана — сверки нет', async () => {
+    const row = tasks.rows.get(TASK);
+    if (row) tasks.rows.set(TASK, { ...row, version: 5 });
+    expecting.expected = undefined;
+    expectOk(await expecting.handle({ taskId: TASK }, user(OWNER), REQ));
+    expect(tasks.rows.get(TASK)?.status).toBe('done');
+  });
+});
+
 describe('UseCaseFromDef — время операции', () => {
   test('момент операции и событий — из часов приложения', async () => {
     ctx.setNow(T1);

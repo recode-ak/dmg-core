@@ -223,6 +223,28 @@ export abstract class UseCaseFromDef<
   }
 
   /**
+   * Ожидаемая версия от клиента (D-57): клиент присылает во входе
+   * (`F.expectedVersion()`) версию агрегата, которую видел; расходится с
+   * текущей — `VERSION_CONFLICT`, не прислана — сверки нет. Шаг явный:
+   * какой агрегат сверять, знает только UC; вызывать до операции, чтобы
+   * отказ не оставил записи и событий.
+   */
+  protected expectVersion(
+    ar: {
+      readonly aggregateName: string;
+      readonly uuid: string;
+      readonly version: number;
+    },
+    expected: number | undefined,
+  ): Result<void, UseCaseErrorOf<D>> {
+    if (expected === undefined || expected === ar.version) return ok();
+    return CoreErrors.VERSION_CONFLICT.err({
+      aggregate: ar.aggregateName,
+      uuid: ar.uuid,
+    });
+  }
+
+  /**
    * Доменные правила Def: субъекта не знают — проверяются для любого
    * вызывающего. Отказ — до UoW: следов не остаётся.
    */

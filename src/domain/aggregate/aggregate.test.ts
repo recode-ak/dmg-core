@@ -353,6 +353,11 @@ describe('Aggregate', () => {
       });
     });
 
+    it('aggregateName — имя Def агрегата (для VERSION_CONFLICT, D-57)', () => {
+      const ar = expectOk(TaskAr.create(ID, 'Купить хлеб', T0));
+      expect(ar.aggregateName).toBe(TaskArDef.name);
+    });
+
     it('новый агрегат — версия 0, сохранённой версии нет', () => {
       const ar = expectOk(TaskAr.create(ID, 'Купить хлеб', T0));
       expect(ar.version).toBe(0);
