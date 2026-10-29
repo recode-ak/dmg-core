@@ -1,0 +1,9 @@
+// expect: API-07 error
+export class A {
+  protected async load(ids: string[]) {
+    return await Promise.all(ids.map((id) => this.call(id)));
+  }
+  private call(id: string) {
+    return id;
+  }
+}

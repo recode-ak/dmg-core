@@ -1,0 +1,12 @@
+// expect: none
+export class A {
+  protected async load(id: string) {
+    return id;
+  }
+  protected async fetch(id: string) {
+    return await this.call(id);
+  }
+  private call(id: string) {
+    return id;
+  }
+}

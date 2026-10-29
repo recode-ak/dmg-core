@@ -1,0 +1,7 @@
+// API-07: вызов чужого модуля — в `fetch`, после Policy (D-58). В `load`
+// остаётся только вызов, ответ которого нужен Policy, — с подавлением и
+// причиной: `// biome-ignore lint/plugin: <что из ответа нужно Policy>`.
+`this.call($args)` as $c where {
+  $c <: within JsMethodClassMember(name=`load`) ,
+  register_diagnostic(span=$c, message="API-07: вызов чужого модуля в load идёт до Policy — перенеси в fetch (D-58); нужен Policy — biome-ignore с причиной (rules.md)", severity="error")
+}

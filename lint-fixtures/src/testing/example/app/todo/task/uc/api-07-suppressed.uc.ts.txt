@@ -1,0 +1,10 @@
+// expect: none
+export class A {
+  protected async load(id: string) {
+    // biome-ignore lint/plugin: ответ зависимости нужен Policy
+    return await this.call(id);
+  }
+  private call(id: string) {
+    return id;
+  }
+}

@@ -68,6 +68,7 @@ it('REQUIRED: init доставляет конфиг, скил и вставку
 it('PLUGINS: все GritQL-плагины пакета — в установленном пакете', () => {
   expect(PLUGINS).toEqual([
     'node_modules/dmg-core/biome-plugins/api-02-no-manual-publish.grit',
+    'node_modules/dmg-core/biome-plugins/api-07-no-call-in-load.grit',
     'node_modules/dmg-core/biome-plugins/arc-09-no-env.grit',
     'node_modules/dmg-core/biome-plugins/code-02-class-members.grit',
     'node_modules/dmg-core/biome-plugins/dom-11-base-fields.grit',

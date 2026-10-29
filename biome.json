@@ -286,6 +286,10 @@
         "!**/*.test.ts"
       ],
       "plugins": ["./biome-plugins/api-02-no-manual-publish.grit"]
+    },
+    {
+      "includes": ["src/testing/example/**/*.uc.ts", "!**/*.test.ts"],
+      "plugins": ["./biome-plugins/api-07-no-call-in-load.grit"]
     }
   ]
 }

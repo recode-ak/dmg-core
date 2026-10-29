@@ -169,6 +169,11 @@ export class LintMap {
         plugin: 'api-02-no-manual-publish',
         includes: [...operations, ...all('**/*.job.ts')],
       },
+      {
+        id: 'API-07',
+        plugin: 'api-07-no-call-in-load',
+        includes: all('**/*.uc.ts'),
+      },
     ]);
   }
 

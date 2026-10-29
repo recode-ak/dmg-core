@@ -26,6 +26,7 @@
 | DOM-17 | `dom-17-snapshot-repo-only.grit` | все исходники, кроме репозиториев (`*.repo.ts`, `*-repo.ts`, `*.json-repo.ts`, `*.memory-repo.ts`) | то же | то же |
 | ERR-01 | `err-01-no-throw.grit` | `*.ar.ts`, `*.dcs.ts`, `*.facade.ts`, `*.uc.ts`, `*.er.ts` | то же | то же |
 | API-02 | `api-02-no-manual-publish.grit` | файлы ERR-01 и `*.job.ts` | то же | то же |
+| API-07 | `api-07-no-call-in-load.grit` | `*.uc.ts` | то же | то же |
 
 **Известный пробел DOM-01.** Импорт чужого state по относительному пути (`../../users/user/user.state`) lint ловит только в `*.policy.ts`, `*.rules.ts`, `*.dcs.ts`. В остальных файлах домена (Ar, DQS) — только `arch:check` (ARC-04) и только для модулей из `modules` `arch-check.ts`; из `<domain>/shared` — никто, остаётся review.
 
@@ -109,6 +110,7 @@
 | API-04 | Межмодульно — только фасады (`Facade<M>` → команда `ModuleFromDef.dispatch`, D-49), без доменных решений; вызывающий — `SystemCaller`; возвращает `Result` UC (D-42, D-43) | type + review |
 | API-05 | Реализации наследуют `*FromDef`; модуль — типизированная карта Def → класс | type |
 | API-06 | Job идемпотентен; ошибка одной записи не прерывает обход; пороги — экспортируемые константы; расписания UTC | review |
+| API-07 | Вызов чужого модуля (`this.call`) в UC — в `fetch`, после Policy; в `load` — только вызов, ответ которого нужен Policy, с `biome-ignore` и причиной (D-58) | lint + review |
 
 ## CODE — код
 
