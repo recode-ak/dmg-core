@@ -30,16 +30,17 @@ let tasks: TaskRepoFake;
 let ctx: ReturnType<typeof testAppContext>;
 let uc: CompleteTaskUc;
 
-const seed = (status: TaskState['status'] = 'open') =>
-  tasks.seed({
-    uuid: TASK,
-    ownerId: OWNER,
-    title: 'Купить хлеб',
-    status,
-    createdAt: T0,
-    updatedAt: T0,
-    version: 0,
-  });
+const task = (status: TaskState['status'] = 'open'): TaskState => ({
+  uuid: TASK,
+  ownerId: OWNER,
+  title: 'Купить хлеб',
+  status,
+  createdAt: T0,
+  updatedAt: T0,
+  version: 0,
+});
+
+const seed = (status: TaskState['status'] = 'open') => tasks.seed(task(status));
 
 beforeEach(() => {
   tasks = new TaskRepoFake();
@@ -133,8 +134,16 @@ describe('CompleteTaskUc — ожидаемая версия', () => {
     expectNothingWritten();
   });
 
-  it('не прислана — сверки нет', async () => {
+  it('не прислана — сверки нет, даже если версия не 0', async () => {
+    tasks.seed({ ...task(), version: 3 });
     expectOk(await complete());
+    expect(tasks.restored(TASK)?.version).toBe(4);
+  });
+
+  it('устаревшая версия у выполненной задачи — VERSION_CONFLICT раньше отказа перехода', async () => {
+    seed('done');
+    expectErr(await completeSeen(1), 'VERSION_CONFLICT');
+    expectNothingWritten();
   });
 
   it('отрицательная — INPUT_VALIDATION по полю expectedVersion', async () => {

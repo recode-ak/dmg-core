@@ -42,7 +42,7 @@
   Тип пользователя — `Identified` в заготовке; тип приложения (D-53, `AppUser`) нужен, только если Policy или UC читают его поля. Параметры методов TS проверяет бивариантно: сменил тип субъекта в Policy — сверь и `execute`.
 - Зависимости модуля (репозитории, фасады, порты из `<M>Deps`) — `this.resolve.<имя>`; поля `deps` наружу нет.
 - Субъект — `this.subject(caller)`, время — `this.now()`; UoW создаёт база.
-- **Ожидаемая версия от клиента (D-57)** — по выбору UC, когда устаревшее действие клиента (кнопка бота, давно открытая форма) не должно пройти молча: поле входа `expectedVersion: F.expectedVersion()` и первым шагом `execute` — `const expected = this.expectVersion(task, input.expectedVersion); if (!expected.ok) return expected;`. Расходится с `ar.version` — `VERSION_CONFLICT` (агрегат и uuid), до операции: записи и событий нет; не прислана — сверки нет. Несколько агрегатов — несколько полей (`expectedTaskVersion`, …). Версию клиент берёт из выхода query (`version` во `view()`).
+- **Ожидаемая версия от клиента (D-57)** — по выбору UC, когда устаревшее действие клиента (кнопка бота, давно открытая форма) не должно пройти молча: поле входа `expectedVersion: F.expectedVersion('задачи')` и первым шагом `execute` — `const expected = this.expectVersion(task, input.expectedVersion); if (!expected.ok) return expected;`. Расходится с `ar.version` — `VERSION_CONFLICT` (агрегат и uuid), до операции: записи и событий нет; не прислана — сверки нет. Сверка идёт с текущей версией: после мутации конфликт ложный. Policy и `rules` Def проверяются раньше — устаревший клиент может получить их отказ, а не конфликт. Это технический шаг базы (оптимистичная блокировка), не решение по состоянию: API-01 не нарушает. Несколько агрегатов — несколько полей (`expectedTaskVersion`, …). Версию клиент берёт из выхода query (`version` во `view()`).
 - Новый `uuid` агрегата — в UC (`crypto.randomUUID()`) или из входа, если id выдаёт вызывающий; Ar и домен uuid не создают (детерминизм, DOM-14).
 
 ## 4. Command и query
@@ -53,7 +53,7 @@
 | `load` | агрегат(ы) и ответы зависимостей — контекст Policy и `rules` | контекст Policy, если он нужен; иначе `ok(undefined)` |
 | `execute` | метод Ar → `uow.register`; ошибка Ar — `return` как есть | чтение репозитория → выход; `uow` не трогается |
 | `rules`, `emits` | по смыслу | нет |
-| схемы входа и выхода | из state: `v.object({ taskId: TaskState.entries.uuid, title: TaskState.entries.title })` — не копия поля (D-39); ожидаемая версия — `F.expectedVersion()` | `v.pick(<A>State, …)` |
+| схемы входа и выхода | из state: `v.object({ taskId: TaskState.entries.uuid, title: TaskState.entries.title })` — не копия поля (D-39); ожидаемая версия — `F.expectedVersion('<агрегата>')` | `v.pick(<A>State, …)` |
 | выход | ответ методом Ar или `{}` | форма из state (`v.pick`, без копии схемы), значение — `view()` (D-44; `snapshot()` — только репозиторий, DOM-17) |
 
 - Нет агрегата при загрузке → `NOT_FOUND` из `load` (отказ загрузки, не решение по состоянию): Policy требует агрегат в контексте.

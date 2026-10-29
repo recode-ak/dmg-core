@@ -61,7 +61,7 @@ describe('простые поля', () => {
 });
 
 describe('F.expectedVersion (D-57)', () => {
-  const schema = v.object({ expectedVersion: F.expectedVersion() });
+  const schema = v.object({ expectedVersion: F.expectedVersion('задачи') });
 
   it('целое ≥ 0 принимается как есть', () => {
     expect(v.parse(schema, { expectedVersion: 0 })).toEqual({
@@ -86,12 +86,12 @@ describe('F.expectedVersion (D-57)', () => {
     }
   });
 
-  it('тип — number | undefined, описание задано', () => {
+  it('тип — number | undefined, описание из метки', () => {
     expectTypeOf<v.InferOutput<typeof schema>>().toEqualTypeOf<{
       expectedVersion?: number | undefined;
     }>();
-    expect(descriptionOf(F.expectedVersion())).toBe(
-      'Версия сущности, которую видел клиент (сверка в UC)',
+    expect(descriptionOf(F.expectedVersion('задачи'))).toBe(
+      'Версия задачи, которую видел клиент',
     );
   });
 });

@@ -17,7 +17,7 @@ export const CompleteTaskUcDef = UseCaseDef.define({
   policy: TaskPolicy.rules.canManage,
   input: v.object({
     taskId: TaskState.entries.uuid,
-    expectedVersion: F.expectedVersion(),
+    expectedVersion: F.expectedVersion('задачи'),
   }),
   output: v.object({}),
   errors: [TaskErrors.NOT_FOUND, TaskErrors.ALREADY_DONE, TaskErrors.ARCHIVED],

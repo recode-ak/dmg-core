@@ -319,8 +319,6 @@ describe('UseCaseFromDef.expectVersion — ожидаемая версия от 
     Deps,
     Loaded
   > {
-    expected: number | undefined;
-
     constructor(deps: Deps) {
       super(CompleteTaskUcDef, deps, TodoModuleDef);
     }
@@ -330,11 +328,11 @@ describe('UseCaseFromDef.expectVersion — ожидаемая версия от 
     }
 
     protected async execute(
-      _input: { taskId: string },
+      { expectedVersion }: { expectedVersion?: number },
       { task }: Loaded,
       uow: UnitOfWork,
     ) {
-      const expected = this.expectVersion(task, this.expected);
+      const expected = this.expectVersion(task, expectedVersion);
       if (!expected.ok) return expected;
       const res = task.complete(this.now());
       if (!res.ok) return res;
@@ -350,8 +348,13 @@ describe('UseCaseFromDef.expectVersion — ожидаемая версия от 
   });
 
   test('совпала — операция идёт', async () => {
-    expecting.expected = 0;
-    expectOk(await expecting.handle({ taskId: TASK }, user(OWNER), REQ));
+    expectOk(
+      await expecting.handle(
+        { taskId: TASK, expectedVersion: 0 },
+        user(OWNER),
+        REQ,
+      ),
+    );
     expect(tasks.rows.get(TASK)?.status).toBe('done');
     expect(ctx.published.map((e) => e.name)).toEqual([
       TaskEvents.completed.name,
@@ -359,8 +362,11 @@ describe('UseCaseFromDef.expectVersion — ожидаемая версия от 
   });
 
   test('расходится — VERSION_CONFLICT с агрегатом и uuid, без записи и событий', async () => {
-    expecting.expected = 3;
-    const res = await expecting.handle({ taskId: TASK }, user(OWNER), REQ);
+    const res = await expecting.handle(
+      { taskId: TASK, expectedVersion: 3 },
+      user(OWNER),
+      REQ,
+    );
     expect(expectErr(res, 'VERSION_CONFLICT').payload).toEqual({
       aggregate: TaskArDef.name,
       uuid: TASK,
@@ -373,7 +379,6 @@ describe('UseCaseFromDef.expectVersion — ожидаемая версия от 
   test('не прислана — сверки нет', async () => {
     const row = tasks.rows.get(TASK);
     if (row) tasks.rows.set(TASK, { ...row, version: 5 });
-    expecting.expected = undefined;
     expectOk(await expecting.handle({ taskId: TASK }, user(OWNER), REQ));
     expect(tasks.rows.get(TASK)?.status).toBe('done');
   });
