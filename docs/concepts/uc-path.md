@@ -1,0 +1,61 @@
+---
+covers:
+  - src/app/api-app/api-app.ts
+  - src/app/module/**
+  - src/app/replay/command-replay.ts
+  - src/app/operation/**
+  - src/app/use-case/**
+---
+
+# Путь вызова UC
+
+**Назначение:** что происходит между «раннер получил запрос» и «клиент получил `Result`» — кто проверяет вход, право и версию, когда пишутся данные и когда уходят события. Читать перед первой реализацией UC и при правке конвейера в `dmg-core/app`.
+
+---
+
+## Схема
+
+```mermaid
+sequenceDiagram
+  participant R as Раннер / транспорт
+  participant A as ApiApp
+  participant M as ModuleFromDef
+  participant P as CommandReplay
+  participant U as UseCaseFromDef
+  participant W as UnitOfWork
+  R->>A: dispatchByName(модуль, команда, Caller, Trace)
+  A->>M: dispatch(команда)
+  M->>P: run(Def, команда)
+  P->>U: handle(input, caller, trace)
+  Note over U: checkCaller → parseInput → load → checkPolicy → fetch → checkRules
+  U->>W: execute: операция домена, uow.register(ar, repo)
+  Note over U: parseOutput
+  U->>W: commit()
+  W-->>U: события записанных агрегатов ушли в outbox
+  Note over U: запись в лог операций — при любом исходе
+  U-->>R: Result
+```
+
+## Как это работает
+
+1. **Адрес.** Раннер строит команду `{ uc, input }` и отдаёт её приложению с именем модуля. `ApiApp` находит модуль, модуль — реализацию UC по имени Def. Неизвестный модуль или UC — `OPERATION_NOT_FOUND`: это ответ клиенту другой версии, не исключение.
+2. **Повтор.** Command UC, у которого клиент прислал `requestId`, проходит через `CommandReplay`: тот же вход — сохранённый `Ok` без исполнения, другой вход или незавершённый первый запрос — `REQUEST_CONFLICT`.
+3. **До данных.** Вид вызывающего (`callers`), схема входа, `load` (агрегаты для Policy), Policy, `fetch` (вызовы чужих модулей — только после права), доменные правила. Любой отказ здесь не оставляет следов: UoW ещё не создана.
+4. **Операция.** `execute` вызывает домен и регистрирует изменённые агрегаты в UoW; сверку ожидаемой версии от клиента делает первым шагом (`expectVersion`). Ошибка домена — `Err`, UoW не фиксируется.
+5. **Фиксация.** Выход проверяется схемой до записи: невалидный ответ — баг реализации, и данные не меняются. Затем `commit` пишет агрегаты и отдаёт их события в outbox ([жизненный цикл агрегата](./aggregate-lifecycle.md)).
+6. **След.** Запись в лог операций — последним шагом при любом исходе; непредвиденное исключение становится `SERVER_INTERNAL`, детали — в логгер.
+
+Образец: [assign-task.uc.ts](../../src/testing/example/app/todo/task/uc/assign-task.uc.ts) — `load`, `fetch` через фасад `users`, `execute`.
+
+## Почему так
+
+- Модуль — единственная точка входа, команда — простые данные: модуль можно вынести в сервис, меняется только транспорт `dispatch` (D-28, D-43, D-49).
+- `fetch` после Policy: не-владелец не узнаёт ответ чужого модуля, а чужой модуль не получает лишний вызов (D-58).
+- Сохранение и публикация — в базе, а не в UC: реализация не может забыть фиксацию или опубликовать события незаписанных агрегатов (D-15, D-47).
+- Отсев повторов — на уровне модуля, до UC: повтор запроса не меняет данные второй раз (D-56).
+- Ожидаемая версия — поле входа, сверяет UC: какой агрегат сверять, знает только он (D-57).
+
+## Где дальше
+
+- Написать UC — [guides/use-case.md](../guides/use-case.md); вызов из другого модуля — [guides/facade.md](../guides/facade.md).
+- Коды ошибок ядра и `Result` — [errors-result.md](../errors-result.md); кто вызывает — [caller.md](../caller.md).
