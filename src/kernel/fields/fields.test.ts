@@ -157,6 +157,17 @@ describe('withEntityDefaults', () => {
       false,
     );
   });
+
+  it('возвращает копию: исходная схема фолбэк не получает', () => {
+    const source = v.object({ ...BaseEntityFields });
+    expect(withEntityDefaults(source)).not.toBe(source);
+    expect(v.safeParse(source, legacy).success).toBe(false);
+  });
+
+  it('схема, собранная заново из entries, фолбэк теряет', () => {
+    const rebuilt = v.object({ ...entity.entries });
+    expect(v.safeParse(rebuilt, legacy).success).toBe(false);
+  });
 });
 
 describe('withEntityDefaults: производные схемы', () => {
