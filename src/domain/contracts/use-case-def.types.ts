@@ -43,11 +43,9 @@ export type UseCaseSpec = Common &
   );
 
 /**
- * Любой Def UC — структурный тип публичных членов: конкретный Def
- * сравнивается с ним по полям, а не по вариантности параметра `S`
- * (условный `Declared` из `operation-def.types` делает её неизмеримой).
- * Без `command`: фантомный Def в `Command` сравнивал бы `S` напрямую;
- * команду собирают на конкретном Def.
+ * Любой Def UC — структурно, по полям: вариантность `S` неизмерима из-за
+ * условного `Declared`. Без `command`: фантомный Def в `Command` сравнивал бы
+ * `S` напрямую; команду собирают на конкретном Def.
  */
 export type AnyUseCaseDef = {
   readonly [K in Exclude<keyof UseCaseDef, 'command'>]: UseCaseDef[K];

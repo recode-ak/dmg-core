@@ -27,11 +27,9 @@ export function denied(rule: string, denyMessage: string): Decision {
 }
 
 /**
- * Правило над субъектом `U` в контексте `C` (DOM-05). Получает субъекта
- * (`caller.subject()`), а не вызывающего: вид вызывающего и делегирование
- * Policy не знает (D-43, Р2). `undefined` — субъекта нет (guest, system
- * без человека). Вид правила — наследник; композиция — `Rule.allOf`/`Rule.anyOf`.
- * Без `private`/`#`: типизация структурная (`AnyRule`).
+ * Правило над субъектом `U` в контексте `C` (D-43, DOM-05): вид вызывающего
+ * и делегирование Policy не знает; `undefined` — субъекта нет. Композиция —
+ * `Rule.allOf`/`Rule.anyOf`. Без `private`/`#`: типизация структурная.
  */
 export abstract class Rule<U, C> {
   readonly dmg = 'rule';

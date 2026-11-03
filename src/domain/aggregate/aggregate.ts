@@ -11,12 +11,9 @@ import type { AnyAggregateDef, EntityBase } from './aggregate-def';
 import type { ReadonlyAr } from './readonly-ar';
 
 /**
- * Метка «агрегат создан, а не восстановлен» — её ставит
- * `Aggregate.newState`. Символьный ключ переживает spread
- * (`{ ...XAr.newState(…), … }` в `create`), но не схему state, не
- * `snapshot()` (structuredClone) и не JSON — восстановленная запись её не
- * несёт. Так база отличает `create` от `restore` без флага в конструкторе
- * наследника.
+ * Метка «создан, а не восстановлен» от `Aggregate.newState`: символьный ключ
+ * переживает spread в `create`, но не схему, `snapshot()` и JSON. Так база
+ * отличает `create` от `restore` без флага в конструкторе наследника.
  */
 const NEW_ENTITY: unique symbol = Symbol('dmg.newState');
 
@@ -39,12 +36,10 @@ type Apply<D extends AnyAggregateDef, R> = (
 ) => R;
 
 /**
- * Базовый класс агрегата v2. Наследник объявляет `private constructor`,
- * `static create(): Result<Ar>` (с событием) и `static restore(snapshot)`.
- * Состояние меняется только через `change()`; невалидное состояние — `throw`
- * (нарушение инварианта, ERR: §1 п. 2), в памяти его не бывает.
- *
- * `V` — форма состояния наружу (`view()`, D-44); по умолчанию — state.
+ * Базовый класс агрегата (D-44). Наследник объявляет `private constructor`,
+ * `static create(): Result<Ar>` и `static restore(snapshot)`. Состояние
+ * меняется только мутациями базы; невалидное — `throw`, в памяти его не
+ * бывает. `V` — форма состояния наружу (`view()`), по умолчанию — state.
  */
 export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
   private current: StateOf<D>;
@@ -52,11 +47,9 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
   private stored: number | undefined;
 
   /**
-   * Агрегат только для чтения из state — так потребитель фасада видит
-   * выход UC другого модуля (D-43, API-04): готовый Ar без мутаций, а не
-   * entity (DOM-01). Полиморфный `this`: тип и проверка state — по
-   * `restore` конкретного Ar (`TaskAr.readonly(state): ReadonlyAr<TaskAr>`),
-   * кода в наследнике не нужно; state не по схеме — исключение `restore`.
+   * Агрегат только для чтения из state — так потребитель фасада видит выход
+   * UC другого модуля (D-43, API-04), а не entity. Полиморфный `this`: тип и
+   * проверка state — по `restore` конкретного Ar, кода в наследнике не нужно.
    */
   static readonly<S, A>(
     this: Restorable<S, A>,
@@ -146,10 +139,8 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
   }
 
   /**
-   * Мутация без смены статуса в момент `at`: черновик → `apply` → проверка
-   * схемы → фиксация. При `Err` черновик и события отбрасываются;
-   * `updatedAt` = `at`. Время — аргумент операции: домен не читает часы
-   * (D-34). Статус меняет только `transition`.
+   * Мутация без смены статуса в момент `at` (D-34): черновик → `apply` →
+   * проверка схемы → фиксация; при `Err` черновик и события отбрасываются.
    * Дженерик по всему `Result`: при `<T, E>` TS вывел бы `E` из первого
    * `return` и отверг бы второй код ошибки.
    */

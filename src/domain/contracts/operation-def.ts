@@ -18,12 +18,10 @@ export type {
 } from './operation-def.types';
 
 /**
- * База операций модуля (UC, ER, Job): межмодульные вызовы `calls`
- * и то, чем проверки графа и файлов различают виды, — агрегаты, ошибки,
- * подписки,
- * сокращение и каталог файла. Вид сужает тип `calls` через
- * `declare readonly calls: Declared<S, 'calls'>` (не параметром базы:
- * `AnyUseCaseDef` выводится из наследника, аргумент `extends` дал бы цикл).
+ * База операций модуля (UC, ER, Job): вызовы `calls` и признаки вида для
+ * проверок графа и файлов. Вид сужает `calls` через `declare`, а не
+ * параметром базы: `AnyUseCaseDef` выводится из наследника, аргумент
+ * `extends` дал бы цикл.
  */
 export abstract class OperationDef<N extends string = string> extends Def<N> {
   abstract override readonly dmg: OperationDmg;
