@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
-import { checkCovers, coversOf, impactOf, readCovers } from './covers-check';
+import {
+  checkCovers,
+  coversOf,
+  exitCode,
+  impactOf,
+  readCovers,
+} from './covers-check';
 import { type DocFile, readDocs } from './docs-check';
 
 const doc = (covers: string[], path = 'docs/concepts/uc-path.md'): DocFile => ({
@@ -58,6 +64,31 @@ describe('checkCovers: исходник позже документа', () => {
       ],
       stale: [],
     });
+  });
+
+  it('covers: в неразобранной форме — нарушение, а не тишина', () => {
+    const inline: DocFile = {
+      path: 'skills/x/SKILL.md',
+      text: '---\ncovers: [src/app/uow.ts]\n---\n# X\n',
+    };
+    expect(checkCovers([inline], exists, changedAt).missing).toEqual([
+      'skills/x/SKILL.md: covers — не разобран, нужен список строк «  - путь»',
+    ]);
+  });
+});
+
+describe('exitCode: код выхода docs:covers', () => {
+  const stale = { missing: [], stale: ['d: s менялся позже документа'] };
+  const missing = { missing: ['d: covers — нет файлов s'], stale: [] };
+
+  it('отставание — 0 в check, 1 со --strict', () => {
+    expect(exitCode(stale, false)).toBe(0);
+    expect(exitCode(stale, true)).toBe(1);
+  });
+
+  it('нет файлов covers — 1 всегда; чисто — 0', () => {
+    expect(exitCode(missing, false)).toBe(1);
+    expect(exitCode({ missing: [], stale: [] }, true)).toBe(0);
   });
 });
 

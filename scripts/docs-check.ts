@@ -22,7 +22,7 @@ const DOC_FILES = ['llms.txt', 'README.md'];
 const SOURCE_GLOB = 'src/**/*.ts';
 const RULES_PATH = 'docs/rules.md';
 const LINK_RE = /\]\(([^)\s]+)\)/g;
-const SEE_RE = /@see\s+(\S+)/g;
+const SEE_RE = /@see\s+(\S+?)[.,;:)]*(?=\s|$)/g;
 const SEE_PATH_RE = /\.(?:md|ts)$/;
 const RULE_RE = /\b(?:ARC|DOM|MAN|ERR|API|CODE|TST)-\d{2}\b/g;
 const EXTERNAL = /^[a-z]+:/i;
@@ -37,7 +37,7 @@ type Kind =
   | 'other';
 
 /**
- * Куда может ссылаться документ своего типа (D-59). Типы без записи —
+ * Куда может ссылаться документ своего типа. Типы без записи —
  * смешанные документы корня `docs/`, входы и скилы — не ограничены.
  */
 const ALLOWED: Partial<Record<Kind, ReadonlySet<Kind>>> = {
@@ -84,11 +84,19 @@ function anchorsOf(text: string): Set<string> {
   return anchors;
 }
 
+function decoded(anchor: string): string {
+  try {
+    return decodeURIComponent(anchor);
+  } catch {
+    return anchor;
+  }
+}
+
 function anchorIndex(files: readonly DocFile[]) {
   const index = new Map(files.map((f) => [f.path, anchorsOf(f.text)]));
-  /** Якорь битый: файл известен как документ, а заголовка нет */
+  /** Якорь битый: файл известен как документ, а заголовка нет; пустой якорь — не якорь */
   return (path: string, anchor: string) =>
-    index.get(path)?.has(decodeURIComponent(anchor)) === false;
+    anchor !== '' && index.get(path)?.has(decoded(anchor)) === false;
 }
 
 export function checkDocs(

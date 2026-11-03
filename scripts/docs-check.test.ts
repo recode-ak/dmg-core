@@ -169,6 +169,23 @@ describe('checkSee: @see в JSDoc', () => {
       'src/app/uow.ts: @see — битый якорь docs/concepts/uc-path.md#сбои',
     ]);
   });
+
+  it('пунктуация после пути — не часть пути', () => {
+    const files = [src('/** См. @see docs/concepts/uow.md. */')];
+    expect(checkSee(files, docs, has)).toEqual([
+      'src/app/uow.ts: @see ведёт в несуществующий файл docs/concepts/uow.md',
+    ]);
+  });
+
+  it('пустой якорь и «%» в якоре — без исключения и ложного нарушения', () => {
+    const files = [
+      src('/** @see docs/concepts/uc-path.md# */'),
+      src('/** @see docs/concepts/uc-path.md#100% */'),
+    ];
+    expect(checkSee(files, docs, has)).toEqual([
+      'src/app/uow.ts: @see — битый якорь docs/concepts/uc-path.md#100%',
+    ]);
+  });
 });
 
 describe('@see в src пакета (контракт)', () => {

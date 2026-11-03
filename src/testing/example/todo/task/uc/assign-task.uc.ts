@@ -9,9 +9,9 @@ import { TaskRules } from '../task.rules';
 import { TaskAssignmentVo, TaskState } from '../task.state';
 
 /**
- * Назначение исполнителя — command с вызовом чужого модуля: `load`
- * спрашивает `users` (`this.call(GetUserUcDef, …)`) и кладёт ответ в
- * контекст, решение — правило `assigneeActive` над ответом, а не `if` в UC
+ * Назначение исполнителя — command с вызовом чужого модуля: `fetch`
+ * после Policy спрашивает `users` (`this.call(GetUserUcDef, …)`) и кладёт
+ * ответ в контекст, решение — правило `assigneeActive` над ответом, а не `if` в UC
  * (API-01). Порядок отказов: нет задачи → нет пользователя (ошибка `users`
  * по ссылке, ERR-03) → Policy → исполнитель неактивен → задача не открыта.
  * Смена исполнителя публикует `unassigned` прежнего, затем `assigned`.

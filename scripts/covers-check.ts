@@ -12,6 +12,7 @@ import { type DocFile, readDocs } from './docs-check';
 
 const FRONT_MATTER_RE = /^---\n([\s\S]*?)\n---\n/;
 const COVERS_RE = /^covers:\n((?:[ \t]+- .*\n?)*)/m;
+const COVERS_KEY_RE = /^covers:/m;
 
 export interface CoversReport {
   /** Пути covers без файлов — `check` падает */
@@ -40,7 +41,14 @@ export function checkCovers(
   const report: CoversReport = { missing: [], stale: [] };
   for (const doc of docs) {
     const docTime = changedAt(doc.path);
-    for (const pattern of coversOf(doc.text)) {
+    const patterns = coversOf(doc.text);
+    const front = FRONT_MATTER_RE.exec(doc.text)?.[1] ?? '';
+    if (patterns.length === 0 && COVERS_KEY_RE.test(front)) {
+      report.missing.push(
+        `${doc.path}: covers — не разобран, нужен список строк «  - путь»`,
+      );
+    }
+    for (const pattern of patterns) {
       if (!exists(pattern)) {
         report.missing.push(`${doc.path}: covers — нет файлов ${pattern}`);
         continue;
@@ -52,6 +60,12 @@ export function checkCovers(
     }
   }
   return report;
+}
+
+/** Код выхода `docs:covers`: путь без файлов — всегда 1, отставание — 1 только со `--strict` */
+export function exitCode(report: CoversReport, strict: boolean): 0 | 1 {
+  if (report.missing.length > 0) return 1;
+  return strict && report.stale.length > 0 ? 1 : 0;
 }
 
 /**
@@ -80,11 +94,16 @@ export function impactOf(
     .map((doc) => doc.path);
 }
 
-/** Документы с `covers:`, поиск файлов по шаблону и время коммитов git пакета с корнем `root` */
+/**
+ * Документы с `covers:`, поиск файлов по шаблону и время коммитов git пакета
+ * с корнем `root`. Время — дата коммита: незакоммиченное не видно, rebase и
+ * правка опечатки в документе сдвигают её.
+ */
 export function readCovers(root: string) {
   const docs = readDocs(root).files.filter(
     (f) =>
-      !posix.basename(f.path).startsWith('_') && coversOf(f.text).length > 0,
+      !posix.basename(f.path).startsWith('_') &&
+      COVERS_KEY_RE.test(FRONT_MATTER_RE.exec(f.text)?.[1] ?? ''),
   );
   const exists = (pattern: string) => {
     for (const _ of new Glob(pattern).scanSync({ cwd: root })) return true;
@@ -104,8 +123,8 @@ export function readCovers(root: string) {
 if (import.meta.main) {
   const strict = process.argv.includes('--strict');
   const { docs, exists, changedAt } = readCovers(join(import.meta.dir, '..'));
-  const { missing, stale } = checkCovers(docs, exists, changedAt);
-  for (const line of missing) console.error(`error: ${line}`);
-  for (const line of stale) console.warn(`warn: ${line}`);
-  if (missing.length > 0 || (strict && stale.length > 0)) process.exit(1);
+  const report = checkCovers(docs, exists, changedAt);
+  for (const line of report.missing) console.error(`error: ${line}`);
+  for (const line of report.stale) console.warn(`warn: ${line}`);
+  process.exit(exitCode(report, strict));
 }
