@@ -36,7 +36,7 @@
 
 ## Ошибки и сохранение
 
-**D-13. `Result<T, E>` вместо `throw` для штатных отказов.** `throw` — только баг, инвариант, системный сбой. См. [errors-result.md](./errors-result.md).
+**D-13. `Result<T, E>` вместо `throw` для штатных отказов.** `throw` — только баг, инвариант, системный сбой. См. [errors-result.md](./reference/errors-result.md).
 
 **D-14. Ошибка не знает транспорт.** У ошибки есть `code` и нейтральный `kind`; маппинг в HTTP / MCP / текст бота — в адаптерах. Ошибки зависимостей пробрасываются по ссылке через контракт фасада.
 
@@ -46,13 +46,13 @@
 
 ## Транспорт
 
-**D-17. HTTP — JSON-команда.** `POST /api/<module>` с `{ uc, input, meta? }`; `OPTIONS` отдаёт контракт модуля. См. [transport.md](./transport.md). Уточнено D-49: модуля в команде нет, его адресует транспорт.
+**D-17. HTTP — JSON-команда.** `POST /api/<module>` с `{ uc, input, meta? }`; `OPTIONS` отдаёт контракт модуля. См. [transport.md](./reference/transport.md). Уточнено D-49: модуля в команде нет, его адресует транспорт.
 
 **D-18. MCP из манифестов.** UC → tools, граф → resources. Старт: только query, dev, заданный актор.
 
 ## Вызовы, границы и проверки
 
-**D-25. `Caller` — кто вызывает.** Четыре подтипа: `guest`, `user`, `delegate`, `system`. Def UC объявляет `callers`; домен видит субъекта (для `delegate` — замещаемого), аудит — исполнителя через meta событий. Тип и `callers` — в `dmg-core`, делегирование — модуль приложения. См. [caller.md](./caller.md).
+**D-25. `Caller` — кто вызывает.** Четыре подтипа: `guest`, `user`, `delegate`, `system`. Def UC объявляет `callers`; домен видит субъекта (для `delegate` — замещаемого), аудит — исполнителя через meta событий. Тип и `callers` — в `dmg-core`, делегирование — модуль приложения. См. [caller.md](./reference/caller.md).
 
 **D-28. Модуль готов к выносу в сервис.** Межмодульно — только асинхронные фасады и события по Def; один UoW — один модуль; реакции идемпотентны, публикация через outbox; `Caller`, `Trace`, конверт события и снапшот Ar сериализуются в JSON. Модулю в другом репо нужны только контракты зависимостей (`domain/<m>/contract`), не весь домен. Сервис из одного модуля — то же приложение с одним модулем в `dependsOn`.
 
@@ -95,7 +95,7 @@ DCS остаётся для мутаций нескольких агрегато
 - **Внешний модуль (D-37)** объявляет Def UC без реализации; приложение исполняет их адаптером над старым кодом или сетевым клиентом; при переводе модуля Def получает реализацию, адаптер уходит.
 
 **D-43. Вызовы и граница модуля: `Caller`-классы, модуль — единственная точка входа, типизированный `call`.** Заменяет в D-42 вызывающий `module` и рантайм-проверку `calls`; остальное в D-42 в силе.
-- **`Caller` — иерархия классов** (`GuestCaller`, `UserCaller`, `DelegateCaller`, `SystemCaller`) с `subject()`, `person()`, `toLog()`. Вызывающего `module` нет: межмодульный и внутренний системный вызов — один `SystemCaller(from: OperationRef, person?)`, где `from` — `{ kind, module, name }` вызвавшей операции, `person` — исходный человек (`caller.person()` пришедшего, матрёшки нет). ER и Job — без `person`. `channel` — в `Trace.channel`, не в `GuestCaller`. Подробно — [caller.md](./caller.md).
+- **`Caller` — иерархия классов** (`GuestCaller`, `UserCaller`, `DelegateCaller`, `SystemCaller`) с `subject()`, `person()`, `toLog()`. Вызывающего `module` нет: межмодульный и внутренний системный вызов — один `SystemCaller(from: OperationRef, person?)`, где `from` — `{ kind, module, name }` вызвавшей операции, `person` — исходный человек (`caller.person()` пришедшего, матрёшки нет). ER и Job — без `person`. `channel` — в `Trace.channel`, не в `GuestCaller`. Подробно — [caller.md](./reference/caller.md).
 - **Policy — только субъект, вызывается всегда** (`Rule.evaluate(subject, ctx)`): вид вызывающего она не знает, `delegable` нет. Вид отсекает `callers` (`UNAUTHORIZED`). Системный вызов без субъекта — явно: отдельный UC (`callers: ['system']`, `allowAll`) или переопределение `protected checkPolicy` в наследнике. Шаги `UseCaseFromDef` — `protected`: `checkCaller` → `parseInput` → `load` → `checkPolicy` → `checkRules` → `execute` → `parseOutput` → фиксация (с D-58 — `fetch` между `checkPolicy` и `checkRules`).
 - **Модуль — единственная точка входа:** `ModuleFromDef.handle(def, input, caller, trace)` и `runJob`; `useCase(def)` не публичный. Транспорт и фасад ходят только через модуль.
 - **Фасад** — `Facade<M>` в домене (`handle` только UC с `'system'` в `callers`, вызывающий — `SystemCaller`) и `ModuleFacade<M>` в `dmg-core/app`, обёртка над `ModuleFromDef.handle`. Свои типы фасадов модулей и методы-обёртки не заводятся; наследник `ModuleFacade` — только ради удобных методов поверх `handle`. Выход — как у UC; `ReadonlyAr` строит вызывающий (`Aggregate.readonly(state)`). В тестах — `StubFacade<M>` (`dmg-core/testing`).
@@ -119,10 +119,10 @@ DCS остаётся для мутаций нескольких агрегато
 **D-48. Def — классы с поведением.** Каждый вид манифеста — класс (`ErrorDef`, `EventDef`, `AggregateDef`, `DomainRuleDef`, `RulesDef`, `PolicyDef`, `UseCaseDef`, `EventReactionDef`, `JobDef`, `ModuleDef`; правила Policy — иерархия `Rule`), база — `Def` (`name`, `label`, `description`, `describe()`, `normalize()`), операции — `OperationDef`. DSL — `XxxDef.define(spec)`, объявленный в каждом виде (`define` базы с полиморфным `this` теряет литеральные типы); функции `define*` удалены. Поведение вида — метод его класса, а не `switch` по `dmg` в чужом коде (контрактный тест `kind-switch.test`). `Any*Def` — структурный тип публичных членов класса; у Def нет `private`/`#`, поля объявлены явно, сравнение по ссылке. Тем же принципом: индекс Def — `DefIndex`, проверки — `ArchChecker`/`Violation`, база репозитория — `VersionedRepository` (`Lock`), тестовые двойники — `MemoryLogger`/`RecordingBus`/`MemoryBus`; шаблоны генератора — классы вида в `gen`, а не в Def (Def — доменный контракт, шаблоны знают прикладной слой). Трек `dmg-core-oop` (2026-10-27).
 
 **D-49. Def — типы клиента, команда — исполнение; модуль адресует транспорт.** Уточняет D-17, D-42 и D-43 (вход модуля `handle(def, …)` заменён на `dispatch`).
-- **Команда — простые данные:** `Command = { uc, input, meta? }`, где `uc` — `name` Def UC, `meta` — `requestId`, `version`. `requestId` — одно намерение клиента: и след, и ключ идемпотентности command UC, отдельного ключа нет ([transport.md](./transport.md) §2). Имени модуля в команде нет: модуль адресует транспорт (URL на бэке, Def модуля в `apiApp.dispatch`, `ModuleApi` вне процесса). Caller и `Trace` в команду не входят, их передаёт транспорт (D-46).
+- **Команда — простые данные:** `Command = { uc, input, meta? }`, где `uc` — `name` Def UC, `meta` — `requestId`, `version`. `requestId` — одно намерение клиента: и след, и ключ идемпотентности command UC, отдельного ключа нет ([transport.md](./reference/transport.md) §2). Имени модуля в команде нет: модуль адресует транспорт (URL на бэке, Def модуля в `apiApp.dispatch`, `ModuleApi` вне процесса). Caller и `Trace` в команду не входят, их передаёт транспорт (D-46).
 - **Def — источник типов и сахар клиента:** `ucDef.command(input)` → `Command<D>` с фантомным `D`, по нему выводятся `InputOf`/`OutputOf`/ошибки. Def собирает только команду и об адресе не знает.
 - **Исполнение:** `apiApp` выбирает `apiModule` (`ModuleFromDef`) по адресу транспорта → `dispatch(command, caller, trace)` → UC по имени → обычный конвейер UC (D-43). Неизвестный модуль или UC → `Err` `OPERATION_NOT_FOUND` (базовая ошибка ядра, `not_found`). Восстанавливать Def из JSON на сервере не нужно.
-- **Клиент in-proc — приложение:** `apiApp.dispatch(moduleDef, ucDef.command(input), caller, trace)` → типизированный `Result`; адрес — Def модуля, UC другого модуля — ошибка компиляции; Caller и `Trace` строит адаптер входа. Отдельного клиента на модуль в процессе нет: маршрутизация по адресу уже в приложении. **Клиент вне процесса** — `ModuleApi` (Def модуля + wire-транспорт): ответ — сериализуемый `Result` ([transport.md](./transport.md) §1), восстанавливается по Def UC; in-proc — `Result` как есть, без JSON, форма та же.
+- **Клиент in-proc — приложение:** `apiApp.dispatch(moduleDef, ucDef.command(input), caller, trace)` → типизированный `Result`; адрес — Def модуля, UC другого модуля — ошибка компиляции; Caller и `Trace` строит адаптер входа. Отдельного клиента на модуль в процессе нет: маршрутизация по адресу уже в приложении. **Клиент вне процесса** — `ModuleApi` (Def модуля + wire-транспорт): ответ — сериализуемый `Result` ([transport.md](./reference/transport.md) §1), восстанавливается по Def UC; in-proc — `Result` как есть, без JSON, форма та же.
 - **Один путь для всех входов:** UI (бот, web), CLI, межмодульные фасады (`ModuleFacade`, D-43 — через команды, типизированный сахар поверх) и будущий HTTP. Вызовов `handle(def, …)` по ссылке на Def в прикладном слое и раннерах нет. Вынос модуля в сервис (D-28) решается в приложении (модуль подключается как удалённый), вызывающий код не меняется.
 
 *Почему:* web-клиент передаёт по транспорту JSON, и бэк должен найти по нему UC. Если цепочка `apiApp` → `apiModule` строится на DTO команды, транспорты и in-proc не расходятся. Трек `command-dispatch`.
@@ -166,7 +166,7 @@ DCS остаётся для мутаций нескольких агрегато
 
 *Почему:* тест UC на JSON во временном каталоге проверял заодно выборку и формат файла, был медленнее и дублировал контрактный тест репозитория; ответ `find*` в тесте делает сценарий UC явным. Фейк лежит рядом с портом, поэтому его переиспользуют тесты UC, ER и Job модуля, а TST-07 не даёт ему попасть в рабочий код. Трек `dmg-cleanup` u7-school.
 
-**D-56. Отсев повторов command UC по `requestId`.** Уточняет D-49 и [transport.md](./transport.md) §2; аналог inbox событий (D-47) для входа транспорта.
+**D-56. Отсев повторов command UC по `requestId`.** Уточняет D-49 и [transport.md](./reference/transport.md) §2; аналог inbox событий (D-47) для входа транспорта.
 - **Где:** `dispatch` модуля (через него идут все входы, D-49/D-54). Отсеивается только command UC со следом `cause.kind: 'request'`, где `requestId` прислал клиент. Query, след события или Job, серверный `requestId` и вызывающий `system` (вызов из другой операции или приложения — его определяет внешняя операция) — без отсева.
 - **Ключ:** модуль + вызывающий + `requestId`. Вызывающий: `user` — `subjectId`, `delegate` — `subjectId` и `actorId`, `guest` — канал и `channel.visitorId` из следа (посетитель `42` в разных каналах — разные гости); гость без `visitorId` — без отсева (иначе один гость получит ответ другого).
 - **Вход:** канонический JSON `{ uc, input }` (ключи объектов отсортированы) хранится строкой рядом с ответом; другой вход с тем же ключом — конфликт.

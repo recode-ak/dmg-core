@@ -15,7 +15,7 @@ import type { Logger } from '../context';
 /**
  * Wire-транспорт клиента (D-49): доставляет команду модулю в другом
  * процессе (HTTP, очередь) и возвращает ответ простыми данными
- * (transport.md §1). Caller и Trace транспорт переводит в свою форму
+ * (reference/transport.md §1). Caller и Trace транспорт переводит в свою форму
  * (токен, заголовки).
  */
 export type CommandTransport<U extends Identified = Identified> = {
@@ -28,7 +28,7 @@ export type CommandTransport<U extends Identified = Identified> = {
 };
 
 /**
- * Клиент модуля вне процесса (D-49, transport.md §4): адрес — имя из Def,
+ * Клиент модуля вне процесса (D-49, reference/transport.md §4): адрес — имя из Def,
  * ответ восстанавливается по Def UC команды. In-proc клиенту он не нужен —
  * там команду исполняет `ApiApp.dispatch` по Def модуля.
  */

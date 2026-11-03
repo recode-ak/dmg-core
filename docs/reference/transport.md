@@ -1,0 +1,86 @@
+# Транспорт
+
+**Назначение:** внешние контракты модуля — форма команды и ответа, HTTP, MCP, in-proc. Генераторы транспорта — потребители графа (`dmg-core/graph`); в пакете пока не входят. Решения — D-17, D-28, D-46, D-49, D-56, D-57 ([decisions.md](../decisions.md)).
+
+---
+
+## 1. Общее
+
+- Транспорт **генерируется** из Def: роутинг, валидация, описание контракта. Ручных ручек нет.
+- Ответ — сериализованный `Result`:
+  ```json
+  { "ok": true, "value": { } }
+  { "ok": false, "error": { "code": "TASK_ALREADY_DONE", "kind": "conflict", "payload": { } } }
+  ```
+- Сериализует и восстанавливает ответ Def UC: `serializeResult` / `restoreResult`; ошибка — без `label`/`description`, их клиент берёт из Def ([errors-result.md](./errors-result.md) §2). Код или payload вне контракта UC → `SERVER_INTERNAL`.
+- Выход UC — только простые данные: время — `Timestamp`-число; без `Date`, `Map`, `undefined` в значениях. Клиент выход повторно схемой не проверяет.
+- Агрегаты передаются **снапшотом**; клиент восстанавливает их в `ReadonlyAr`.
+- Маппинг `kind` → представление транспорта — **только в адаптере**.
+
+## 2. HTTP
+
+- Всегда `POST /api/<module>` с телом JSON-команды:
+  ```json
+  { "uc": "completeTask", "input": { "taskId": "…", "expectedVersion": 3 }, "meta": { "requestId": "…" } }
+  ```
+- Команда — простые данные: `uc` — `name` Def UC, имени модуля в ней нет. Клиент собирает её из Def: `ucDef.command(input)` → `Command<D>`.
+- `meta` — расширение без смены протокола: `requestId`.
+- Caller и `Trace` в команду не входят: их передаёт транспорт (заголовки, токен).
+- **Модуль адресует URL:** `apiApp` выбирает `apiModule` по `<module>`, тот исполняет `dispatch(command, caller, trace)` и находит UC по имени. Неизвестный модуль или UC → `Err` `OPERATION_NOT_FOUND` (`not_found`, payload `{ module, uc }`).
+- `OPTIONS /api/<module>` — контракт модуля: UC с JSON Schema входа и выхода, ошибки, описание политики, `label`/`description`.
+
+**Ожидаемая версия.** Поле входа UC `expectedVersion` (схема `F.expectedVersion('<агрегата>')`), а не `meta`. UC сверяет её шагом `this.expectVersion(ar, expectedVersion)`: расходится — `VERSION_CONFLICT` без записи; не прислана — сверки нет. Поле видно в `OPTIONS` и входит во вход отсева повторов.
+
+**`requestId`.** Клиент создаёт его один раз на намерение и повторяет при ретраях; это и след (`Trace`, `correlationId`), и ключ идемпотентности command UC — отдельного ключа нет. Новая команда — новый `requestId` и новый `Trace`. В тестах — фабрика следа, а не константа: `const req = () => Trace.fromRequest({ requestId: crypto.randomUUID() })`.
+
+**Отсев повторов** — в `dispatch` модуля, через порт `ReplayStore` (`AppContext.replay`; по умолчанию `InProcReplayStore`: TTL 24 ч и ёмкость; хранилище, переживающее рестарт, даёт приложение).
+
+| Случай | Поведение |
+|---|---|
+| Отсеивается | command UC, `requestId` прислал клиент (`trace.clientRequestId`) |
+| Не отсеивается | query; серверный `requestId`; след события или Job; вызывающий `system`; гость без `visitorId` |
+| Ключ | модуль + вызывающий (`user` — субъект; `delegate` — субъект и заместитель; гость — канал и `channel.visitorId`) + `requestId` |
+| Вход | канонический JSON `{ uc, input }`, ключи объектов отсортированы |
+| Тот же вход | сохранённый `Ok` без исполнения UC, без Policy и лога операций; `info` в логгер |
+| Другой вход | `REQUEST_CONFLICT`, `reason: 'input'` |
+| Первый ещё исполняется | `REQUEST_CONFLICT`, `reason: 'in_progress'` |
+| Сохраняется | только `Ok`; после `Err` или исключения запись снимается |
+
+- **`REQUEST_CONFLICT`** — `conflict` → 409, базовая ошибка ядра, payload `{ requestId, reason }`; `info` в логгер с причиной.
+- Порт `ReplayStore`: `claim(key, input)` атомарно проверяет и занимает ключ и выдаёт токен владельца; `complete(key, token, answer)` и `release(key, token)` действуют только для владельца. Ответ — JSON-совместимые данные, хранилище отдаёт копию.
+- Сбой хранилища (ERR-07): сбой `claim` — `SERVER_INTERNAL` и `error` в логгер, UC не исполняется; сбой `complete` или `release` — `error` в логгер, ответ UC возвращается как есть.
+
+Маппинг `kind` → HTTP-статус (в адаптере):
+
+| kind | Статус |
+|---|---|
+| `validation` | 422 |
+| `unauthorized` | 401 |
+| `access` | 403 |
+| `not_found` | 404 |
+| `conflict` | 409 |
+| `internal` | 500 |
+
+## 3. MCP
+
+- UC → **tool**: `name` (`<module>.<uc>`), `description` из Def, `inputSchema` из JSON Schema; аннотации: query → `readOnlyHint`, command → `destructiveHint` по необходимости.
+- Граф → **resources**: карта модулей (L0), страницы модулей (L1) и агрегатов (L2), каталоги событий и ошибок.
+- `Err` → результат tool с `isError` и текстом из `label`/`denyMessage`.
+- Caller: только query, dev-окружение, явно заданный `user` (D-18).
+
+## 4. In-proc
+
+Форма та же, что у HTTP: команда `{ uc, input, meta? }` и `Result`; JSON-сериализации нет, объекты передаются как есть.
+
+| Клиент | Вызов | Ответ |
+|---|---|---|
+| приложение в процессе (бот, story, CLI) | `apiApp.dispatch(moduleDef, ucDef.command(input), caller, trace)` | `Result<OutputOf<D>, UseCaseErrorOf<D>>` как есть |
+| вызов по имени (`call <module>.<operation>` раннера каркаса) | `apiApp.dispatchByName(module, { uc, input }, caller, trace)` | `Result`; вход проверяет схема UC (`INPUT_VALIDATION`) |
+| клиент вне процесса (web UI, другой сервис) | `moduleApi.dispatch(ucDef.command(input), caller, trace)`; `ModuleApi` (`dmg-core/app`) — Def модуля и `CommandTransport` | `Result`, восстановленный по Def UC; ошибка вне контракта — `SERVER_INTERNAL` и `warn` с исходным `code` (ERR-07) |
+| другой модуль | фасад `ModuleFacade` (D-43) — сахар поверх команды | `Result`; `ReadonlyAr` строит вызывающий |
+
+- `apiApp.dispatch` по Def — обёртка над `dispatchByName`. Команда UC другого модуля — ошибка компиляции; модуль не подключён или UC не найден — `OPERATION_NOT_FOUND`.
+- Caller и `Trace` — явные аргументы, их строит адаптер входа.
+- `CommandTransport`: `send(module, command, caller, trace)` → `SerializedResult`; caller и trace транспорт переводит в токен и заголовки. Реализаций транспорта в пакете нет.
+- Вынос модуля в сервис (D-28) — в приложении: модуль подключается к `apiApp` как удалённый, вызывающий код не меняется.
+- Видимость UC для вызова по имени — `callers` и Policy, не `contract.ts` (D-54).

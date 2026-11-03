@@ -59,7 +59,7 @@ export class ApiApp<U extends Identified> {
 
   /**
    * Команда модулю по имени — для транспорта без типов Def: CLI `call`,
-   * HTTP `POST /api/<module>` (transport.md §2). Вход проверяет схема UC
+   * HTTP `POST /api/<module>` (reference/transport.md §2). Вход проверяет схема UC
    * (`INPUT_VALIDATION`), вид вызывающего — `callers`, доступ — Policy;
    * неизвестный модуль или UC — `Err` `OPERATION_NOT_FOUND`. Без Def выход
    * и ошибки не типизированы (`D` по умолчанию — любой UC).

@@ -96,7 +96,7 @@ export class UseCaseDef<
       : { uc: def.name, input, meta };
   }
 
-  /** Ответ UC в форме транспорта (transport.md §1). */
+  /** Ответ UC в форме транспорта (reference/transport.md §1). */
   serializeResult(
     result: Result<OutputOf<UseCaseDef<S>>, UseCaseErrorOf<UseCaseDef<S>>>,
   ): SerializedResult<OutputOf<UseCaseDef<S>>> {

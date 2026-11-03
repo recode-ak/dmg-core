@@ -5,7 +5,7 @@ covers:
 
 # Errors — гайд
 
-**Назначение:** Def ошибок агрегата (`<A>Errors = ErrorDef.define('<PREFIX>', { … })` — словарь `ErrorDef`): код, `kind`, `label`, `description`, схема payload. Файл — `<domain>/<m>/<a>/<a>.errors.ts`. Модель ошибки и `Result` — [errors-result.md](../errors-result.md).
+**Назначение:** Def ошибок агрегата (`<A>Errors = ErrorDef.define('<PREFIX>', { … })` — словарь `ErrorDef`): код, `kind`, `label`, `description`, схема payload. Файл — `<domain>/<m>/<a>/<a>.errors.ts`. Модель ошибки и `Result` — [errors-result.md](../reference/errors-result.md).
 
 ---
 
@@ -34,7 +34,7 @@ covers:
 - ERR-05 — ошибка не знает транспорт: нет HTTP-статусов и текстов UI.
 - MAN-01 — `label` и `description` у ошибки; MAN-02 — `description` у каждого поля payload.
 - MAN-12 — каждая ошибка из `rejects` перехода объявлена в группе своего агрегата.
-- `kind` — по смыслу ([errors-result.md](../errors-result.md) §2): отказ перехода — `conflict`, отсутствие — `not_found`, невалидный вход — `validation`.
+- `kind` — по смыслу ([errors-result.md](../reference/errors-result.md) §2): отказ перехода — `conflict`, отсутствие — `not_found`, невалидный вход — `validation`.
 
 ## 5. Типичные ловушки
 
@@ -47,4 +47,4 @@ covers:
 
 ## 6. Как тестировать
 
-Группа: префикс и `kind` каждого кода, разбор payload. Ar: каждый отказ из `rejects` — конкретный `code` (TST-01). UC: тест на каждую собственную ошибку по `code` и `kind`, а не по факту отказа ([errors-result.md](../errors-result.md) §4, [testing.md](../testing.md)).
+Группа: префикс и `kind` каждого кода, разбор payload. Ar: каждый отказ из `rejects` — конкретный `code` (TST-01). UC: тест на каждую собственную ошибку по `code` и `kind`, а не по факту отказа ([errors-result.md](../reference/errors-result.md) §4, [testing.md](../testing.md)).

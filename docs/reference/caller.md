@@ -1,0 +1,58 @@
+# Caller и Trace
+
+**Назначение:** контракт вызывающей стороны и следа для UC, Policy и аудита. Классы `Caller` и `Trace` — в `dmg-core` (дженерик пользователя замыкает пакет приложения). Решения — D-25, D-43, D-46, D-56 ([decisions.md](../decisions.md)).
+
+---
+
+## 1. Иерархия
+
+`Caller<U>` — абстрактный класс; вид — `kind`, остальное — методы:
+
+```ts
+abstract class Caller<U extends { uuid: string }> {
+  abstract readonly kind: 'guest' | 'user' | 'delegate' | 'system';
+  abstract subject(): U | undefined;              // от чьего имени — для Policy и домена
+  abstract person(): PersonCaller<U> | undefined; // исходный человек — для вложенных вызовов
+  abstract toLog(): CallerLog;                    // форма для лога операций
+}
+type PersonCaller<U> = GuestCaller<U> | UserCaller<U> | DelegateCaller<U>;
+```
+
+| Класс | Кто | `subject()` | `person()` |
+|---|---|---|---|
+| `GuestCaller` | не зарегистрирован (канал — в `Trace.channel`) | нет | он сам |
+| `UserCaller(user)` | авторизованный пользователь | он сам | он сам |
+| `DelegateCaller(subject, actor, delegationId)` | заместитель действует от имени другого по делегированию | **тот, кого замещают** | он сам |
+| `SystemCaller(from, person?)` | UC/ER/Job своего или другого модуля; `from: OperationRef` — `{ kind, module, name }` вызвавшей операции | `person?.subject()` | `person` |
+
+- `person` по типу не `SystemCaller`; вложенный вызов передаёт `caller.person()` пришедшего.
+- ER и Job — `SystemCaller` без `person`.
+- Свой или чужой модуль — сравнение `from.module` с модулем вызываемого; отдельного вида `module` нет.
+- `toLog()`: `{ kind: 'guest' }` · `{ kind: 'user', subjectId }` · `{ kind: 'delegate', subjectId, actorId, delegationId }` · `{ kind: 'system', from, person? }`.
+
+## 2. Ключевые правила
+
+1. Def UC объявляет допустимые виды: `callers: ('guest' | 'user' | 'delegate' | 'system')[]`. Недопустимый вид отсекается до запуска UC (`UNAUTHORIZED`).
+2. Policy и домен работают только с **субъектом** (`caller.subject()`): `Rule.evaluate(subject, ctx)`; вид вызывающего Policy не знает и делегирование не проверяет. Policy вызывается всегда; правило без субъекта — отказ (`ACCESS_DENIED`).
+3. Системный вызов без субъекта разрешается только явно: отдельный UC (`callers: ['system']`, `allowAll`) или переопределение `protected checkPolicy` в наследнике `UseCaseFromDef` — ответственность наследника.
+4. Межмодульный вызов — `this.call(def, input, caller, trace)` базы `OperationFromDef`: только Def из `calls` (по типу — UC с `'system'` в `callers`); база подставляет `SystemCaller(this.ref, caller.person())` и идёт через фасад модуля-владельца (`Facade<M>.handle`). Рантайм-проверки `calls` нет.
+5. Конверт события несёт `cause` и `correlationId`, но не `caller`: «кто» — лог операций (`toLog()` вызывающего), «из-за чего» — `trace.cause`.
+6. Транспорт строит `Caller` и `Trace` на входе (бот — по идентификатору пользователя в канале и активному делегированию, HTTP — по токену) и исполняет команду `ModuleFromDef.dispatch`; внутрь UC они передаются неизменными.
+7. Резолвер каркаса `init` без модуля пользователей — заглушка: uuid из CLI → `UserCaller` без ролей, только канал `cli`.
+
+## 3. Trace
+
+| Поле, метод | Значение |
+|---|---|
+| `requestId` | id входа транспорта (`Trace.fromRequest`); клиент не передал — создаётся с `warn` (ERR-07), причина получает `generated: true` (лог операций, `TraceJson`) |
+| `clientRequestId` | `requestId`, присланный клиентом, — ключ отсева повторов command UC; у серверного id, следа события и Job его нет |
+| `cause` | запрос, событие или прогон Job — шаг назад |
+| `correlationId` | вся цепочка |
+| `channel?` | `{ name, visitorId? }`, задаётся на входе, идёт по цепочке |
+| `Trace.fromEvent` | след ER; канал события не переносится — в конверте его нет |
+| `Trace.forJob(def)` | след Job; причина — прогон с именем Job |
+| `toLog()` / `toEnvelope()` | форма для лога операций / для конверта события |
+
+## 4. Делегирование
+
+Делегирование — агрегат модуля пользователей приложения, а не платформы: `from`, `to`, область (роли или правила), `validFrom`/`validTo`, причина, отзыв; события `<m>.delegation.granted/revoked/expired`. Пока приложение его не реализовало, `delegate` в `callers` объявляется, но транспорт его не строит.

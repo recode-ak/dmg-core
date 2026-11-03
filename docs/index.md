@@ -26,7 +26,7 @@
 | Понять устройство | [concepts/](./concepts/index.md) → [layers.md](./layers.md) → [domain-modeling.md](./domain-modeling.md) |
 | Создать файл / объект | [naming.md](./naming.md) → [rules.md](./rules.md) |
 | Написать артефакт по образцу | [guides/](./guides/index.md) |
-| Объявить контракт | [manifests.md](./manifests.md), [errors-result.md](./errors-result.md) |
+| Объявить контракт | [manifests.md](./manifests.md), [reference/errors-result.md](./reference/errors-result.md) |
 | Работать агентом | скил `dmg-architecture` ([SKILL.md](../skills/dmg-architecture/SKILL.md)), роли [agents/](../agents/README.md) |
 
 ## Документы
@@ -40,9 +40,9 @@
 
 **Контракты**
 - [manifests.md](./manifests.md) — Def-классы (`XxxDef.define`), граф L0/L1/L2, декларация + верификация
-- [errors-result.md](./errors-result.md) — `Result`, модель ошибок, UoW, исполнение UC
-- [caller.md](./caller.md) — кто вызывает: `guest`, `user`, `delegate`, `system`; след `Trace`
-- [transport.md](./transport.md) — HTTP (JSON-команда), MCP, in-proc
+- [reference/errors-result.md](./reference/errors-result.md) — `Result`, модель ошибки, базовые ошибки ядра, гарантии исполнения UC
+- [reference/caller.md](./reference/caller.md) — кто вызывает: `guest`, `user`, `delegate`, `system`; след `Trace`
+- [reference/transport.md](./reference/transport.md) — HTTP (JSON-команда), отсев повторов, MCP, in-proc
 
 **Качество**
 - [rules.md](./rules.md) — **каталог правил с ID** и способом проверки

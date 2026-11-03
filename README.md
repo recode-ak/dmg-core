@@ -106,7 +106,7 @@ bunx dmg-core init
 
 - [Вход](docs/index.md): суть DMG, карта документов
 - [Слои](docs/layers.md), [моделирование домена](docs/domain-modeling.md), [структура, имена и генератор](docs/naming.md)
-- [Манифесты](docs/manifests.md), [ошибки и Result](docs/errors-result.md), [Caller и Trace](docs/caller.md), [транспорт](docs/transport.md)
+- [Манифесты](docs/manifests.md), [ошибки и Result](docs/reference/errors-result.md), [Caller и Trace](docs/reference/caller.md), [транспорт](docs/reference/transport.md)
 - [Каталог правил](docs/rules.md), [решения](docs/decisions.md), [тестирование](docs/testing.md), [стиль TypeScript](docs/typescript.md)
 - [Гайды по видам артефактов](docs/guides/index.md), [проект: профили и рост](docs/guides/project.md)
 - Для агентов: [`llms.txt`](llms.txt), скил [`dmg-architecture`](skills/dmg-architecture/SKILL.md), [роли](agents/README.md)

@@ -24,7 +24,7 @@ export type ReactionEnvelopeOf<D extends AnyEventReactionDef> = EnvelopeOf<
  * `Ok`, лог отказа и перехват исключений делает база.
  *
  * Вызывающий — `SystemCaller` этой реакции без человека: субъекта нет,
- * «кто породил» — через `trace.cause` (caller.md §1). След: причина —
+ * «кто породил» — через `trace.cause` (reference/caller.md §1). След: причина —
  * событие, `correlationId` — его же; `trace` передаётся в `react`, чтобы
  * вызванный UC продолжил цепочку. Регистрация агрегата вне `touches` —
  * исключение, в production — `warn` в лог; UC другого модуля — `this.call`

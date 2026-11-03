@@ -72,7 +72,7 @@ export class ErrorDef<
     return err(this.make(...args));
   }
 
-  /** Значение для транспорта: тексты не передаются (transport.md §1). */
+  /** Значение для транспорта: тексты не передаются (reference/transport.md §1). */
   static serialize(error: DomainError): SerializedError {
     return { code: error.code, kind: error.kind, payload: error.payload };
   }

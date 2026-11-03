@@ -2,7 +2,7 @@ import type { ErrorKind } from '../errors/error';
 import type { Err, Ok } from './result';
 
 /**
- * Ошибка в ответе транспорта (transport.md §1): без `label` и
+ * Ошибка в ответе транспорта (reference/transport.md §1): без `label` и
  * `description` — их восстанавливает клиент по Def ошибки.
  */
 export type SerializedError = {

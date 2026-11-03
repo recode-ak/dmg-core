@@ -1,4 +1,4 @@
-// Сериализуемый ответ UC (D-49, transport.md §1): круговой путь через JSON
+// Сериализуемый ответ UC (D-49, reference/transport.md §1): круговой путь через JSON
 // восстанавливает тот же `Result`, что вернул UC.
 import { describe, expect, expectTypeOf, it } from 'bun:test';
 import { CoreErrors } from '#core/kernel/errors/core-errors';

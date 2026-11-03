@@ -58,4 +58,4 @@ sequenceDiagram
 ## Где дальше
 
 - Написать UC — [guides/use-case.md](../guides/use-case.md); вызов из другого модуля — [guides/facade.md](../guides/facade.md).
-- Коды ошибок ядра и `Result` — [errors-result.md](../errors-result.md); кто вызывает — [caller.md](../caller.md).
+- Коды ошибок ядра и `Result` — [errors-result.md](../reference/errors-result.md); кто вызывает — [caller.md](../reference/caller.md).

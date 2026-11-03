@@ -91,7 +91,7 @@ describe('ErrorDef', () => {
 });
 
 describe('ErrorDef: сериализация значения', () => {
-  it('serialize — только code, kind, payload (transport.md §1)', () => {
+  it('serialize — только code, kind, payload (reference/transport.md §1)', () => {
     const error = TodoErrors.NOT_FOUND.make({ todoId: 't1' });
 
     expect(ErrorDef.serialize(error)).toEqual({
