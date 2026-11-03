@@ -23,7 +23,7 @@
 | Задача | Читай |
 |---|---|
 | Начать проект | [guides/project.md](./guides/project.md) → [guides/app.md](./guides/app.md) |
-| Понять устройство | [layers.md](./layers.md) → [domain-modeling.md](./domain-modeling.md) |
+| Понять устройство | [concepts/](./concepts/index.md) → [layers.md](./layers.md) → [domain-modeling.md](./domain-modeling.md) |
 | Создать файл / объект | [naming.md](./naming.md) → [rules.md](./rules.md) |
 | Написать артефакт по образцу | [guides/](./guides/index.md) |
 | Объявить контракт | [manifests.md](./manifests.md), [errors-result.md](./errors-result.md) |
@@ -32,6 +32,7 @@
 ## Документы
 
 **Устройство и решения**
+- [concepts/](./concepts/index.md) — как устроено и почему: потоки, жизненный цикл, схемы
 - [decisions.md](./decisions.md) — реестр решений платформы D-NN
 - [layers.md](./layers.md) — оси, импорты, доменный API, доступ к entity, прикладной слой, адаптеры
 - [domain-modeling.md](./domain-modeling.md) — модуль-владелец, границы модулей, ошибки и данные между модулями
@@ -63,7 +64,7 @@
 
 **Ссылки — в одну сторону:** concepts → guides, reference, decisions; guides → правила по ID и concepts; reference → только `D-NN`. Код ссылается на документы через `@see`; документ на код — только на образцы и в `covers:`. Ссылки проверяет тест в `check`.
 
-**Входы:** этот файл — для человека; [llms.txt](../llms.txt) — для агента: reference и guides, concepts — по требованию.
+**Входы:** этот файл — для человека; [llms.txt](../llms.txt) — для агента: reference и guides в основных разделах, [concepts/](./concepts/index.md) — в `Optional`, по требованию.
 
 **Кто и когда актуализирует.** Затронутый документ обновляет автор среза в том же срезе, до гейта; `reviewer` проверяет, что документ обновлён или в отчёте сказано «не затронуто, потому что…». Какой документ затронут — подсказывают `covers:` и `docs:impact <пути>`; документ, чей исходник закоммичен позже него, `docs:covers` показывает предупреждением в `check` и блокирует в гейте релиза (`--strict`, `RELEASING.md` репо пакета). Отдельного владельца документов нет: он не знает контекста изменения. Расхождения документов с кодом ищет аудит после фазы, менявшей документы, и перед релизом.
 

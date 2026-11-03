@@ -39,4 +39,5 @@
 
 ## Optional
 
+- [Как устроено и почему](docs/concepts/index.md): concepts — потоки и жизненный цикл со схемами; читать, когда гайда и правил не хватает, чтобы понять устройство
 - [Учебный модуль](src/testing/example/example.arch.ts): `ArchApp` примера; домен — `src/testing/example/<m>`, прикладной слой — `src/testing/example/app/<m>`
