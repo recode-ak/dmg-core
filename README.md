@@ -20,7 +20,7 @@
 
 **Как устроен код, который из этого вырастает:**
 
-- **Четыре оси** (D-02): платформа (`dmg-core`, пакет приложения) → домен → прикладной слой (1:1 с модулем домена) → входные адаптеры. Импорты идут только в одну сторону ([layers.md](docs/layers.md)).
+- **Четыре оси** (D-02): платформа (`dmg-core`, пакет приложения) → домен → прикладной слой (1:1 с модулем домена) → входные адаптеры. Импорты идут только в одну сторону ([layers.md](docs/reference/layers.md)).
 - **Домен един, чист и синхронен** (D-03): вся предметка и все контракты (UC, ER, Job, фасады, модули) живут в домене, без IO; асинхронность — только `Loader<T>`.
 - **Модуль готов к выносу в сервис** (D-28): межмодульно — только фасады и события по `dependsOn` (DAG). Модулю в другом репозитории нужны лишь контракты зависимостей, а сервис из одного модуля — то же приложение с одним `dependsOn`.
 - **Декларация + верификация** (D-12): каждая декларация проверяется типом, рантайм-ассертом или контрактным тестом, а правила архитектуры (ARC, DOM, ERR, API, CODE) — линтером и `ArchChecker` с ID нарушений ([rules.md](docs/rules.md)).
@@ -105,8 +105,8 @@ bunx dmg-core init
 ## Документация
 
 - [Вход](docs/index.md): суть DMG, карта документов
-- [Слои](docs/layers.md), [моделирование домена](docs/domain-modeling.md), [структура, имена и генератор](docs/naming.md)
-- [Манифесты](docs/manifests.md), [ошибки и Result](docs/reference/errors-result.md), [Caller и Trace](docs/reference/caller.md), [транспорт](docs/reference/transport.md)
+- [Слои](docs/reference/layers.md), [моделирование домена](docs/reference/domain-modeling.md), [структура, имена и генератор](docs/naming.md)
+- [Манифесты](docs/reference/manifests.md), [ошибки и Result](docs/reference/errors-result.md), [Caller и Trace](docs/reference/caller.md), [транспорт](docs/reference/transport.md)
 - [Каталог правил](docs/rules.md), [решения](docs/decisions.md), [тестирование](docs/testing.md), [стиль TypeScript](docs/typescript.md)
 - [Гайды по видам артефактов](docs/guides/index.md), [проект: профили и рост](docs/guides/project.md)
 - Для агентов: [`llms.txt`](llms.txt), скил [`dmg-architecture`](skills/dmg-architecture/SKILL.md), [роли](agents/README.md)

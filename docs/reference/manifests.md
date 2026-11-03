@@ -1,6 +1,6 @@
 # Манифесты
 
-**Назначение:** семейство Def (`XxxDef.define`), обязательные поля, граф и механизм проверки соответствия кода декларациям. Реализация — `src/` пакета; публичные экспорты — [index.ts](../src/index.ts) и подпути (`app`, `graph`, `arch`, `testing`).
+**Назначение:** семейство Def (`XxxDef.define`), обязательные поля, схемы, граф и проверки соответствия кода декларациям. Зачем один манифест — concept «Манифест — один источник». Решения — D-12, D-27, D-35, D-42, D-43, D-48, D-49 ([decisions.md](../decisions.md)). Реализация — `src/` пакета; публичные экспорты — `src/index.ts` и подпути (`app`, `graph`, `arch`, `testing`).
 
 ---
 
@@ -14,13 +14,13 @@
 | `ErrorDef.define` | domain | группа ошибок агрегата (словарь `ErrorDef`): `code`, `kind`, `label`, `description`, схема payload |
 | `PolicyDef.define` / `Rule.of` | domain | вопросы «можно ли?» → правила над субъектом: именованные (`Rule.of`, `Rule.hasRole`) с `label` и `denyMessage`, композиция `Rule.allOf`/`Rule.anyOf`, явное `allowAll` |
 | `RulesDef.define` / `DomainRuleDef.define` | domain | доменные правила без субъекта (D-40): `name`, `label`, `description`, `error` (ErrorDef своей группы), `check(ctx) → Result` |
-| `UseCaseDef.define` | domain (контракт) | `type` (command/query), агрегат, `policy`, `rules` (доменные правила; их ошибки — в `errors`), `callers` ([caller.md](./reference/caller.md)), `calls` (Def UC других модулей с `'system'` в `callers`, D-42/D-43), `input`, `output`, `errors`, `emits`. Клиенту: `command(input)` — команда (D-49), `serializeResult`/`restoreResult` — ответ для транспорта |
+| `UseCaseDef.define` | domain (контракт) | `type` (command/query), агрегат, `policy`, `rules` (доменные правила; их ошибки — в `errors`), `callers` ([caller.md](./caller.md)), `calls` (Def UC других модулей с `'system'` в `callers`, D-42/D-43), `input`, `output`, `errors`, `emits`. Клиенту: `command(input)` — команда (D-49), `serializeResult`/`restoreResult` — ответ для транспорта |
 | `EventReactionDef.define` | domain (контракт) | `on` (события), `touches` (агрегаты), `calls` (Def UC других модулей, D-43), `emits` |
 | `JobDef.define` | domain (контракт) | `schedule`, `scans`, `calls` (Def UC других модулей, D-43), `emits` |
 
 Реализации подключают Def через базовые классы (`UseCaseFromDef`, `ReactionFromDef`, `JobFromDef` — наследники `OperationFromDef` с типизированным `call`, D-43; `ModuleFromDef` — единственная точка входа модуля, `handle`/`runJob` — карта `Def → класс`, типизированная Def: пропуск реализации — ошибка компиляции). Фасад — рантайм-граница без манифеста (`Facade<M>`/`ModuleFacade<M>`, D-42, D-43). Свойства Def в классах **не дублируются**.
 
-**Def — классы** (`dmg-core-oop`): общая база `Def` (`name`, `label`, `description`) с поведением вида — `normalize()` (форма графа и хеша, D-27) и `describe()` (тексты и схемы для MAN-01/02/03; схемы вид отдаёт в `schemas()`), `texts()` — тексты для нормализованной формы. Новая возможность Def — метод вида, а не `switch` по `dmg`. Def сравниваются по ссылке, `private`/`#` у них нет: типизация `Any*Def` структурная.
+**Def — классы** (D-48): общая база `Def` (`name`, `label`, `description`) с поведением вида — `normalize()` (форма графа и хеша, D-27) и `describe()` (тексты и схемы для MAN-01/02/03; схемы вид отдаёт в `schemas()`), `texts()` — тексты для нормализованной формы. Новая возможность Def — метод вида, а не `switch` по `dmg`. Def сравниваются по ссылке, `private`/`#` у них нет: типизация `Any*Def` структурная.
 
 **Операции** (UC, ER, Job) — наследники `OperationDef`: `calls` есть у всех (не объявлены — пустой кортеж), `aggregates()` (агрегат UC, `touches` ER, `scans` Job), `mainAggregate()` (папка файла операции), `referencedErrors()` (`errors` UC), `subscribedEvents()` (`on` ER), `title(module)` (`UC todo.createTask` — для сообщений проверок), `fileKind` (`uc`/`er`/`job` — каталог и суффикс файла). Проверки графа и файлов работают с любой операцией через эти методы. Необъявленные списки спеки (`rules`, `emits`, `touches`, `scans`) Def тоже хранит пустыми кортежами.
 
@@ -50,11 +50,10 @@
 | **L1** — модуль | агрегаты, UC, ER, Job, события, ошибки | UC → агрегат, UC/ER/Job → событие → ER |
 | **L2** — агрегат | статусы, операции | переходы, ошибки операций |
 
-Каскад «потянуть за верёвочку» (UI → UC → агрегат → событие → ER → …) проходит сквозь уровни и модули.
 
 ## 5. Декларация + верификация (D-12)
 
-Контрактные проверки — `ArchChecker` (`dmg-core/arch`: проверки Def — описания, связи, граф `dependsOn`; при раскладке модулей — проверки файлов) в `check` проекта; каждое сообщение начинается с ID правила ([rules.md](./rules.md)).
+Контрактные проверки — `ArchChecker` (`dmg-core/arch`: проверки Def — описания, связи, граф `dependsOn`; при раскладке модулей — проверки файлов) в `check` проекта; каждое сообщение начинается с ID правила (`rules.md`).
 
 | Декларация | Проверка |
 |---|---|
@@ -67,4 +66,4 @@
 | связность | контрактный тест: нет висячих подписчиков, неопубликованных событий, Def вне модуля |
 | описания | контрактный тест: непустые `label`/`description`, описания полей |
 | JSON Schema | контрактный тест: все input/output/payload конвертируются |
-| пары контракт ↔ реализация | контрактный тест: одинаковые пути (см. [naming.md](./naming.md)) |
+| пары контракт ↔ реализация | контрактный тест: одинаковые пути (`naming.md`) |

@@ -59,6 +59,6 @@ flowchart LR
 
 ## Где дальше
 
-- Что куда импортировать — [layers.md](../layers.md); где разместить доменную логику — [domain-modeling.md](../domain-modeling.md).
+- Что куда импортировать — [layers.md](../reference/layers.md); где разместить доменную логику — [domain-modeling.md](../reference/domain-modeling.md).
 - Собрать приложение — [guides/app.md](../guides/app.md); вызвать другой модуль — [guides/facade.md](../guides/facade.md).
 - Как один вызов проходит через слои — [путь вызова UC](./uc-path.md).

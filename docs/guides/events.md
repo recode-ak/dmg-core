@@ -31,7 +31,7 @@ covers:
 ## 4. Чеклист правил
 
 - MAN-01 — `label` и `description` у события; описание — про факт, а не про причину.
-- MAN-02 — `description` у каждого поля payload; поля — через `F.*` ([manifests.md](../manifests.md) §3).
+- MAN-02 — `description` у каждого поля payload; поля — через `F.*` ([manifests.md](../reference/manifests.md) §3).
 - MAN-06 — у события есть публикующий (`emits` UC/ER/Job) или модуль внешний.
 - MAN-08 — FQN `module.aggregate.event` своего модуля и агрегата.
 - DOM-14 — `occurredAt` в домене не создаётся: конверт (`occurredAt`, `eventId`) строит UoW.

@@ -7,14 +7,14 @@
 ## Начало
 
 - [Вход в документацию](docs/index.md): суть DMG, карта документов
-- [Слои и пакеты](docs/layers.md): оси, импорты, доменный API, доступ к entity
-- [Моделирование домена](docs/domain-modeling.md): модуль-владелец, Ar / Policy / доменное правило / DCS / DQS, границы модулей
+- [Слои и пакеты](docs/reference/layers.md): оси, импорты, доменный API, доступ к entity
+- [Моделирование домена](docs/reference/domain-modeling.md): модуль-владелец, Ar / Policy / доменное правило / DCS / DQS, границы модулей
 - [Проект](docs/guides/project.md): `dmg-core init --profile single|monorepo` — что создаёт каркас, как растёт проект, подключение модулей генератором, `call` раннера
 - [Структура и имена](docs/naming.md): сокращения, файловая структура домена и прикладного слоя, генератор `dmg-core gen` (§5)
 
 ## Контракты
 
-- [Манифесты](docs/manifests.md): Def-классы (`XxxDef.define`), обязательные описания, схемы, граф L0/L1/L2
+- [Манифесты](docs/reference/manifests.md): Def-классы (`XxxDef.define`), обязательные описания, схемы, граф L0/L1/L2
 - [Ошибки и Result](docs/reference/errors-result.md): модель ошибки, `kind`, исполнение UC, UoW
 - [Caller и Trace](docs/reference/caller.md): кто вызывает, субъект, след вызова
 - [Транспорт](docs/reference/transport.md): HTTP (JSON-команда, `meta.requestId`, ожидаемая версия — поле входа `expectedVersion`), MCP, in-proc

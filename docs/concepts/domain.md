@@ -77,4 +77,4 @@ flowchart LR
 
 - Куда направлены зависимости между слоями — [слои и зависимости](./layers.md); в каком порядке открывать файлы — [как читать модуль](./reading-a-module.md).
 - Написать Ar — [guides/aggregate.md](../guides/aggregate.md), Policy — [guides/policy.md](../guides/policy.md), state — [guides/state.md](../guides/state.md).
-- Куда поместить логику, кейс назначения задачи — [domain-modeling.md](../domain-modeling.md).
+- Куда поместить правило, кейс назначения задачи — [куда поместить правило](./rule-placement.md); правила размещения — [reference/domain-modeling.md](../reference/domain-modeling.md).

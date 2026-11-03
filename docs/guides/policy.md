@@ -5,7 +5,7 @@ covers:
 
 # Policy — гайд
 
-**Назначение:** права субъекта на действие над агрегатом (`<A>Policy = PolicyDef.define({ rules })` из правил `Rule`) и соседний уровень — доменные правила без субъекта (`<A>Rules = RulesDef.define({ rules })` из `DomainRuleDef.define`, D-40). Файлы — `<domain>/<m>/<a>/<a>.policy.ts` и `<a>.rules.ts`. Место среди Ar / DCS / DQS — [domain-modeling.md](../domain-modeling.md) §1.
+**Назначение:** права субъекта на действие над агрегатом (`<A>Policy = PolicyDef.define({ rules })` из правил `Rule`) и соседний уровень — доменные правила без субъекта (`<A>Rules = RulesDef.define({ rules })` из `DomainRuleDef.define`, D-40). Файлы — `<domain>/<m>/<a>/<a>.policy.ts` и `<a>.rules.ts`. Место среди Ar / DCS / DQS — [domain-modeling.md](../reference/domain-modeling.md) §1.
 
 ---
 
