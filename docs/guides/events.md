@@ -1,3 +1,9 @@
+---
+covers:
+  - src/domain/events/**
+  - src/app/events/outbox.ts
+---
+
 # Events — гайд
 
 **Назначение:** Def событий агрегата (`<A>Events = EventDef.define('<m>.<a>', { … })` — словарь `EventDef`): имя, `label`, `description`, схема payload. Файл — `<domain>/<m>/<a>/<a>.events.ts`.

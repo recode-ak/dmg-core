@@ -1,3 +1,9 @@
+---
+covers:
+  - src/kernel/fields/**
+  - src/kernel/schema/**
+---
+
 # State — гайд
 
 **Назначение:** схема entity агрегата — единственное место структуры его состояния: `<domain>/<m>/<a>/<a>.state.ts`.

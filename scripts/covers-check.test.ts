@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
-import { checkCovers, coversOf, readCovers } from './covers-check';
-import type { DocFile } from './docs-check';
+import { checkCovers, coversOf, impactOf, readCovers } from './covers-check';
+import { type DocFile, readDocs } from './docs-check';
 
 const doc = (covers: string[], path = 'docs/concepts/uc-path.md'): DocFile => ({
   path,
@@ -61,10 +61,52 @@ describe('checkCovers: исходник позже документа', () => {
   });
 });
 
+describe('impactOf: документы по изменённым путям', () => {
+  const docs = [
+    doc(['src/app/uow.ts', 'src/app/use-case/**']),
+    doc(['src/domain/aggregate/**'], 'docs/guides/aggregate.md'),
+  ];
+
+  it('путь совпал с covers (файл или шаблон) — документ в списке', () => {
+    expect(impactOf(docs, ['src/app/use-case/from-def.ts'])).toEqual([
+      'docs/concepts/uc-path.md',
+    ]);
+    expect(
+      impactOf(docs, ['src/app/uow.ts', 'src/domain/aggregate/ar.ts']),
+    ).toEqual(['docs/concepts/uc-path.md', 'docs/guides/aggregate.md']);
+  });
+
+  it('не совпал — пусто', () => {
+    expect(impactOf(docs, ['src/kernel/result.ts', 'docs/index.md'])).toEqual(
+      [],
+    );
+  });
+
+  it('путь через node_modules или репо пакета и каталог — совпадают', () => {
+    expect(impactOf(docs, ['node_modules/dmg-core/src/app/uow.ts'])).toEqual([
+      'docs/concepts/uc-path.md',
+    ]);
+    expect(impactOf(docs, ['/home/u/dmg-core/src/domain/'])).toEqual([
+      'docs/guides/aggregate.md',
+    ]);
+  });
+});
+
 describe('covers пакета (контракт)', () => {
   it('каждый путь covers находит файлы', () => {
     const { docs, exists, changedAt } = readCovers(join(import.meta.dir, '..'));
     expect(docs.map((d) => d.path)).toContain('docs/guides/facade.md');
     expect(checkCovers(docs, exists, changedAt).missing).toEqual([]);
+  });
+
+  it('у каждого гайда и concept, кроме index.md и шаблонов _*, есть covers', () => {
+    const { files } = readDocs(join(import.meta.dir, '..'));
+    const without = files
+      .filter((f) =>
+        /^docs\/(?:guides|concepts)\/(?!index\.md$|_)/.test(f.path),
+      )
+      .filter((f) => coversOf(f.text).length === 0)
+      .map((f) => f.path);
+    expect(without).toEqual([]);
   });
 });

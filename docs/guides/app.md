@@ -1,3 +1,10 @@
+---
+covers:
+  - src/app/api-app/**
+  - src/app/context.ts
+  - src/gen/kinds/app-wiring.ts
+---
+
 # App и раннер — гайд
 
 **Назначение:** корень сборки — класс приложения, который по окружению `AppEnv` строит `AppContext`, репозитории и модули через `ApiApp` и отдаёт резолвер `Caller` (`<app>/<app>-app.ts`, D-50); раннер — точка входа: `process.env` → `AppEnv`, транспорт, `Trace`, запуск и остановка (`runners/<r>/`).

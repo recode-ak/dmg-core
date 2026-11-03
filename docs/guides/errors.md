@@ -1,3 +1,8 @@
+---
+covers:
+  - src/kernel/errors/**
+---
+
 # Errors — гайд
 
 **Назначение:** Def ошибок агрегата (`<A>Errors = ErrorDef.define('<PREFIX>', { … })` — словарь `ErrorDef`): код, `kind`, `label`, `description`, схема payload. Файл — `<domain>/<m>/<a>/<a>.errors.ts`. Модель ошибки и `Result` — [errors-result.md](../errors-result.md).

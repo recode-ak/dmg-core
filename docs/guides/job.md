@@ -1,3 +1,9 @@
+---
+covers:
+  - src/domain/contracts/job-def*.ts
+  - src/app/job/**
+---
+
 # Job — гайд
 
 **Назначение:** периодическая операция модуля — контракт `<N>JobDef = JobDef.define(...)` (`<domain>/<m>/<a>/job/<n>.job.ts`) и реализация `<N>Job extends JobFromDef` (`<app>/<m>/<a>/job/<n>.job.ts`).

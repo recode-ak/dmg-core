@@ -1,3 +1,11 @@
+---
+covers:
+  - src/domain/contracts/module-def*.ts
+  - src/app/module/**
+  - src/gen/kinds/module.ts
+  - src/gen/kinds/app-module.ts
+---
+
 # Module — гайд
 
 **Назначение:** паспорт модуля — контракт `<M>ModuleDef = ModuleDef.define(...)` (`<domain>/<m>/<m>.module.ts`), вход для остального кода `<domain>/<m>/contract.ts` и реализация — карта «Def → класс» с `create<M>Module(deps)` (`<app>/<m>/<m>.module.ts`); сборка модулей — в приложении ([app.md](./app.md)).

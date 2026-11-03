@@ -1,3 +1,9 @@
+---
+covers:
+  - src/domain/aggregate/**
+  - src/gen/kinds/aggregate.ts
+---
+
 # Aggregate — гайд
 
 **Назначение:** Def агрегата (`<A>ArDef = AggregateDef.define({ … })`: статусы, переходы, отказы) и класс Ar, который отвечает за правила и мутации одного агрегата: `<domain>/<m>/<a>/<a>.ar.ts`.

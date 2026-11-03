@@ -6,7 +6,7 @@
  *
  * Чистые функции над файлами в памяти; диск и время коммитов — в `readCovers`.
  */
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import { Glob, spawnSync } from 'bun';
 import { type DocFile, readDocs } from './docs-check';
 
@@ -54,9 +54,38 @@ export function checkCovers(
   return report;
 }
 
+/**
+ * Документы, чьи `covers` совпали с путями: файл — по шаблону, каталог — если
+ * covers внутри него. Префикс до `dmg-core/` (`node_modules`, репо) отрезается.
+ */
+export function impactOf(
+  docs: readonly DocFile[],
+  paths: readonly string[],
+): string[] {
+  const rel = paths.map((p) =>
+    p
+      .replace(/^.*?dmg-core\//, '')
+      .replace(/^\.\//, '')
+      .replace(/\/$/, ''),
+  );
+  return docs
+    .filter((doc) =>
+      coversOf(doc.text).some((pattern) => {
+        const glob = new Glob(pattern);
+        return rel.some(
+          (path) => glob.match(path) || pattern.startsWith(`${path}/`),
+        );
+      }),
+    )
+    .map((doc) => doc.path);
+}
+
 /** Документы с `covers:`, поиск файлов по шаблону и время коммитов git пакета с корнем `root` */
 export function readCovers(root: string) {
-  const docs = readDocs(root).files.filter((f) => coversOf(f.text).length > 0);
+  const docs = readDocs(root).files.filter(
+    (f) =>
+      !posix.basename(f.path).startsWith('_') && coversOf(f.text).length > 0,
+  );
   const exists = (pattern: string) => {
     for (const _ of new Glob(pattern).scanSync({ cwd: root })) return true;
     return false;

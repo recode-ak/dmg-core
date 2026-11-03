@@ -1,3 +1,10 @@
+---
+covers:
+  - src/domain/contracts/event-reaction-def*.ts
+  - src/app/reaction/**
+  - src/app/events/inbox.ts
+---
+
 # Event reaction — гайд
 
 **Назначение:** реакция модуля на событие — контракт `<N>ErDef = EventReactionDef.define(...)` (`<domain>/<m>/<a>/er/<n>.er.ts`) и реализация `<N>Er extends ReactionFromDef` (`<app>/<m>/<a>/er/<n>.er.ts`).

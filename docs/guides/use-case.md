@@ -1,3 +1,12 @@
+---
+covers:
+  - src/domain/contracts/use-case-def*.ts
+  - src/domain/contracts/operation-def*.ts
+  - src/app/use-case/**
+  - src/app/operation/**
+  - src/gen/kinds/operation.ts
+---
+
 # Use case — гайд
 
 **Назначение:** операция модуля для вызывающего — контракт `<N>UcDef = UseCaseDef.define(...)` (`<domain>/<m>/<a>/uc/<n>.uc.ts`) и реализация `<N>Uc extends UseCaseFromDef` (`<app>/<m>/<a>/uc/<n>.uc.ts`).

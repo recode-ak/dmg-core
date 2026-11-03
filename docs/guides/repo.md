@@ -1,3 +1,9 @@
+---
+covers:
+  - src/app/uow/repository*.ts
+  - src/testing/memory-repo.ts
+---
+
 # Repo, DCS, DQS — гайд
 
 **Назначение:** хранение агрегата — порт `<A>Repo` (`<app>/<m>/<a>/<a>.repo.ts`) и его реализация (`<app>/<m>/infra/<a>.json-repo.ts`); доменные сервисы над несколькими агрегатами — DCS/DQS (`<domain>/<m>/<topic>.dcs.ts|.dqs.ts`), только когда без них нельзя.

@@ -46,6 +46,7 @@
     "tslint": "tsc --noEmit",
     "check": "bun run lint && bun run tslint && bun test && bun run docs:covers",
     "docs:covers": "bun run scripts/covers-check.ts",
+    "docs:impact": "bun run scripts/docs-impact.ts",
     "e2e": "bash scripts/consumer-e2e.sh"
   },
   "devDependencies": {
