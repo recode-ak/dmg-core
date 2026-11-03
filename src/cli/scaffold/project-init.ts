@@ -14,16 +14,10 @@ const MANIFEST = 'package.json';
 const DMG_CORE = 'dmg-core';
 
 /**
- * Каркас в каталог проекта (`dmg-core init --profile`): имя проекта
- * (`--name` → `name` из package.json → имя каталога), план
- * `ProjectScaffold`, запись `applyPlan` без перезаписи.
- *
- * Существующий `package.json` сливается (`ProjectManifest`): он убирается
- * из плана, слитый текст считается до записи и пишется последним — после
- * того, как `applyPlan` проверил коллизии и записал остальное; добавлять
- * нечего — файл не переписывается и не упоминается в выводе. Конфликт
- * слияния или коллизия — `GenError` до любой записи: ничего не записано.
- * Возвращает строки вывода; первая — профиль и имя.
+ * Каркас в каталог проекта (`dmg-core init --profile`): имя, план
+ * `ProjectScaffold`, запись `applyPlan` без перезаписи; `package.json`
+ * проекта сливается и пишется последним. Конфликт или коллизия — `GenError`
+ * до любой записи. @see src/cli/scaffold/project-init.test.ts
  */
 export class ProjectInit {
   /** Подсказка следующего шага после записи каркаса. */
@@ -70,15 +64,9 @@ export class ProjectInit {
   }
 
   /**
-   * Слияние с `package.json` проекта. `dmg-core` не из реестра (tarball,
-   * `file:`, `link:`, путь): абсолютный путь (`bun add <tarball>`) в
-   * зависимости корня становится относительным от корня проекта
-   * (`ProjectManifest.portable`) в обоих профилях — проект переносится
-   * вместе с tarball. Пакеты monorepo зависят от `dmg-core` диапазоном
-   * реестра; без `overrides` `bun install` ищет их в реестре и падает —
-   * каркас добавляет `overrides.dmg-core` с тем же спецификатором.
-   * Старый `overrides` на тот же файл заменяется, на другой пакет — ошибка
-   * с подсказкой (`overridden`). В `single` пакетов нет — `overrides` нет.
+   * Слияние с `package.json` проекта; `dmg-core` не из реестра — путь от
+   * корня проекта, в monorepo ещё `overrides.dmg-core`, иначе `bun install`
+   * ищет пакет в реестре. @see docs/guides/project.md
    */
   private merge(
     scaffold: string,

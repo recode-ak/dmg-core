@@ -41,16 +41,9 @@ export type StubCall = {
 
 /**
  * Фасад модуля M для тестов модуля-потребителя (D-43): ответы задаёт тест
- * по Def (`answer`), полученные вызовы — в `received`. UC без `'system'` в
- * `callers` и UC другого модуля — ошибка типа; Def без ответа — исключение
- * с понятным текстом (ошибка теста, а не отказ UC).
- *
- * @example
- * const course = new StubFacade(CourseModuleDef).answer(
- *   GetCourseEnrollmentUcDef,
- *   () => ok({ enrollable: false }),
- * );
- * const facades = new ModuleFacades([course]);
+ * по Def (`answer`), вызовы — в `received`. UC без `'system'` в `callers`
+ * или чужого модуля — ошибка типа; Def без ответа — исключение теста.
+ * @see docs/guides/facade.md
  */
 export class StubFacade<M extends AnyModuleDef> implements Facade<M> {
   private readonly answers: Entry<AnyUseCaseDef>[] = [];

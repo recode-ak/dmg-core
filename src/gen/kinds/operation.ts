@@ -165,11 +165,10 @@ ${list('    ', 'const deps = {', ['app', 'facades: new ModuleFacades()'], `} as 
 }
 
 /**
- * UC: `UseCaseDef` и реализация на `UseCaseFromDef`. Имя `create` или
- * `create-…` — создание агрегата: заявляет `created` (его публикует
- * `<A>Ar.create`) и создаёт агрегат. Иное — операция над существующим:
- * `load` загружает агрегат по id (`NOT_FOUND`), `emits` пуст до события
- * операции (MAN-06). Репозиторий — `<a>Repo` из `Deps` (`gen aggregate`).
+ * UC: `UseCaseDef` и реализация на `UseCaseFromDef`. Имя `create`/`create-…`
+ * создаёт агрегат (`created` публикует `<A>Ar.create`); иное — `load`
+ * агрегата по id (`NOT_FOUND`), `emits` пуст (MAN-06). Репозиторий —
+ * `<a>Repo` из `Deps`.
  */
 class UseCaseTemplate extends OperationTemplate {
   readonly list = 'useCases';

@@ -48,12 +48,10 @@ type CliRequest =
 type TodoUcDef = typeof CreateTaskUcDef | typeof ListTasksUcDef;
 
 /**
- * CLI-раннер учебного приложения (D-50) — транспорт: разбирает argv, строит
- * `Trace` (канал `cli`, новый `requestId` на запуск), получает `Caller` от
- * резолвера приложения и вызывает UC `todo` через `api.dispatch`. `Result`
- * печатает JSON в stdout. Модули не собирает, решений не принимает.
- * Новая команда — опции в `OPTIONS`, вариант `CliRequest`, ветка в
- * `parse` и в `command`.
+ * CLI-раннер учебного приложения (D-50) — транспорт: argv → `Trace` (канал
+ * `cli`, новый `requestId`) → `Caller` от резолвера → UC `todo` через
+ * `api.dispatch`, `Result` JSON в stdout. Решений не принимает. Новая
+ * команда — опции в `OPTIONS`, вариант `CliRequest`, ветки `parse`/`command`.
  */
 export class ExampleCli {
   constructor(private readonly app: ExampleApp) {}

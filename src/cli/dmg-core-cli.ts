@@ -24,13 +24,9 @@ interface Prepared {
 }
 
 /**
- * Команды пакета в проекте:
- *   init         — создать `dmg-core.json` (если нет) и выполнить sync;
- *   init --profile — каркас проекта (`ProjectInit`), затем sync;
- *   sync         — обновить копии скилов, ролей и вставку в инструкции;
- *   sync --check — сообщить о расхождениях, ничего не меняя;
- *   gen          — создать файлы модуля по раскладке `gen` (без конфига —
- *                  раскладка по умолчанию).
+ * Команды пакета в проекте (`USAGE` — в `main.ts`): `init` — конфиг и sync,
+ * с `--profile` — каркас `ProjectInit`; `sync` — копии скилов, ролей и
+ * вставка в инструкции (`--check` — только сверка); `gen` — файлы модуля.
  */
 export class DmgCoreCli {
   private readonly block: InstructionsBlock;

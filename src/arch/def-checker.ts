@@ -20,11 +20,8 @@ type DescribedDef = {
 };
 
 /**
- * Контрактные проверки по Def (без файлов): описания и схемы (MAN-01/02/03),
- * связность (MAN-06), FQN (MAN-08), ссылки ⊆ `dependsOn` (ARC-04), DAG
- * (ARC-05), коды ошибок (ERR-04), отказы переходов (MAN-12), доменные
- * правила UC (ERR-02, DOM-16), межмодульные вызовы `calls` (MAN-05),
- * агрегаты операции — своего модуля (MAN-13).
+ * Контрактные проверки по Def (без файлов): MAN-01/02/03/05/06/08/12/13,
+ * ARC-04 (ссылки ⊆ `dependsOn`), ARC-05 (DAG), ERR-02, ERR-04, DOM-16.
  */
 export class DefChecker {
   constructor(private readonly index: DefIndex) {}
@@ -46,11 +43,9 @@ export class DefChecker {
   }
 
   /**
-   * Незаполненные тексты: `label`/`description` Def и метки статусов
-   * агрегатов начинаются со слова `TODO` (так их оставляет `dmg-core gen`).
-   * Не нарушения — предупреждения MAN-01: заготовка после `gen` проходит
-   * `check` без правок, а `arch:check` печатает, что осталось заполнить.
-   * Тексты Policy в граф Def не входят — их находит `FileChecker.todos`.
+   * Тексты Def и метки статусов, начатые словом `TODO` (так их оставляет
+   * `dmg-core gen`), — предупреждения MAN-01, не нарушения: заготовка
+   * проходит `check`. Тексты Policy — в `FileChecker.todos`.
    */
   todos(): Violation[] {
     const out: Violation[] = [];

@@ -1,13 +1,7 @@
 #!/usr/bin/env bun
 /**
- * CLI пакета: доставка скилов, ролей и вставки в инструкции агентов проекта.
- *
- *   dmg-core init          — создать dmg-core.json (если нет) и выполнить sync
- *   dmg-core init --profile single|monorepo [--name <имя>] [--dry-run]
- *                          — каркас проекта, затем sync
- *   dmg-core sync          — обновить копии
- *   dmg-core sync --check  — проверить копии (для check проекта)
- *   dmg-core gen <вид> …   — создать файлы модуля (dry-run без --write)
+ * CLI пакета: каркас проекта, доставка скилов, ролей и вставки в инструкции
+ * агентов, генератор модулей. Команды — `USAGE` ниже.
  */
 import { join } from 'node:path';
 import { DmgCoreCli } from './dmg-core-cli';

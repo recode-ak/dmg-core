@@ -14,27 +14,11 @@ export type MemoryAr<S extends MemorySnapshot> = Versioned & {
 };
 
 /**
- * Репозиторий в памяти для тестов UC/ER/Job вместо JSON-файла во временном
- * каталоге. `save` идёт через сверку версии базы (`VersionConflict`, D-36),
- * хранятся снапшоты (`ar.snapshot()`), чтение (`restored`) отдаёт новый Ar
- * через `restore` агрегата.
- *
- * Выборку (`find*`) фейк не реализует: метод порта модуля — ответ теста
- * (`unanswered` в наследнике, затем присваивание в тесте), корректность
- * выборки проверяет контрактный тест настоящего репозитория.
- *
- * @example
- * class TaskRepoFake
- *   extends MemoryRepo<TaskAr, StateOf<typeof TaskArDef>>
- *   implements TaskRepo
- * {
- *   constructor() { super(TaskArDef, TaskAr.restore); }
- *   findById = async (uuid: string) => this.restored(uuid);
- *   findDone = this.unanswered<[], TaskAr[]>('findDone');
- *   // … прочие методы порта
- * }
- * const tasks = new TaskRepoFake().seed(taskRow(TASK, 'done'));
- * tasks.findDone = async () => [tasks.restoredOrThrow(TASK)];
+ * Репозиторий в памяти для тестов UC/ER/Job: `save` со сверкой версии
+ * (`VersionConflict`, D-36), хранит снапшоты, `restored` отдаёт новый Ar.
+ * Выборку (`find*`) не реализует: ответ задаёт тест (`unanswered`), а
+ * проверяет контрактный тест настоящего репозитория.
+ * @see src/testing/example/app/todo/task/task.repo.fake.ts
  */
 export class MemoryRepo<
   A extends MemoryAr<S>,

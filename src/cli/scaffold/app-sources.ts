@@ -16,15 +16,11 @@ type Import =
   | { readonly from: string; readonly namespace: string };
 
 /**
- * Исходники приложения в каркасе — одни шаблоны на все профили, по
- * учебному приложению пакета (`src/testing/example/{app,runner,shared}`):
- * тип пользователя в домене (D-53), пустой корень сборки (D-50), раннер
- * CLI с единственным чтением окружения (ARC-09) и тесты к ним. Каталоги и
- * спецификаторы импортов между частями — из раскладки профиля
- * (`ScaffoldLayout`); у пакетов workspaces — ещё и входы `src/index.ts`.
- * Модулей нет: их добавляет `dmg-core gen module`. Импорты платформы —
- * только публичные входы пакета (`dmg-core`, `dmg-core/app`,
- * `dmg-core/testing`).
+ * Исходники приложения в каркасе — одни шаблоны на все профили, по учебному
+ * приложению (`src/testing/example/{app,runner,shared}`): тип пользователя,
+ * пустой корень сборки (D-50), раннер CLI и тесты. Пути — из раскладки
+ * профиля, платформа — только через публичные входы пакета.
+ * @see docs/guides/project.md
  */
 export class AppSources {
   private readonly layout: ScaffoldLayoutData;
@@ -265,28 +261,14 @@ export class App {
 const TRUSTED_CHANNEL = 'cli';
 
 /**
- * Резолвер \`Caller\` приложения (D-50) — заглушка для разработки, пока нет
- * модуля пользователей. Нет uuid — гость. uuid с канала \`cli\`
- * (\`trace.channel\`) — \`UserCaller\` без ролей, uuid принимается на веру:
- * UC с \`callers: ['user']\` вызывается раннером (\`call … --user <uuid>\`)
- * без правки Def, проверки ролей в Policy отказывают. Кто запускает
- * локальный CLI, и так владеет каталогом данных.
- *
- * uuid с другого канала (HTTP, бот) или без канала — исключение (ERR-01):
- * это код проверяет, а не соглашение. Транспорт с удалённым входом до
- * модуля пользователей — дефект конфигурации; тихий гость спрятал бы его
- * за отказом в правах.
- *
- * uuid, придуманные в CLI, не совпадут с пользователями модуля
- * пользователей: данные, созданные от них, после замены резолвера —
- * чужие или ничьи.
- *
- * TODO: после модуля пользователей — \`UserCaller\` через \`api.dispatch\`
- * (конструктор принимает \`api\`), вызов от \`SystemCaller\` \`kind: 'app'\`
- * (D-51); нет uuid или пользователя — гость, прочий отказ — исключение
- * (образец — учебное приложение dmg-core).
+ * Резолвер \`Caller\` приложения (D-50) — заглушка до модуля пользователей:
+ * нет uuid — гость; uuid с канала \`cli\` — \`UserCaller\` без ролей, на веру;
+ * с другого канала — исключение (ERR-01). Почему так — guides/project.md
+ * пакета dmg-core.
  */
 export class AppCallerResolver implements CallerResolver {
+  // TODO: после модуля пользователей — \`UserCaller\` через \`api.dispatch\`
+  // от \`SystemCaller\` \`kind: 'app'\` (D-51); образец — учебное приложение.
   async resolve(
     uuid: string | undefined,
     trace: Trace,
@@ -527,18 +509,10 @@ type CliRequest =
     };
 
 /**
- * CLI-раннер — транспорт: разбирает argv, строит \`Trace\` (канал \`cli\`,
- * новый \`requestId\` на запуск), получает \`Caller\` от резолвера приложения
- * по идентичности (\`--user\`) и печатает результат. Без команды или с
- * \`--help\` — справка.
- *
- * - \`call <module>.<operation>\` — любой UC приложения по имени Def модуля
- *   и Def UC (\`todo.createTask\`, как в логе операций): \`--input\` — JSON
- *   входа (по умолчанию \`{}\`, проверяет схема UC), \`Result\` JSON в stdout.
- * - \`whoami\` — вид вызывающего.
- *
- * Своя команда с разбором аргументов под UC — по образцу учебного раннера
- * dmg-core (\`api.dispatch\` с Def — типизированный \`Result\`).
+ * CLI-раннер — транспорт: argv → \`Trace\` (канал \`cli\`, новый \`requestId\`)
+ * → \`Caller\` от резолвера по \`--user\` → печать результата. \`call
+ * <module>.<operation>\` — любой UC (\`--input\` — JSON входа), \`whoami\` —
+ * вид вызывающего. Своя команда — по образцу учебного раннера dmg-core.
  */
 export class RunnerCli {
   constructor(private readonly app: App) {}
@@ -818,13 +792,10 @@ describe('RunnerCli', () => {
   private main(): string {
     return `#!/usr/bin/env bun
 /**
- * Точка входа раннера (D-50): окружение → \`App\`, запуск реакций, одна
- * команда CLI, код выхода; ошибка окружения — \`EXIT_CONFIG\`. \`process\` —
- * только здесь (ARC-09).
+ * Точка входа раннера (D-50): окружение → \`App\`, реакции, одна команда CLI,
+ * код выхода; \`process\` — только здесь (ARC-09).
  *
  *   APP_DATA_DIR=data bun ${this.layout.runner}/main.ts whoami --user <uuid>
- *   APP_DATA_DIR=data bun ${this.layout.runner}/main.ts call todo.createTask \\
- *     --input '{}' --user <uuid>
  */
 
 ${this.imports([

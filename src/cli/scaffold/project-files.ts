@@ -17,13 +17,10 @@ const PEERS = ['valibot', '@valibot/to-json-schema'];
 const TOOLS = ['@biomejs/biome', 'typescript', '@types/bun'];
 
 /**
- * Конфиги проекта. Корень: `.gitignore` (зависимости и каталог данных
- * `APP_DATA_DIR=data`), `package.json` (скрипты `check`, версии из пакета;
- * у monorepo — workspaces), `tsconfig.json`, `biome.json` (по карте
- * линтера), `dmg-core.json` (значения `CliConfig` по умолчанию, `gen` —
- * раскладка профиля) и `scripts/arch-check.ts` (раскладка из `GenLayout`).
- * Пакеты workspaces: `package.json` (зависимости, `workspace:*`) и
- * `tsconfig.json` поверх корневого. Пути — от корня проекта.
+ * Конфиги проекта от корня: `.gitignore`, `package.json` (у monorepo —
+ * workspaces), `tsconfig.json`, `biome.json` (по карте линтера),
+ * `dmg-core.json` и `scripts/arch-check.ts` (раскладка — `GenLayout`);
+ * у пакетов workspaces — свои `package.json` и `tsconfig.json`.
  */
 export class ProjectFiles {
   private readonly layout: ScaffoldLayoutData;
@@ -230,11 +227,8 @@ ${imports}
 
 /**
  * Корни Def — модули, которые собирает ${app}/app.ts (вставляет
- * \`dmg-core gen module\`); их зависимости по dependsOn проверяются сами.
- * \`export\` — из-за biome: маркер импортов (комментарий сразу под ними)
- * organizeImports принимает, только если за ним идёт export, иначе считает
- * его частью следующего оператора и требует пустую строку перед маркером
- * (а она оторвала бы маркер от блока импортов).
+ * \`dmg-core gen module\`). \`export\` нужен biome: маркер импортов под ними
+ * organizeImports принимает, только если за ним идёт export.
  */
 export const modules: ArchApp['modules'] = [
   ${modules}

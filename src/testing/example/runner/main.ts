@@ -1,9 +1,7 @@
 #!/usr/bin/env bun
 /**
  * Точка входа CLI учебного приложения (D-50): окружение → `ExampleApp`,
- * запуск реакций, одна команда, код выхода; ошибка окружения —
- * `EXIT_CONFIG`. `process` — только здесь (ARC-09).
- *
+ * реакции, одна команда, код выхода; `process` — только здесь (ARC-09).
  *   EXAMPLE_USERS=<uuid> bun src/testing/example/runner/main.ts \
  *     create-task --title Хлеб --user <uuid>
  */

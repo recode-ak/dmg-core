@@ -9,11 +9,10 @@ const MODES: readonly AppMode[] = ['test', 'development', 'production'];
 const USER_ID = F.uuid('пользователя');
 
 /**
- * Окружение раннера → `ExampleAppEnv` (ARC-09: `process.env` читает только
- * точка входа и передаёт сюда словарём). Переменные: `EXAMPLE_MODE`
- * (по умолчанию `development`), `EXAMPLE_DATA_DIR` (обязателен),
- * `EXAMPLE_USERS` — uuid через запятую. Неверный режим, нет каталога или
- * не-uuid в списке — исключение (ошибка конфигурации, ERR-01).
+ * Окружение раннера → `ExampleAppEnv`; `process.env` читает только точка
+ * входа (ARC-09). `EXAMPLE_DATA_DIR` обязателен, `EXAMPLE_MODE` — по
+ * умолчанию `development`, `EXAMPLE_USERS` — uuid через запятую; неверное
+ * значение — исключение конфигурации (ERR-01).
  */
 export class ExampleEnv {
   constructor(private readonly vars: EnvVars) {}

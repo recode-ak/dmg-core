@@ -13,11 +13,10 @@ import { MemoryOperationLog } from './memory-operation-log';
 export const TEST_NOW: Timestamp = Date.UTC(2026, 0, 1);
 
 /**
- * Контекст приложения для тестов прикладного слоя: всё видно в массивах
- * (`published` — отданное в outbox, `oplog.records` — лог операций в
- * памяти; outbox, inbox и replay — in-proc), часы стоят на `at` и
- * переводятся `setNow` — без глобального состояния. `options.oplog` —
- * подмена лога операций (например, сбойного); тогда `oplog` пуст.
+ * Контекст приложения для тестов прикладного слоя: опубликованное — в
+ * `published`, лог операций — в `oplog.records`, outbox/inbox/replay
+ * in-proc; часы стоят на `at`, `setNow` их переводит. `options.oplog` —
+ * подмена лога (тогда `oplog` пуст).
  */
 export function testAppContext(
   options: {

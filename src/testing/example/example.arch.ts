@@ -4,10 +4,8 @@ import { TodoModuleDef } from './todo';
 
 /**
  * Учебное приложение для `arch:check`: домен — `example/<m>`, прикладной
- * слой — `example/app/<m>` (в школе — `domain/src/<m>` и `<m>/src`); вход
- * модуля для других — `contract.ts` (D-45). Корень сборки — `example/app`
- * вне пакетов модулей, раннер — `example/runner` (D-52). `users` проверяется
- * как зависимость `todo` (`dependsOn`).
+ * слой — `example/app/<m>`, вход модуля — `contract.ts` (D-45). Корень
+ * сборки — `example/app`, раннер — `example/runner`; `users` — по `dependsOn`.
  */
 export const ExampleArch: ArchApp = {
   name: 'example',
