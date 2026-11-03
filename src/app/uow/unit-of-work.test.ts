@@ -449,4 +449,25 @@ describe('UnitOfWork — outbox (D-47)', () => {
       new Error('outbox недоступен'),
     ]);
   });
+
+  test('сбой сохранения не Error, затем сбой outbox — AggregateError из обоих', async () => {
+    const out = new UnitOfWork({
+      outbox: recordingOutbox([], true),
+      trace: TRACE,
+      clock: () => AT,
+    });
+    out.register(task(A), slowRepo(log));
+    out.register(task(B), {
+      aggregate: TaskArDef,
+      async save() {
+        throw 'EIO';
+      },
+    });
+    const error = await out.commit().catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(AggregateError);
+    expect((error as AggregateError).errors).toEqual([
+      'EIO',
+      new Error('outbox недоступен'),
+    ]);
+  });
 });

@@ -19,16 +19,11 @@ export type ReactionEnvelopeOf<D extends AnyEventReactionDef> = EnvelopeOf<
 >;
 
 /**
- * Реализация ER по Def (API-05). Наследник пишет `react`: загрузить,
- * вызвать домен (или UC от имени `caller`), `uow.register`. Фиксацию после
- * `Ok`, лог отказа и перехват исключений делает база.
- *
- * Вызывающий — `SystemCaller` этой реакции без человека: субъекта нет,
- * «кто породил» — через `trace.cause` (reference/caller.md §1). След: причина —
- * событие, `correlationId` — его же; `trace` передаётся в `react`, чтобы
- * вызванный UC продолжил цепочку. Регистрация агрегата вне `touches` —
- * исключение, в production — `warn` в лог; UC другого модуля — `this.call`
- * только из `calls` (тип, D-43).
+ * Реализация ER по Def (API-05). Наследник пишет `react`: загрузить, вызвать
+ * домен или UC, `uow.register`; фиксацию, лог и перехват исключений делает
+ * база. Вызывающий — `SystemCaller` без человека, причина — событие.
+ * @see docs/concepts/aggregate-lifecycle.md
+ * @see docs/guides/event-reaction.md
  */
 export abstract class ReactionFromDef<
   D extends AnyEventReactionDef,
@@ -50,19 +45,10 @@ export abstract class ReactionFromDef<
   ): Promise<Result<void, DomainError>>;
 
   /**
-   * Реакция на событие и запись в лог операций (вход — событие; «кто
-   * породил» — в записи породившей операции, D-43).
-   *
-   * Доставка — через `app.inbox` (D-47): повтор того же `eventId` этой
-   * реакции отбрасывается (`Ok`, без записи в лог операций, `debug` в
-   * логгер). После отказа или исключения доставка снимается — повтор того
-   * же события исполнится снова.
-   *
-   * Сбой порта inbox наружу не выходит (ERR-07): сбой `claim` — как
-   * исключение операции (`SERVER_INTERNAL`, запись в лог операций, `error`
-   * в логгер), реакция не исполняется, доставка не снимается (занята ли
-   * она — неизвестно). Сбой `release` — `error` в логгер, результат
-   * обработки возвращается как есть.
+   * Реакция на событие и запись в лог операций; доставка — через `app.inbox`
+   * (D-47): повтор того же `eventId` отбрасывается (`Ok`, без записи в лог).
+   * @see docs/concepts/aggregate-lifecycle.md
+   * @see src/app/reaction/reaction-from-def.test.ts
    */
   async handle(
     event: ReactionEnvelopeOf<D>,

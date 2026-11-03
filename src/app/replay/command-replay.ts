@@ -9,23 +9,11 @@ import type { AppContext } from '../context';
 import type { ReplayClaim } from './replay-store';
 
 /**
- * Отсев повторов command UC модуля по `requestId` (D-56) поверх порта
- * `app.replay`. Отсеивается только command UC, у которого `requestId`
- * прислал клиент (`trace.clientRequestId`), а вызывающий — человек:
- * `user`, `delegate` или гость с `channel.visitorId`. Query, серверный
- * `requestId`, след события или Job, `system` и гость без посетителя —
- * исполняются как есть.
- *
- * Ключ — модуль, вызывающий и `requestId`; вход — канонический JSON
- * `{ uc, input }`. Повтор того же входа получает сохранённый `Ok` без
- * исполнения UC; другой вход или незавершённый первый запрос —
- * `REQUEST_CONFLICT`; оба случая — `info` в логгер. Сохраняется только
- * `Ok`: после `Err` или исключения запись снимается (токеном владельца из
- * `claim`), повтор исполнится заново.
- *
- * Сбой хранилища наружу не выходит (ERR-07): сбой `claim` — `SERVER_INTERNAL`
- * и `error` в логгер, UC не исполняется; сбой `complete` или `release` —
- * `error` в логгер, результат UC возвращается как есть.
+ * Отсев повторов command UC модуля по `requestId` клиента (D-56) поверх
+ * порта `app.replay`. Ключ — модуль, вызывающий и `requestId`; вход —
+ * канонический JSON `{ uc, input }`. Кого отсеивает и что при сбоях —
+ * @see docs/concepts/uc-path.md
+ * @see src/app/module/module-from-def.test.ts
  */
 export class CommandReplay {
   constructor(

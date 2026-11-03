@@ -7,11 +7,9 @@ export type Delivery = {
 };
 
 /**
- * Порт inbox (D-47): отсев повторной доставки того же `eventId` той же
- * реакции. `claim` занимает доставку (`false` — уже обработана или
- * обрабатывается: повтор отбрасывается); `release` снимает её после сбоя
- * обработки — тогда повтор той же доставки снова будет принят. Повтор с
- * новым `eventId` — забота домена (хелпер `expectIdempotentReaction`).
+ * Порт inbox (D-47): отсев повторной доставки `eventId` той же реакции.
+ * `claim` → `false` — повтор; `release` после сбоя снова принимает доставку.
+ * Повтор с новым `eventId` — забота домена (`expectIdempotentReaction`).
  */
 export type Inbox = {
   claim(delivery: Delivery): Promise<boolean>;

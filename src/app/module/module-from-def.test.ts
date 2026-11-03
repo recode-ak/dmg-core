@@ -466,6 +466,13 @@ describe('ModuleFromDef.dispatch — отсев повторов command UC (D-5
     expect(rdeps.runs.createTask).toBe(2);
   });
 
+  test('делегат — отсев: повтор того же входа не исполняется', async () => {
+    const delegate = new DelegateCaller(user, { ...user, uuid: 'u-2' }, 'd-1');
+    await send(delegate);
+    expectOk(await send(delegate));
+    expect(rdeps.runs.createTask).toBe(1);
+  });
+
   test('без отсева: query', async () => {
     const list = () =>
       replayed.dispatch(ListTasksUcDef.command({}), owner, REQ);
@@ -506,6 +513,13 @@ describe('ModuleFromDef.dispatch — отсев повторов command UC (D-5
     const event = Trace.fromEvent({ eventId: 'e-1', correlationId: 'c-1' });
     await send(owner, event);
     await send(owner, event);
+    expect(rdeps.runs.createTask).toBe(2);
+  });
+
+  test('без отсева: прогон Job', async () => {
+    const run = Trace.forJob({ name: 'nightly' });
+    await send(owner, run);
+    await send(owner, run);
     expect(rdeps.runs.createTask).toBe(2);
   });
 
@@ -591,6 +605,23 @@ describe('ModuleFromDef.dispatch — отсев повторов command UC (D-5
       rdeps,
     );
     expectErr(await send(), 'VERSION_CONFLICT');
+    expect(ctx.logs.map((r) => r.level)).toEqual(['error']);
+  });
+
+  test('сбой release после исключения UC — исключение UC наружу и error в логгер', async () => {
+    rdeps = {
+      ...rdeps,
+      app: { ...ctx.app, replay: failingReplay('release') },
+      createTask: async () => {
+        throw new Error('сбой UC');
+      },
+    };
+    replayed = new ModuleFromDef<typeof ReplayModuleDef, ReplayDeps, User>(
+      ReplayModuleDef,
+      replayMap,
+      rdeps,
+    );
+    await expect(send()).rejects.toThrow('сбой UC');
     expect(ctx.logs.map((r) => r.level)).toEqual(['error']);
   });
 

@@ -18,16 +18,10 @@ import type { AnyModuleFromDef } from '../module/module-from-def';
 import type { ModuleFactory } from './api-app.types';
 
 /**
- * Корень сборки и in-proc клиент приложения (D-49, D-50). Собирает модули
- * из фабрик в порядке `dependsOn`: каждый получает `ModuleFacades` только
- * своих зависимостей. Граф строится по имени Def (повтор, зависимость без
- * фабрики, цикл), затем при сборке Def сверяются по ссылке: Def из
- * `dependsOn` и Def собранного модуля — тот же объект, что у фабрики.
- * Иначе `ModuleFacade.serves` (сравнение UC по ссылке) не узнает свои UC и
- * ошибка всплывёт только в рантайме («Нет фасада»). Любое нарушение —
- * исключение сборки (ERR-01). Дальше — единственный вход в модули:
- * `dispatch` (по Def) и `dispatchByName` (по имени, для транспорта без
- * типов) — один путь, `runJob`, `subscribe`.
+ * Корень сборки и in-proc клиент приложения (D-49). Собирает модули в порядке
+ * `dependsOn`, каждому — фасады только его зависимостей. Def сверяются по
+ * ссылке: иначе фасад не узнает свои UC до рантайма. Нарушение — исключение
+ * сборки. Единственный вход в модули. @see src/app/api-app/api-app.test.ts
  */
 export class ApiApp<U extends Identified> {
   /** Собранные модули по имени — в порядке сборки. */
@@ -58,11 +52,9 @@ export class ApiApp<U extends Identified> {
   }
 
   /**
-   * Команда модулю по имени — для транспорта без типов Def: CLI `call`,
-   * HTTP `POST /api/<module>` (reference/transport.md §2). Вход проверяет схема UC
-   * (`INPUT_VALIDATION`), вид вызывающего — `callers`, доступ — Policy;
-   * неизвестный модуль или UC — `Err` `OPERATION_NOT_FOUND`. Без Def выход
-   * и ошибки не типизированы (`D` по умолчанию — любой UC).
+   * Команда модулю по имени — для транспорта без типов Def (CLI `call`, HTTP).
+   * Неизвестный модуль или UC — `OPERATION_NOT_FOUND`; без Def выход и ошибки
+   * не типизированы. @see docs/reference/transport.md
    */
   dispatchByName<D extends AnyUseCaseDef = AnyUseCaseDef>(
     module: string,

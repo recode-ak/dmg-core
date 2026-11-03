@@ -93,12 +93,10 @@ export type AnyModuleFromDef<U extends Identified> = ModuleFromDef<
 >;
 
 /**
- * Модуль DMG в рантайме — единственная точка входа в его операции (D-43):
- * UC — через `dispatch` команды (D-49), Job — через `runJob`, реакции —
- * `subscribe`.
- * Реализации живут внутри и наружу не раздаются; операции получают модуль
- * при создании. Фасад для других модулей — `ModuleFacade` поверх `dispatch`,
- * его собирает приложение — в карте его нет.
+ * Модуль DMG в рантайме — единственная точка входа в его операции (D-49):
+ * UC — `dispatch`, Job — `runJob`, реакции — `subscribe`. Реализации наружу
+ * не раздаются; фасад для других модулей собирает приложение поверх
+ * `dispatch`. @see docs/concepts/reading-a-module.md
  */
 export class ModuleFromDef<
   M extends AnyModuleDef,
@@ -147,12 +145,10 @@ export class ModuleFromDef<
   }
 
   /**
-   * Исполнение команды (D-49): UC — по имени из команды, дальше обычный
-   * конвейер UC. Команда UC другого модуля — ошибка компиляции; при стёртом
-   * типе (команда из транспорта) — `OPERATION_NOT_FOUND`: это ответ клиенту
-   * другой версии, а не ошибка сборки. Повтор command UC с `requestId`
-   * клиента отсеивает `CommandReplay` (D-56): сохранённый `Ok` или
-   * `REQUEST_CONFLICT`.
+   * Исполнение команды: UC — по имени из команды; повтор отсеивает
+   * `CommandReplay`. При стёртом типе неизвестный UC — `OPERATION_NOT_FOUND`:
+   * это ответ клиенту другой версии, а не ошибка сборки.
+   * @see docs/concepts/uc-path.md
    */
   dispatch<D extends M['useCases'][number]>(
     command: Command<D>,

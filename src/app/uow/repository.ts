@@ -48,12 +48,9 @@ export abstract class VersionedRepository<A extends Versioned>
   protected abstract write(ar: A): Promise<void>;
 
   /**
-   * `stored` — запись с uuid агрегата или `undefined`, если её нет:
-   * - новый агрегат — записи быть не должно (иначе `create` перезаписал бы
-   *   чужую запись, в т. ч. старого формата без `version`);
-   * - восстановленный — запись есть, и её версия (без поля — 0) равна той,
-   *   с которой агрегат загружен.
-   * Иначе запись изменили параллельно — `VersionConflict`.
+   * `stored` — запись с uuid агрегата или `undefined`. У нового агрегата
+   * записи быть не должно, у восстановленного её версия (без поля — 0) равна
+   * загруженной; иначе — `VersionConflict`. @see src/app/uow/repository.test.ts
    */
   private checkVersion(ar: A, stored: StoredRecord | undefined): void {
     const ok =

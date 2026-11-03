@@ -25,11 +25,9 @@ export type RoutableFacade = {
 };
 
 /**
- * Фасады модулей из `dependsOn` — в резолвере модуля (`ModuleDeps`).
- * `call` выбирает фасад по `serves(def)`; операция зовёт его через
- * `OperationFromDef.call`, где тип пропускает только UC из `calls`.
- * Нет фасада для UC — исключение: это ошибка сборки приложения, а не отказ
- * операции (ERR-01).
+ * Фасады модулей из `dependsOn` в резолвере модуля; `call` выбирает фасад по
+ * `serves(def)`. Нет фасада для UC — исключение: это ошибка сборки, а не
+ * отказ операции (ERR-01).
  */
 export class ModuleFacades {
   constructor(private readonly facades: readonly RoutableFacade[] = []) {}

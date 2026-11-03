@@ -368,4 +368,23 @@ describe('ReactionFromDef — сбой inbox (ERR-07)', () => {
       }),
     );
   });
+
+  test('сбой claim — доставка не снимается: занята ли она, неизвестно', async () => {
+    let released = false;
+    const failing = inbox({
+      claim: async () => {
+        throw new Error('inbox недоступен');
+      },
+      release: async () => {
+        released = true;
+      },
+    });
+    er = new ReleaseRemovedUserTasks({
+      app: { ...ctx.app, inbox: failing },
+      facades,
+      tasks,
+    });
+    expectErr(await er.handle(removed()), 'SERVER_INTERNAL');
+    expect(released).toBe(false);
+  });
 });

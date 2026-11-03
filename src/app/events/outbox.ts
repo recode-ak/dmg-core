@@ -2,11 +2,9 @@ import type { EventBus } from './event-bus';
 import type { EventEnvelope } from './event-envelope';
 
 /**
- * Порт outbox (D-47): UoW отдаёт сюда конверты записанных агрегатов одной
- * фиксации — по порядку записи, одной партией. До шины их доставляет relay
- * реализации. Персистентный outbox — реализация потребителя; сбой `put` —
- * исключение фиксации (данные уже записаны, события не считаются
- * опубликованными).
+ * Порт outbox (D-47): конверты записанных агрегатов одной фиксации — одной
+ * партией, по порядку записи; до шины их доставляет реализация. Сбой `put` —
+ * исключение фиксации. @see docs/concepts/aggregate-lifecycle.md
  */
 export type Outbox = {
   put(envelopes: readonly EventEnvelope[]): Promise<void>;
