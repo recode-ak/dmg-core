@@ -23,7 +23,7 @@
 - **Четыре оси** (D-02): платформа (`dmg-core`, пакет приложения) → домен → прикладной слой (1:1 с модулем домена) → входные адаптеры. Импорты идут только в одну сторону ([layers.md](docs/reference/layers.md)).
 - **Домен един, чист и синхронен** (D-03): вся предметка и все контракты (UC, ER, Job, фасады, модули) живут в домене, без IO; асинхронность — только `Loader<T>`.
 - **Модуль готов к выносу в сервис** (D-28): межмодульно — только фасады и события по `dependsOn` (DAG). Модулю в другом репозитории нужны лишь контракты зависимостей, а сервис из одного модуля — то же приложение с одним `dependsOn`.
-- **Декларация + верификация** (D-12): каждая декларация проверяется типом, рантайм-ассертом или контрактным тестом, а правила архитектуры (ARC, DOM, ERR, API, CODE) — линтером и `ArchChecker` с ID нарушений ([rules.md](docs/rules.md)).
+- **Декларация + верификация** (D-12): каждая декларация проверяется типом, рантайм-ассертом или контрактным тестом, а правила архитектуры (ARC, DOM, ERR, API, CODE) — линтером и `ArchChecker` с ID нарушений ([rules.md](docs/reference/rules.md)).
 - **Штатный отказ — `Result`, а не `throw`** (D-13): ошибка знает свой `code` и нейтральный `kind`, транспортный маппинг остаётся в адаптерах.
 
 Итог: доменная логика собрана в одном месте, границы модулей проверяются автоматически, а транспорт, документация и MCP-инструменты не пишутся руками. Реестр решений — [decisions.md](docs/decisions.md).
@@ -69,7 +69,7 @@ bunx dmg-core init
 
 `init` без профиля создаёт `dmg-core.json` и доставляет в проект скилы и роли агентов (по умолчанию — для Claude Code в `.claude/`). Ещё он добавляет в `AGENTS.md` ссылку на [`llms.txt`](llms.txt) — индекс документации для агентов. После обновления пакета выполни `dmg-core sync`; `dmg-core sync --check` в `check` проекта падает, если копии устарели. Каркас `init --profile` делает то же и сверх того.
 
-1. **Модуль.** `bunx dmg-core gen module todo --write` создаёт паспорт модуля в домене (`src/domain/todo/`) и прикладной слой (`src/app/todo/`). Без `--write` команда только печатает план. Каталоги и импорт домена задаёт секция `gen` в `dmg-core.json` ([naming.md](docs/naming.md) §5).
+1. **Модуль.** `bunx dmg-core gen module todo --write` создаёт паспорт модуля в домене (`src/domain/todo/`) и прикладной слой (`src/app/todo/`). Без `--write` команда только печатает план. Каталоги и импорт домена задаёт секция `gen` в `dmg-core.json` ([naming.md](docs/reference/naming.md) §5).
 2. **Агрегат и операции.** `gen aggregate todo.task` добавляет state, события, ошибки, Ar, Policy и репозиторий. `gen uc todo.task complete-task` создаёт пару «контракт в домене ↔ реализация в прикладном слое», `er` и `job` работают так же, а `dcs` / `dqs` создают доменные сервисы. В заготовках остаются `TODO` — по ним видно, что заполнить. Как именно, подскажет гайд вида ([индекс](docs/guides/index.md)) и тот же артефакт в учебном модуле.
 3. **Проверка архитектуры.** Опиши приложение для `ArchChecker` — модули и их раскладку, как в [`example.arch.ts`](src/testing/example/example.arch.ts), — и вызови отчёт из `check` проекта:
 
@@ -80,15 +80,15 @@ bunx dmg-core init
    process.exit(reportArchCheck([MyArch], console.log));
    ```
 
-   Каждое нарушение начинается с ID правила (`ARC-06: …`). Расшифровка ID — в [каталоге правил](docs/rules.md); путь к нему отчёт печатает сам.
+   Каждое нарушение начинается с ID правила (`ARC-06: …`). Расшифровка ID — в [каталоге правил](docs/reference/rules.md); путь к нему отчёт печатает сам.
 4. **Lint-правила.** Правила DOM, ERR, API и CODE — GritQL-плагины biome в [`biome-plugins/`](biome-plugins). Подключи их в `biome.json` проекта на свои каталоги, например домен не читает часы:
 
    ```json
    { "overrides": [{ "includes": ["src/domain/**", "!**/*.test.ts"], "plugins": ["./node_modules/dmg-core/biome-plugins/dom-14-no-clock.grit"] }] }
    ```
 
-   Какой плагин на какие пути — [карта линтера](docs/rules.md#карта-линтера) в каталоге правил.
-5. **Тесты.** Хелперы — в `dmg-core/testing`: `testAppContext`, `expectOk`, контракт идемпотентности реакций и другие ([testing.md](docs/testing.md)).
+   Какой плагин на какие пути — [карта линтера](docs/reference/rules.md#карта-линтера) в каталоге правил.
+5. **Тесты.** Хелперы — в `dmg-core/testing`: `testAppContext`, `expectOk`, контракт идемпотентности реакций и другие ([testing.md](docs/reference/testing.md)).
 
 ## Подпути
 
@@ -105,9 +105,9 @@ bunx dmg-core init
 ## Документация
 
 - [Вход](docs/index.md): суть DMG, карта документов
-- [Слои](docs/reference/layers.md), [моделирование домена](docs/reference/domain-modeling.md), [структура, имена и генератор](docs/naming.md)
+- [Слои](docs/reference/layers.md), [моделирование домена](docs/reference/domain-modeling.md), [структура, имена и генератор](docs/reference/naming.md)
 - [Манифесты](docs/reference/manifests.md), [ошибки и Result](docs/reference/errors-result.md), [Caller и Trace](docs/reference/caller.md), [транспорт](docs/reference/transport.md)
-- [Каталог правил](docs/rules.md), [решения](docs/decisions.md), [тестирование](docs/testing.md), [стиль TypeScript](docs/typescript.md)
+- [Каталог правил](docs/reference/rules.md), [решения](docs/decisions.md), [тестирование](docs/reference/testing.md), [стиль TypeScript](docs/reference/typescript.md)
 - [Гайды по видам артефактов](docs/guides/index.md), [проект: профили и рост](docs/guides/project.md)
 - Для агентов: [`llms.txt`](llms.txt), скил [`dmg-architecture`](skills/dmg-architecture/SKILL.md), [роли](agents/README.md)
 

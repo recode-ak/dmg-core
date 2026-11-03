@@ -40,4 +40,4 @@ covers:
 
 ## 6. Как тестировать
 
-Обработка подходящих записей и пропуск остальных; повторный прогон ничего не пишет; сбой одной записи — остальные обработаны, отчёт `failed` и `logger.error`; запуск через модуль — `runJob`. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts)): выборку задаёт тест присваиванием, сбой записи — `failOn(uuid)` ([testing.md](../testing.md)).
+Обработка подходящих записей и пропуск остальных; повторный прогон ничего не пишет; сбой одной записи — остальные обработаны, отчёт `failed` и `logger.error`; запуск через модуль — `runJob`. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts)): выборку задаёт тест присваиванием, сбой записи — `failOn(uuid)` ([testing.md](../reference/testing.md)).

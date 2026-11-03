@@ -21,7 +21,7 @@ export const REQUIRED = [
   `${PKG}/llms.txt`,
   `${PKG}/README.md`,
   `${PKG}/docs/index.md`,
-  `${PKG}/docs/rules.md`,
+  `${PKG}/docs/reference/rules.md`,
 ];
 
 /** GritQL-плагины пакета (lint-правила) — в установленном пакете */

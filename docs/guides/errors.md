@@ -47,4 +47,4 @@ covers:
 
 ## 6. Как тестировать
 
-Группа: префикс и `kind` каждого кода, разбор payload. Ar: каждый отказ из `rejects` — конкретный `code` (TST-01). UC: тест на каждую собственную ошибку по `code` и `kind`, а не по факту отказа ([errors-result.md](../reference/errors-result.md) §4, [testing.md](../testing.md)).
+Группа: префикс и `kind` каждого кода, разбор payload. Ar: каждый отказ из `rejects` — конкретный `code` (TST-01). UC: тест на каждую собственную ошибку по `code` и `kind`, а не по факту отказа ([errors-result.md](../reference/errors-result.md) §4, [testing.md](../reference/testing.md)).

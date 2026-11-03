@@ -111,9 +111,9 @@ describe('reportArchCheck', () => {
   });
 
   it('RULES_DOC — путь к rules.md установленного пакета', async () => {
-    expect(RULES_DOC).toBe('node_modules/dmg-core/docs/rules.md');
+    expect(RULES_DOC).toBe('node_modules/dmg-core/docs/reference/rules.md');
     const text = await Bun.file(
-      `${import.meta.dir}/../../docs/rules.md`,
+      `${import.meta.dir}/../../docs/reference/rules.md`,
     ).text();
     for (const id of ['MAN-01', 'ARC-06']) expect(text).toContain(`| ${id} |`);
   });

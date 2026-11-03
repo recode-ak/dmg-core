@@ -4,7 +4,7 @@ import { checkDelivered, PLUGINS, REQUIRED } from './consumer-check';
 const EXISTING = new Set([
   'node_modules/dmg-core/llms.txt',
   'node_modules/dmg-core/docs',
-  'node_modules/dmg-core/docs/rules.md',
+  'node_modules/dmg-core/docs/reference/rules.md',
 ]);
 const exists = (path: string) => EXISTING.has(path);
 const file = (
@@ -22,7 +22,7 @@ describe('checkDelivered: пути пакета в доставленных ко
         [
           file(
             'Вход — `node_modules/dmg-core/docs/` и `node_modules/dmg-core/llms.txt`.\n' +
-              'Правила: node_modules/dmg-core/docs/rules.md.',
+              'Правила: node_modules/dmg-core/docs/reference/rules.md.',
           ),
         ],
         exists,
@@ -61,7 +61,7 @@ it('REQUIRED: init доставляет конфиг, скил и вставку
     'node_modules/dmg-core/llms.txt',
     'node_modules/dmg-core/README.md',
     'node_modules/dmg-core/docs/index.md',
-    'node_modules/dmg-core/docs/rules.md',
+    'node_modules/dmg-core/docs/reference/rules.md',
   ]);
 });
 

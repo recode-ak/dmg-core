@@ -1,6 +1,6 @@
 # Тестирование
 
-**Назначение:** общие правила тестов. Правила с ID — раздел TST в [rules.md](./rules.md); как тестировать артефакт конкретного вида — §6 его гайда ([guides/](./guides/index.md)).
+**Назначение:** общие правила тестов. Правила с ID — раздел TST в [rules.md](./rules.md); как тестировать артефакт конкретного вида — §6 его гайда (`guides/`).
 
 ---
 
@@ -43,8 +43,8 @@ expect(res.ok ? undefined : res.error.code).toBe('TASK_ALREADY_DONE');
 - В прикладном слое мокаются порты (репозитории, фасады) — типизированно, без `any`.
 - Время (D-34): домен получает момент аргументом операции (`task.complete(at)`) — в тесте Ar это просто константа. Прикладной слой берёт его из часов приложения (`this.now()` в UC/ER/Job); в тесте — `testAppContext({ at })` и `ctx.setNow(ts)` (`dmg-core/testing`). Глобальных часов нет, `Date` напрямую не читается.
 - Пирамида хранилища: UC/ER/Job — фейк порта; репозиторий (контракт, каждая выборка) и smoke модуля — настоящий репозиторий во временном каталоге; e2e UI — настоящие репозитории.
-- Фейк порта — `<A>RepoFake` в `<a>/<a>.repo.fake.ts` рядом с портом (создаёт `gen aggregate`): наследник `MemoryRepo` из `dmg-core/testing`. `save` сверяет версию, как настоящий репозиторий (`VersionConflict`); начальные записи — `seed(...)`; записанное — `saved` («ничего не записано» — `saved` пуст); чтение — `restored(uuid)`; сбой записи — `failOn(uuid)`. Тип снапшота — `StateOf<typeof <A>ArDef>` (DOM-01). Выборку `find*` фейк не реализует: метод порта объявлен `this.unanswered(...)`, ответ тест задаёт присваиванием (`tasks.findDone = async () => [...]`); корректность выборки — контрактный тест репозитория. Образец — [task.repo.fake.ts](../src/testing/example/app/todo/task/task.repo.fake.ts).
-- Готовые `testAppContext` (шина — `RecordingBus`, логгер — `MemoryLogger`), `MemoryBus` (доставляет события подписчикам), `MemoryRepo`, `StubFacade`, `expectIdempotentReaction` — для UC/ER без реального приложения ([testing/index.ts](../src/testing/index.ts)); учебный модуль — [src/testing/example](../src/testing/example/example.arch.ts).
+- Фейк порта — `<A>RepoFake` в `<a>/<a>.repo.fake.ts` рядом с портом (создаёт `gen aggregate`): наследник `MemoryRepo` из `dmg-core/testing`. `save` сверяет версию, как настоящий репозиторий (`VersionConflict`); начальные записи — `seed(...)`; записанное — `saved` («ничего не записано» — `saved` пуст); чтение — `restored(uuid)`; сбой записи — `failOn(uuid)`. Тип снапшота — `StateOf<typeof <A>ArDef>` (DOM-01). Выборку `find*` фейк не реализует: метод порта объявлен `this.unanswered(...)`, ответ тест задаёт присваиванием (`tasks.findDone = async () => [...]`); корректность выборки — контрактный тест репозитория. Образец — `src/testing/example/app/todo/task/task.repo.fake.ts`.
+- Готовые `testAppContext` (шина — `RecordingBus`, логгер — `MemoryLogger`), `MemoryBus` (доставляет события подписчикам), `MemoryRepo`, `StubFacade`, `expectIdempotentReaction` — для UC/ER без реального приложения (`src/testing/index.ts`); учебный модуль — `src/testing/example`.
 
 ## 5. Защита от регресса и чистота правок
 

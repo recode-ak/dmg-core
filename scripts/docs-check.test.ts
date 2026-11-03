@@ -5,7 +5,7 @@ import { checkDocs, checkSee, type DocFile, readDocs } from './docs-check';
 const RULES = new Set(['DOM-02', 'API-01']);
 const EXISTING = new Set([
   'docs/guides/aggregate.md',
-  'docs/rules.md',
+  'docs/reference/rules.md',
   'src/testing/example/todo/task/task.ar.ts',
 ]);
 const exists = (path: string) => EXISTING.has(path);
@@ -20,7 +20,7 @@ describe('checkDocs: ссылки и ID правил', () => {
     const files = [
       doc(
         '[Ar](../../src/testing/example/todo/task/task.ar.ts) DOM-02\n' +
-          '[rules](../rules.md#dom) [сайт](https://example.com) [тут](#1-когда)\n' +
+          '[rules](../reference/rules.md#dom) [сайт](https://example.com) [тут](#1-когда)\n' +
           '## 1. Когда',
       ),
     ];
@@ -44,7 +44,7 @@ describe('checkDocs: ссылки и ID правил', () => {
   it('неизвестный ID правила — нарушение', () => {
     const files = [doc('Проверь DOM-02 и DOM-99.')];
     expect(checkDocs(files, exists, RULES)).toEqual([
-      'docs/guides/aggregate.md: правило DOM-99 нет в docs/rules.md',
+      'docs/guides/aggregate.md: правило DOM-99 нет в docs/reference/rules.md',
     ]);
   });
 });
@@ -52,21 +52,21 @@ describe('checkDocs: ссылки и ID правил', () => {
 describe('checkDocs: якоря', () => {
   const rules = doc(
     '# Правила\n\n## CODE — код\n\n## Карта линтера\n',
-    'docs/rules.md',
+    'docs/reference/rules.md',
   );
 
   it('якорь на заголовок другого файла и своего — без нарушений', () => {
     const files = [
       rules,
-      doc('[код](../rules.md#code--код) [карта](#шаги)\n\n## Шаги\n'),
+      doc('[код](../reference/rules.md#code--код) [карта](#шаги)\n\n## Шаги\n'),
     ];
     expect(checkDocs(files, exists, RULES)).toEqual([]);
   });
 
   it('якорь без заголовка — битая ссылка', () => {
-    const files = [rules, doc('[карта](../rules.md#карта)')];
+    const files = [rules, doc('[карта](../reference/rules.md#карта)')];
     expect(checkDocs(files, exists, RULES)).toEqual([
-      'docs/guides/aggregate.md: битый якорь ../rules.md#карта',
+      'docs/guides/aggregate.md: битый якорь ../reference/rules.md#карта',
     ]);
   });
 
@@ -197,7 +197,7 @@ describe('@see в src пакета (контракт)', () => {
 });
 
 describe('документация пакета (контракт)', () => {
-  it('ссылки живые, внутри пакета; ID правил — из docs/rules.md', () => {
+  it('ссылки живые, внутри пакета; ID правил — из docs/reference/rules.md', () => {
     const { files, exists, rules } = readDocs(join(import.meta.dir, '..'));
     const paths = files.map((f) => f.path);
     expect(paths).toContain('llms.txt');

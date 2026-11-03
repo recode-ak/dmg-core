@@ -66,7 +66,7 @@ describe('LintMap: repeats', () => {
 // таблицы (ID и плагин) названа в нём.
 describe('LintMap: карта в rules.md', () => {
   const rules = readFileSync(
-    join(import.meta.dir, '../../../docs/rules.md'),
+    join(import.meta.dir, '../../../docs/reference/rules.md'),
     'utf8',
   );
   const map = rules.split('## Карта линтера')[1]?.split('\n## ')[0] ?? '';

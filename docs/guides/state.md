@@ -13,7 +13,7 @@ covers:
 ## 1. Когда применять
 
 - Описываешь, из чего состоит агрегат: поля, статус, value object (VO).
-- VO, который нужен только этому агрегату (у задачи — `TaskAssignmentVo`), лежит в том же файле. VO, общий для модуля, — в `<m>/shared/`, общий для приложения — в `<domain>/shared/` ([naming.md](../naming.md) §2).
+- VO, который нужен только этому агрегату (у задачи — `TaskAssignmentVo`), лежит в том же файле. VO, общий для модуля, — в `<m>/shared/`, общий для приложения — в `<domain>/shared/` ([naming.md](../reference/naming.md) §2).
 - Правила переходов и запреты сюда не пишутся: им место в Ar и Policy ([aggregate.md](./aggregate.md), [policy.md](./policy.md)).
 - Для вывода UC схему не копируй: DTO выводится из state через `v.pick`/`v.omit` (DOM-11).
 
@@ -34,7 +34,7 @@ covers:
 - MAN-02 — `description` у каждого свойства, включая ветки `variant` и `v.optional`. Даёт его `F.*` или `v.description`.
 - DOM-01 — state импортируют только Ar своего агрегата, Def контрактов своего модуля и репозиторий; остальные идут через доменный API.
 - DOM-13 — у VO нет `createdAt`/`updatedAt` и идентичности.
-- CODE-01 — файл `<a>.state.ts`, схема `<A>State`, имена VO по [naming.md](../naming.md) §1.
+- CODE-01 — файл `<a>.state.ts`, схема `<A>State`, имена VO по [naming.md](../reference/naming.md) §1.
 
 ## 5. Типичные ловушки
 
@@ -45,4 +45,4 @@ covers:
 
 ## 6. Как тестировать
 
-Для каждого VO и статуса проверь через `v.safeParse`, что допустимое значение принимается, а недопустимое отклоняется. Тесты — 10–20 строк ([testing.md](../testing.md), TST-04). Описания полей проверяет `ArchChecker` по паспорту модуля ([todo.module.test.ts](../../src/testing/example/todo/todo.module.test.ts)). Фолбэк `updatedAt` проверяй разбором через `<A>ArDef.state`, а не `<A>State`. Логику переходов тестируй в Ar, а не в state.
+Для каждого VO и статуса проверь через `v.safeParse`, что допустимое значение принимается, а недопустимое отклоняется. Тесты — 10–20 строк ([testing.md](../reference/testing.md), TST-04). Описания полей проверяет `ArchChecker` по паспорту модуля ([todo.module.test.ts](../../src/testing/example/todo/todo.module.test.ts)). Фолбэк `updatedAt` проверяй разбором через `<A>ArDef.state`, а не `<A>State`. Логику переходов тестируй в Ar, а не в state.

@@ -14,7 +14,7 @@ covers:
 - **single** — один пакет, всё в `src/`: домен `src/domain`, прикладной слой и корень сборки `src/app`, раннер `src/runner`. Для старта, учебных и небольших проектов; раскладка как у учебного модуля пакета.
 - **monorepo** — пакеты workspaces `@<scope>/*`: домен `domain`, корень сборки `app`, прикладной пакет на модуль `modules/<m>`, раннеры `runners/<r>`. Когда модулей несколько и границы должны держаться на уровне пакетов; `scope` — из имени проекта (`@acme/school` → `acme`).
 - Профиль выбирается один раз: переход между ними — перенос каталогов и правка секции `gen` `dmg-core.json`, генератора для него нет.
-- Уже есть проект — `dmg-core init` без профиля (только `dmg-core.json`, скилы и роли) и раскладка в секции `gen` ([naming.md](../naming.md) §5).
+- Уже есть проект — `dmg-core init` без профиля (только `dmg-core.json`, скилы и роли) и раскладка в секции `gen` ([naming.md](../reference/naming.md) §5).
 
 ## 2. Команда
 
@@ -32,7 +32,7 @@ bun install && bun run check
 | Файл | single | monorepo |
 |---|---|---|
 | `package.json` | скрипты `check`, `lint`, `format`, `arch:check`; версии из пакета | то же + `workspaces`, домен в `devDependencies` корня |
-| `tsconfig.json`, `biome.json` | строгий TS; `overrides` по [карте линтера](../rules.md#карта-линтера); `data/` biome не проверяет | то же; у каждого пакета свой `tsconfig.json` поверх корневого |
+| `tsconfig.json`, `biome.json` | строгий TS; `overrides` по [карте линтера](../reference/rules.md#карта-линтера); `data/` biome не проверяет | то же; у каждого пакета свой `tsconfig.json` поверх корневого |
 | `dmg-core.json` | секция `gen`: `compositionRoot: src/app` | `gen` с `domainImport`, `package`, `compositionRoot: app/src` |
 | `scripts/arch-check.ts` | `ArchApp` из `GenLayout`, `root` и `runners` — для ARC-07/08; список `modules` с маркером генератора | то же |
 | домен | `src/domain/shared/app-user.ts` — тип пользователя | `domain/` — пакет с `exports` `./*/contract`, `./*` |
@@ -64,7 +64,7 @@ bun install && bun run check                   # bun install — после gen 
 APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e 'console.log(crypto.randomUUID())')"
 ```
 
-1. **Подключение — генератор** ([naming.md](../naming.md) §5, маркеры `// gen:imports`, `// gen:modules`, `// gen:repos:<m>`):
+1. **Подключение — генератор** ([naming.md](../reference/naming.md) §5, маркеры `// gen:imports`, `// gen:modules`, `// gen:repos:<m>`):
    - `gen module` — фабрика в список модулей корня сборки (`{ def: <M>ModuleDef, create: (deps) => create<M>Module({ ...deps }) }`; фабрика — из входа прикладного пакета, Def — из контракта домена), `<M>ModuleDef` — в `modules` `scripts/arch-check.ts`, в monorepo — `"@<scope>/<m>": "workspace:*"` в `app/package.json` (затем `bun install`);
    - `gen aggregate` — репозиторий в фабрику: `<a>Repo: new <A>JsonRepo(join(env.dataDir, '<m>.<a>.json'))` (имя файла уникально в приложении).
    - Нет маркера (своя раскладка, правленый `app.ts`) или конфликт имён импортов (агрегаты с одним именем в двух модулях) — генератор печатает «Вставь вручную в <файл> перед <маркер>» с причиной и не падает. Без `gen.compositionRoot` при своей раскладке корень сборки не правится — подсказка называет поле.
@@ -93,6 +93,6 @@ APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e '
 
 - Генератор напечатал «Вставь вручную» и это пропустили — модуль не подключён: UC отвечает `OPERATION_NOT_FOUND`, `arch:check` модуль не проверяет.
 - monorepo: после `gen module` не выполнен `bun install` — `tsc` не находит `@<scope>/<m>`.
-- Модуль домена назван зарезервированным именем — ложное ARC-02: single — `app`, `runner`; monorepo — `app`, `runners`, `modules` ([rules.md](../rules.md#карта-линтера)).
+- Модуль домена назван зарезервированным именем — ложное ARC-02: single — `app`, `runner`; monorepo — `app`, `runners`, `modules` ([rules.md](../reference/rules.md#карта-линтера)).
 - `call` без `--user` — гость: UC с `callers: ['user']` отвечает `UNAUTHORIZED` (код 2). Нужен `--user <uuid>` или `'guest'` в `callers`.
 - UC не-create сгенерирован раньше UC создания — `arch:check` красный по MAN-06 (`created` никто не публикует): `gen uc <m>.<a> create`.

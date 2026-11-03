@@ -46,5 +46,5 @@ flowchart TD
 ## Где дальше
 
 - Объявить ошибки агрегата — [guides/errors.md](../guides/errors.md).
-- Модель ошибки, базовые ошибки ядра, гарантии `handle` — [reference/errors-result.md](../reference/errors-result.md); правило ERR-07 — [rules.md](../rules.md).
+- Модель ошибки, базовые ошибки ядра, гарантии `handle` — [reference/errors-result.md](../reference/errors-result.md); правило ERR-07 — [rules.md](../reference/rules.md).
 - Порядок шагов конвейера — [путь вызова UC](./uc-path.md); что остаётся после сбоя записи — [жизненный цикл агрегата](./aggregate-lifecycle.md).

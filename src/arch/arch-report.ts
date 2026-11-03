@@ -1,7 +1,7 @@
 import { type ArchApp, ArchChecker } from './arch-checker';
 
 /** Каталог правил установленного пакета — от корня проекта-потребителя. */
-export const RULES_DOC = 'node_modules/dmg-core/docs/rules.md';
+export const RULES_DOC = 'node_modules/dmg-core/docs/reference/rules.md';
 
 /** Опции отчёта `arch:check`. */
 export type ArchReportOptions = {

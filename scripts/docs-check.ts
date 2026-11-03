@@ -2,7 +2,7 @@
  * Контрактная проверка документации пакета (`docs/`, `skills/`, `agents/`,
  * `llms.txt`): ссылки на файлы живые, не выходят за пределы пакета и идут по
  * направлению D-59, якоря ведут на заголовки, ID правил есть в
- * `docs/rules.md`; пути в `@see` JSDoc `src/` живые. Запускается тестом
+ * `docs/reference/rules.md`; пути в `@see` JSDoc `src/` живые. Запускается тестом
  * `docs-check.test.ts`.
  *
  * Чистые функции над файлами в памяти; чтение диска — в `readDocs`.
@@ -20,7 +20,7 @@ export interface DocFile {
 const DOC_DIRS = ['docs', 'skills', 'agents'];
 const DOC_FILES = ['llms.txt', 'README.md'];
 const SOURCE_GLOB = 'src/**/*.ts';
-const RULES_PATH = 'docs/rules.md';
+const RULES_PATH = 'docs/reference/rules.md';
 const LINK_RE = /\]\(([^)\s]+)\)/g;
 const SEE_RE = /@see\s+(\S+?)[.,;:)]*(?=\s|$)/g;
 const SEE_PATH_RE = /\.(?:md|ts)$/;
@@ -38,7 +38,8 @@ type Kind =
 
 /**
  * Куда может ссылаться документ своего типа. Типы без записи —
- * смешанные документы корня `docs/`, входы и скилы — не ограничены.
+ * `decisions.md`, входы (`docs/index.md`, `llms.txt`, README), скилы и
+ * роли — не ограничены.
  */
 const ALLOWED: Partial<Record<Kind, ReadonlySet<Kind>>> = {
   concepts: new Set([

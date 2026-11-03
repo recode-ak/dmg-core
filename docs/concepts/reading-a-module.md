@@ -44,4 +44,4 @@ flowchart TD
 ## Где дальше
 
 - Как модуль устроен по слоям — [слои и зависимости](./layers.md); путь одной команды — [путь вызова UC](./uc-path.md).
-- Имена файлов и раскладка — [naming.md](../naming.md); гайды по каждому файлу — [guides/](../guides/index.md).
+- Имена файлов и раскладка — [naming.md](../reference/naming.md); гайды по каждому файлу — [guides/](../guides/index.md).

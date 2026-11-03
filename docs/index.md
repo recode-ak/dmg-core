@@ -23,36 +23,36 @@
 | Задача | Читай |
 |---|---|
 | Начать проект | [guides/project.md](./guides/project.md) → [guides/app.md](./guides/app.md) |
-| Понять устройство | [concepts/](./concepts/index.md) → [layers.md](./reference/layers.md) → [domain-modeling.md](./reference/domain-modeling.md) |
-| Создать файл / объект | [naming.md](./naming.md) → [rules.md](./rules.md) |
+| Понять устройство | [concepts/](./concepts/index.md): [домен](./concepts/domain.md) → [слои](./concepts/layers.md) → [путь вызова UC](./concepts/uc-path.md) |
+| Создать файл / объект | [naming.md](./reference/naming.md) → [rules.md](./reference/rules.md) |
 | Написать артефакт по образцу | [guides/](./guides/index.md) |
-| Объявить контракт | [manifests.md](./reference/manifests.md), [reference/errors-result.md](./reference/errors-result.md) |
+| Объявить контракт | [manifests.md](./reference/manifests.md), [errors-result.md](./reference/errors-result.md) |
 | Работать агентом | скил `dmg-architecture` ([SKILL.md](../skills/dmg-architecture/SKILL.md)), роли [agents/](../agents/README.md) |
 
 ## Документы
 
-**Устройство и решения**
-- [concepts/](./concepts/index.md) — как устроено и почему: потоки, жизненный цикл, схемы
+**Как устроено и почему**
+- [concepts/](./concepts/index.md) — потоки, жизненный цикл, схемы
 - [decisions.md](./decisions.md) — реестр решений платформы D-NN
-- [layers.md](./reference/layers.md) — оси, импорты, доменный API, доступ к entity, прикладной слой, адаптеры
-- [domain-modeling.md](./reference/domain-modeling.md) — модуль-владелец, границы модулей, ошибки и данные между модулями
-- [naming.md](./naming.md) — сокращения, файловая структура, имена
 
-**Контракты**
-- [manifests.md](./reference/manifests.md) — Def-классы (`XxxDef.define`), граф L0/L1/L2, декларация + верификация
-- [reference/errors-result.md](./reference/errors-result.md) — `Result`, модель ошибки, базовые ошибки ядра, гарантии исполнения UC
-- [reference/caller.md](./reference/caller.md) — кто вызывает: `guest`, `user`, `delegate`, `system`; след `Trace`
-- [reference/transport.md](./reference/transport.md) — HTTP (JSON-команда), отсев повторов, MCP, in-proc
-
-**Качество**
-- [rules.md](./rules.md) — **каталог правил с ID** и способом проверки
-- [testing.md](./testing.md) — тестирование
+**Как сделать**
 - [guides/](./guides/index.md) — гайды по видам артефактов на учебном модуле
-- [typescript.md](./typescript.md) — стиль TypeScript
+
+**Что обязательно** (`reference/`)
+- [rules.md](./reference/rules.md) — **каталог правил с ID** и способом проверки
+- [layers.md](./reference/layers.md) — оси, импорты, доменный API, доступ к entity, прикладной слой, адаптеры
+- [domain-modeling.md](./reference/domain-modeling.md) — модуль-владелец, антипаттерны, границы модулей, агрегат
+- [naming.md](./reference/naming.md) — сокращения, файловая структура, имена, генератор
+- [manifests.md](./reference/manifests.md) — Def-классы (`XxxDef.define`), описания, схемы, граф L0/L1/L2, проверки
+- [errors-result.md](./reference/errors-result.md) — `Result`, модель ошибки, базовые ошибки ядра, гарантии исполнения UC
+- [caller.md](./reference/caller.md) — кто вызывает: `guest`, `user`, `delegate`, `system`; след `Trace`
+- [transport.md](./reference/transport.md) — HTTP (JSON-команда), отсев повторов, MCP, in-proc
+- [testing.md](./reference/testing.md) — тестирование
+- [typescript.md](./reference/typescript.md) — стиль TypeScript
 
 ## Как устроена документация
 
-Решение — D-59 ([decisions.md](./decisions.md)). Нормативные документы переезжают в `reference/`, объяснения — в `concepts/`; до переезда смешанные документы лежат в корне `docs/`.
+Решение — D-59 ([decisions.md](./decisions.md)).
 
 | Тип | Отвечает на вопрос | Содержит | Не содержит |
 |---|---|---|---|
