@@ -16,7 +16,7 @@
 
 ## Чек-лист первого релиза (git по тегу)
 
-1. **Пакет готов:** `bun install && bun run check && bun run e2e` зелёные; `version` в `package.json` равна будущему тегу; в `docs/decisions.md` и `debt.md` нет записей «до релиза».
+1. **Пакет готов:** `bun install && bun run check && bun run e2e` зелёные; `bun run docs:covers --strict` без предупреждений — документы с `covers:` не отстали от исходников (D-59); `version` в `package.json` равна будущему тегу; в `docs/decisions.md` и `debt.md` нет записей «до релиза».
 2. **Репо на GitHub:** приватный `dmg-core`; поле `repository` в `package.json`; `git remote add origin git@github.com:<owner>/dmg-core.git`; `git push -u origin main`.
 3. **Тег:** `git tag v0.1.0 && git push origin v0.1.0`.
 4. **Проверка установки из git** (до замены у потребителя): пустой каталог → `bun add valibot @valibot/to-json-schema` → `bun add git+ssh://git@github.com/<owner>/dmg-core.git#v0.1.0` → `bunx dmg-core init --profile single` → `bun run check`. Проверить: работает `bin` `dmg-core`, плагины biome по пути `node_modules/dmg-core/biome-plugins/`, у пакета нет своей копии `valibot`, лишнее из репо (тесты, `scripts/`, `lint-fixtures/`) не мешает `tsc` и biome потребителя. Если мешает — поставка tarball из GitHub Releases или registry.
