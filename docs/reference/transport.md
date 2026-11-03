@@ -31,7 +31,7 @@
 
 **Ожидаемая версия.** Поле входа UC `expectedVersion` (схема `F.expectedVersion('<агрегата>')`), а не `meta`. UC сверяет её шагом `this.expectVersion(ar, expectedVersion)`: расходится — `VERSION_CONFLICT` без записи; не прислана — сверки нет. Поле видно в `OPTIONS` и входит во вход отсева повторов.
 
-**`requestId`.** Клиент создаёт его один раз на намерение и повторяет при ретраях; это и след (`Trace`, `correlationId`), и ключ идемпотентности command UC — отдельного ключа нет. Новая команда — новый `requestId` и новый `Trace`. В тестах — фабрика следа, а не константа: `const req = () => Trace.fromRequest({ requestId: crypto.randomUUID() })`.
+**`requestId`.** Клиент создаёт его один раз на намерение и повторяет при ретраях; это и след (`Trace`, `correlationId`), и ключ идемпотентности command UC — отдельного ключа нет. Один `Trace` с id клиента — одна команда: новая команда — новый `requestId` и новый `Trace`; один след на разные команды даёт `REQUEST_CONFLICT` `reason: 'input'` (тот же вход — сохранённый ответ первой). В тестах — фабрика следа, а не константа: `const req = () => Trace.fromRequest({ requestId: crypto.randomUUID() })`.
 
 **Отсев повторов** — в `dispatch` модуля, через порт `ReplayStore` (`AppContext.replay`; по умолчанию `InProcReplayStore`: TTL 24 ч и ёмкость; хранилище, переживающее рестарт, даёт приложение).
 
@@ -45,6 +45,7 @@
 | Другой вход | `REQUEST_CONFLICT`, `reason: 'input'` |
 | Первый ещё исполняется | `REQUEST_CONFLICT`, `reason: 'in_progress'` |
 | Сохраняется | только `Ok`; после `Err` или исключения запись снимается |
+| Сбой процесса после `claim` | запись остаётся «в работе» до TTL: повтор получает `in_progress`, а не второе исполнение |
 
 - **`REQUEST_CONFLICT`** — `conflict` → 409, базовая ошибка ядра, payload `{ requestId, reason }`; `info` в логгер с причиной.
 - Порт `ReplayStore`: `claim(key, input)` атомарно проверяет и занимает ключ и выдаёт токен владельца; `complete(key, token, answer)` и `release(key, token)` действуют только для владельца. Ответ — JSON-совместимые данные, хранилище отдаёт копию.
@@ -62,6 +63,8 @@
 | `internal` | 500 |
 
 ## 3. MCP
+
+Цель по D-18, в пакете не реализовано: генератора MCP нет.
 
 - UC → **tool**: `name` (`<module>.<uc>`), `description` из Def, `inputSchema` из JSON Schema; аннотации: query → `readOnlyHint`, command → `destructiveHint` по необходимости.
 - Граф → **resources**: карта модулей (L0), страницы модулей (L1) и агрегатов (L2), каталоги событий и ошибок.

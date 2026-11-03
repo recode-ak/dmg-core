@@ -29,7 +29,7 @@ export type ModuleLink =
   | {
       /**
        * Вызов UC другого модуля через фасад (D-42): выводится из `calls`
-       * операции. `type: 'command'` — межмодульный побочный эффект (D-41).
+       * операции. `type: 'command'` — межмодульный побочный эффект.
        */
       readonly kind: 'calls';
       readonly from: string;

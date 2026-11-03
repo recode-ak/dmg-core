@@ -26,7 +26,7 @@ type PersonCaller<U> = GuestCaller<U> | UserCaller<U> | DelegateCaller<U>;
 | `SystemCaller(from, person?)` | UC/ER/Job своего или другого модуля; `from: OperationRef` — `{ kind, module, name }` вызвавшей операции | `person?.subject()` | `person` |
 
 - `person` по типу не `SystemCaller`; вложенный вызов передаёт `caller.person()` пришедшего.
-- ER и Job — `SystemCaller` без `person`.
+- ER и Job — `SystemCaller` без `person`; Job — не гость (гость — реальный посетитель). «Кто породил» ER — через `trace.cause` к записи операции-причины в логе операций.
 - Свой или чужой модуль — сравнение `from.module` с модулем вызываемого; отдельного вида `module` нет.
 - `toLog()`: `{ kind: 'guest' }` · `{ kind: 'user', subjectId }` · `{ kind: 'delegate', subjectId, actorId, delegationId }` · `{ kind: 'system', from, person? }`.
 
@@ -37,7 +37,7 @@ type PersonCaller<U> = GuestCaller<U> | UserCaller<U> | DelegateCaller<U>;
 3. Системный вызов без субъекта разрешается только явно: отдельный UC (`callers: ['system']`, `allowAll`) или переопределение `protected checkPolicy` в наследнике `UseCaseFromDef` — ответственность наследника.
 4. Межмодульный вызов — `this.call(def, input, caller, trace)` базы `OperationFromDef`: только Def из `calls` (по типу — UC с `'system'` в `callers`); база подставляет `SystemCaller(this.ref, caller.person())` и идёт через фасад модуля-владельца (`Facade<M>.handle`). Рантайм-проверки `calls` нет.
 5. Конверт события несёт `cause` и `correlationId`, но не `caller`: «кто» — лог операций (`toLog()` вызывающего), «из-за чего» — `trace.cause`.
-6. Транспорт строит `Caller` и `Trace` на входе (бот — по идентификатору пользователя в канале и активному делегированию, HTTP — по токену) и исполняет команду `ModuleFromDef.dispatch`; внутрь UC они передаются неизменными.
+6. Транспорт строит `Caller` и `Trace` на входе (бот — по идентификатору пользователя в канале и активному делегированию, HTTP — по токену) и исполняет команду `ModuleFromDef.dispatch` — через `apiApp.dispatch` по Def или `apiApp.dispatchByName` по имени модуля ([transport.md](./transport.md) §4); внутрь UC они передаются неизменными.
 7. Резолвер каркаса `init` без модуля пользователей — заглушка: uuid из CLI → `UserCaller` без ролей, только канал `cli`.
 
 ## 3. Trace
@@ -55,4 +55,4 @@ type PersonCaller<U> = GuestCaller<U> | UserCaller<U> | DelegateCaller<U>;
 
 ## 4. Делегирование
 
-Делегирование — агрегат модуля пользователей приложения, а не платформы: `from`, `to`, область (роли или правила), `validFrom`/`validTo`, причина, отзыв; события `<m>.delegation.granted/revoked/expired`. Пока приложение его не реализовало, `delegate` в `callers` объявляется, но транспорт его не строит.
+Делегирование — агрегат модуля пользователей приложения, а не платформы: `from`, `to`, область (роли или правила), `validFrom`/`validTo`, причина, отзыв; это не вход под чужим именем: делегирование ограничено сроком и правами, отзывается, все действия видны в аудите; события `<m>.delegation.granted/revoked/expired`. Пока приложение его не реализовало, `delegate` в `callers` объявляется, но транспорт его не строит.

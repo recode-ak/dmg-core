@@ -31,7 +31,7 @@ export abstract class Def<N extends string = string> {
     this.description = spec.description;
   }
 
-  /** Сериализуемая форма: ссылки → имена, схемы → JSON Schema (D-27). */
+  /** Сериализуемая форма: ссылки → имена, схемы → JSON Schema. */
   abstract normalize(): NormalizedForm;
 
   /** Схемы вида (payload, state, input/output); по умолчанию — нет. */

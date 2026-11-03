@@ -18,7 +18,7 @@ export type DefDescription = {
   readonly schemas: DefSchemas;
 };
 
-/** Сериализуемая форма Def — основа графа и хеша (D-27). */
+/** Сериализуемая форма Def — основа графа и хеша. */
 export type NormalizedForm = { readonly dmg: string };
 
 /**
