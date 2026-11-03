@@ -1,7 +1,8 @@
 ---
 covers:
   - src/domain/**
-  - src/kernel/**
+  - src/kernel/def/**
+  - src/kernel/result/**
   - src/testing/example/todo/**
 ---
 

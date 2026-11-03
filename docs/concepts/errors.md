@@ -3,6 +3,7 @@ covers:
   - src/kernel/errors/**
   - src/kernel/result/**
   - src/app/use-case/use-case-from-def.ts
+verified: d20edbc
 ---
 
 # Отказ, баг и сбой

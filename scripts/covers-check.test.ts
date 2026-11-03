@@ -35,9 +35,12 @@ describe('checkCovers: исходник позже документа', () => {
   };
   const changedAt = (path: string) => time[path];
   const exists = (path: string) => path in time;
+  const verifiedAt = () => undefined;
 
   it('исходник не менялся после документа — тихо', () => {
-    expect(checkCovers([doc(['src/app/uow.ts'])], exists, changedAt)).toEqual({
+    expect(
+      checkCovers([doc(['src/app/uow.ts'])], exists, changedAt, verifiedAt),
+    ).toEqual({
       missing: [],
       stale: [],
     });
@@ -45,7 +48,7 @@ describe('checkCovers: исходник позже документа', () => {
 
   it('исходник менялся позже документа — warn со списком документа', () => {
     const docs = [doc(['src/app/uow.ts', 'src/app/use-case/**'])];
-    expect(checkCovers(docs, exists, changedAt)).toEqual({
+    expect(checkCovers(docs, exists, changedAt, verifiedAt)).toEqual({
       missing: [],
       stale: [
         'docs/concepts/uc-path.md: src/app/use-case/** менялся позже документа',
@@ -55,11 +58,13 @@ describe('checkCovers: исходник позже документа', () => {
 
   it('документ без истории (новый) — свежий', () => {
     const docs = [doc(['src/app/use-case/**'], 'docs/concepts/new.md')];
-    expect(checkCovers(docs, exists, changedAt).stale).toEqual([]);
+    expect(checkCovers(docs, exists, changedAt, verifiedAt).stale).toEqual([]);
   });
 
   it('путь из covers не найден — нарушение', () => {
-    expect(checkCovers([doc(['src/app/gone.ts'])], exists, changedAt)).toEqual({
+    expect(
+      checkCovers([doc(['src/app/gone.ts'])], exists, changedAt, verifiedAt),
+    ).toEqual({
       missing: [
         'docs/concepts/uc-path.md: covers — нет файлов src/app/gone.ts',
       ],
@@ -72,7 +77,9 @@ describe('checkCovers: исходник позже документа', () => {
       path: 'skills/x/SKILL.md',
       text: '---\ncovers: [src/app/uow.ts]\n---\n# X\n',
     };
-    expect(checkCovers([inline], exists, changedAt).missing).toEqual([
+    expect(
+      checkCovers([inline], exists, changedAt, verifiedAt).missing,
+    ).toEqual([
       'skills/x/SKILL.md: covers — не разобран, нужен список строк «  - путь»',
     ]);
   });
@@ -138,6 +145,41 @@ describe('exitCode: код выхода docs:covers', () => {
   });
 });
 
+describe('checkCovers: verified — документ сверен с кодом на коммите', () => {
+  const time: Record<string, number> = {
+    'docs/concepts/uc-path.md': 200,
+    'src/app/use-case/**': 300,
+  };
+  const changedAt = (path: string) => time[path];
+  const exists = (path: string) => path in time;
+  const commits: Record<string, number> = { abc1234: 300, old5678: 250 };
+  const verifiedAt = (sha: string) => commits[sha];
+  const verified = (sha: string): DocFile => ({
+    path: 'docs/concepts/uc-path.md',
+    text: `---\ncovers:\n  - src/app/use-case/**\nverified: ${sha}\n---\n\n# Путь UC\n`,
+  });
+
+  it('verified не раньше правки кода — тихо', () => {
+    expect(
+      checkCovers([verified('abc1234')], exists, changedAt, verifiedAt),
+    ).toEqual({ missing: [], stale: [] });
+  });
+
+  it('verified раньше правки кода — warn', () => {
+    expect(
+      checkCovers([verified('old5678')], exists, changedAt, verifiedAt).stale,
+    ).toEqual([
+      'docs/concepts/uc-path.md: src/app/use-case/** менялся позже документа',
+    ]);
+  });
+
+  it('неизвестный коммит в verified — нарушение', () => {
+    expect(
+      checkCovers([verified('nope000')], exists, changedAt, verifiedAt).missing,
+    ).toEqual(['docs/concepts/uc-path.md: verified — нет коммита nope000']);
+  });
+});
+
 describe('impactOf: документы по изменённым путям', () => {
   const docs = [
     doc(['src/app/uow.ts', 'src/app/use-case/**']),
@@ -171,9 +213,13 @@ describe('impactOf: документы по изменённым путям', ()
 
 describe('covers пакета (контракт)', () => {
   it('каждый путь covers находит файлы', () => {
-    const { docs, exists, changedAt } = readCovers(join(import.meta.dir, '..'));
+    const { docs, exists, changedAt, verifiedAt } = readCovers(
+      join(import.meta.dir, '..'),
+    );
     expect(docs.map((d) => d.path)).toContain('docs/guides/facade.md');
-    expect(checkCovers(docs, exists, changedAt).missing).toEqual([]);
+    expect(checkCovers(docs, exists, changedAt, verifiedAt).missing).toEqual(
+      [],
+    );
   });
 
   it('у каждого гайда и concept, кроме index.md и шаблонов _*, есть covers', () => {

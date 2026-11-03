@@ -1,6 +1,7 @@
 /**
  * Актуальность документов с `covers:` во front-matter (D-59): пути и шаблоны
- * исходников находят файлы; исходник, закоммиченный позже документа, —
+ * исходников находят файлы; исходник, закоммиченный позже документа или его
+ * сверки (`verified: <sha>` — документ сверен с кодом на этом коммите), —
  * предупреждение. `bun run docs:covers` в `check` предупреждает,
  * `--strict` в гейте релиза (`RELEASING.md`) блокирует.
  *
@@ -13,6 +14,7 @@ import { type DocFile, readDocs } from './docs-check';
 const FRONT_MATTER_RE = /^---\n([\s\S]*?)\n---\n/;
 const COVERS_RE = /^covers:\n((?:[ \t]+- .*\n?)*)/m;
 const COVERS_KEY_RE = /^covers:/m;
+const VERIFIED_RE = /^verified:[ \t]*(\S+)[ \t]*$/m;
 
 export interface CoversReport {
   /** Пути covers без файлов — `check` падает */
@@ -32,17 +34,28 @@ export function coversOf(text: string): string[] {
     .filter((path) => path !== '');
 }
 
-/** Время изменения `changedAt` — секунды коммита; без истории — `undefined` */
+/**
+ * Время `changedAt` и `verifiedAt` — секунды коммита; без истории или коммита —
+ * `undefined`. Документ свеж с позднего из двух: своей правки и `verified`.
+ */
 export function checkCovers(
   docs: readonly DocFile[],
   exists: (pattern: string) => boolean,
   changedAt: (pattern: string) => number | undefined,
+  verifiedAt: (sha: string) => number | undefined,
 ): CoversReport {
   const report: CoversReport = { missing: [], stale: [] };
   for (const doc of docs) {
-    const docTime = changedAt(doc.path);
     const patterns = coversOf(doc.text);
     const front = FRONT_MATTER_RE.exec(doc.text)?.[1] ?? '';
+    const sha = VERIFIED_RE.exec(front)?.[1];
+    const shaTime = sha === undefined ? undefined : verifiedAt(sha);
+    if (sha !== undefined && shaTime === undefined) {
+      report.missing.push(`${doc.path}: verified — нет коммита ${sha}`);
+    }
+    const editTime = changedAt(doc.path);
+    const docTime =
+      editTime === undefined ? undefined : Math.max(editTime, shaTime ?? 0);
     if (patterns.length === 0 && COVERS_KEY_RE.test(front)) {
       report.missing.push(
         `${doc.path}: covers — не разобран, нужен список строк «  - путь»`,
@@ -169,13 +182,23 @@ export function readCovers(root: string) {
     const out = git.success ? git.stdout.toString().trim() : '';
     return out === '' ? undefined : Number(out);
   };
-  return { docs, exists, changedAt };
+  const verifiedAt = (sha: string) => {
+    const git = spawnSync(
+      ['git', 'log', '-1', '--format=%ct', `${sha}^{commit}`, '--'],
+      { cwd: root },
+    );
+    const out = git.success ? git.stdout.toString().trim() : '';
+    return out === '' ? undefined : Number(out);
+  };
+  return { docs, exists, changedAt, verifiedAt };
 }
 
 if (import.meta.main) {
   const strict = process.argv.includes('--strict');
-  const { docs, exists, changedAt } = readCovers(join(import.meta.dir, '..'));
-  const report = checkCovers(docs, exists, changedAt);
+  const { docs, exists, changedAt, verifiedAt } = readCovers(
+    join(import.meta.dir, '..'),
+  );
+  const report = checkCovers(docs, exists, changedAt, verifiedAt);
   for (const line of report.missing) console.error(`error: ${line}`);
   for (const line of report.stale) console.warn(`warn: ${line}`);
   process.exit(exitCode(report, strict));

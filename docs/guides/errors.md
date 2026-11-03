@@ -1,6 +1,7 @@
 ---
 covers:
   - src/kernel/errors/**
+verified: d20edbc
 ---
 
 # Errors — гайд
