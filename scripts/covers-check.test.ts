@@ -5,6 +5,7 @@ import {
   coversOf,
   exitCode,
   impactOf,
+  lastCodeChangeAt,
   readCovers,
 } from './covers-check';
 import { type DocFile, readDocs } from './docs-check';
@@ -74,6 +75,47 @@ describe('checkCovers: исходник позже документа', () => {
     expect(checkCovers([inline], exists, changedAt).missing).toEqual([
       'skills/x/SKILL.md: covers — не разобран, нужен список строк «  - путь»',
     ]);
+  });
+});
+
+describe('lastCodeChangeAt: время последней правки кода по git log -p', () => {
+  const commit = (time: number, ...lines: string[]) =>
+    [
+      `@${time}`,
+      'diff --git a/src/a.ts b/src/a.ts',
+      '--- a/src/a.ts',
+      '+++ b/src/a.ts',
+      '@@ -1,2 +1,2 @@',
+      ...lines,
+    ].join('\n');
+
+  it('коммит только с комментариями пропускается — время предыдущего', () => {
+    const log = [
+      commit(30, '-/**', '- * Длинно.', '- */', '+/** Коротко. */'),
+      commit(20, '-// старое', '+// новое', '+', '-  * строка'),
+      commit(10, '-const a = 1;', '+const a = 2;'),
+    ].join('\n');
+    expect(lastCodeChangeAt(log)).toBe(10);
+  });
+
+  it('правка кода — время этого коммита', () => {
+    const log = [
+      commit(30, '+export const b = 1;'),
+      commit(10, '+const a = 1;'),
+    ].join('\n');
+    expect(lastCodeChangeAt(log)).toBe(30);
+  });
+
+  it('код с комментарием в конце строки — правка кода', () => {
+    expect(lastCodeChangeAt(commit(5, '+run(); // шаг'))).toBe(5);
+  });
+
+  it('только комментарии во всей истории — undefined', () => {
+    expect(lastCodeChangeAt(commit(5, '+// x'))).toBeUndefined();
+  });
+
+  it('заголовки diff не считаются строками кода', () => {
+    expect(lastCodeChangeAt(commit(7))).toBeUndefined();
   });
 });
 

@@ -62,6 +62,36 @@ export function checkCovers(
   return report;
 }
 
+// Не код: пустая строка и строка, начатая с `//`, `/*` или `*` (тело и конец JSDoc).
+function isCodeLine(line: string): boolean {
+  const text = line.trim();
+  return text !== '' && !/^(\/\/|\/\*|\*)/.test(text);
+}
+
+/**
+ * Время последнего коммита, менявшего код, по выводу
+ * `git log --format=@%ct -p -U0` (новые первыми). Коммиты только с
+ * комментариями и пустыми строками пропускаются: стрижка JSDoc не делает
+ * документ устаревшим.
+ */
+export function lastCodeChangeAt(log: string): number | undefined {
+  let time: number | undefined;
+  let inHunk = false;
+  for (const line of log.split('\n')) {
+    if (line.startsWith('@') && !line.startsWith('@@')) {
+      time = Number(line.slice(1));
+      inHunk = false;
+    } else if (line.startsWith('diff --git')) {
+      inHunk = false;
+    } else if (line.startsWith('@@')) {
+      inHunk = true;
+    } else if (inHunk && /^[+-]/.test(line) && isCodeLine(line.slice(1))) {
+      return time;
+    }
+  }
+  return undefined;
+}
+
 /** Код выхода `docs:covers`: путь без файлов — всегда 1, отставание — 1 только со `--strict` */
 export function exitCode(report: CoversReport, strict: boolean): 0 | 1 {
   if (report.missing.length > 0) return 1;
@@ -97,7 +127,8 @@ export function impactOf(
 /**
  * Документы с `covers:`, поиск файлов по шаблону и время коммитов git пакета
  * с корнем `root`. Время — дата коммита: незакоммиченное не видно, rebase и
- * правка опечатки в документе сдвигают её.
+ * правка опечатки в документе сдвигают её. У исходников — последний коммит,
+ * менявший код (`lastCodeChangeAt`), без тестов: новый тест поведение не меняет.
  */
 export function readCovers(root: string) {
   const docs = readDocs(root).files.filter(
@@ -110,6 +141,23 @@ export function readCovers(root: string) {
     return false;
   };
   const changedAt = (pattern: string) => {
+    if (!pattern.endsWith('.md')) {
+      const git = spawnSync(
+        [
+          'git',
+          'log',
+          '--format=@%ct',
+          '-p',
+          '-U0',
+          '--no-color',
+          '--',
+          `:(glob)${pattern}`,
+          ':(exclude,glob)**/*.test.ts',
+        ],
+        { cwd: root },
+      );
+      return git.success ? lastCodeChangeAt(git.stdout.toString()) : undefined;
+    }
     const git = spawnSync(
       ['git', 'log', '-1', '--format=%ct', '--', `:(glob)${pattern}`],
       { cwd: root },
