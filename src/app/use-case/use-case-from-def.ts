@@ -70,8 +70,10 @@ export type UseCaseHandler<
 /**
  * Реализация UC по Def (API-05). Наследник пишет `load`, при необходимости
  * `fetch` и `execute`; порядок шагов, ошибки ядра и фиксация — здесь. `L` —
- * подтип контекста Policy, `F` — добытое `fetch`, `U` — субъект, которого
- * знает реализация. @see docs/concepts/uc-path.md
+ * подтип контекста Policy, `F` — добытое `fetch`. `U` — субъект для
+ * реализации: не уже субъекта Policy — при `allowAll` Policy о нём молчит,
+ * а реализации нужен, например, `uuid`.
+ * @see docs/concepts/uc-path.md
  * @see docs/guides/use-case.md
  */
 export abstract class UseCaseFromDef<

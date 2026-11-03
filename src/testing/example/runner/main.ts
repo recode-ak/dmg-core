@@ -2,8 +2,10 @@
 /**
  * Точка входа CLI учебного приложения (D-50): окружение → `ExampleApp`,
  * реакции, одна команда, код выхода; `process` — только здесь (ARC-09).
+ *
  *   EXAMPLE_USERS=<uuid> bun src/testing/example/runner/main.ts \
  *     create-task --title Хлеб --user <uuid>
+ * @see docs/guides/app.md
  */
 
 import { ExampleApp } from '../app/example-app';

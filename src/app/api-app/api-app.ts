@@ -21,7 +21,8 @@ import type { ModuleFactory } from './api-app.types';
  * Корень сборки и in-proc клиент приложения (D-49). Собирает модули в порядке
  * `dependsOn`, каждому — фасады только его зависимостей. Def сверяются по
  * ссылке: иначе фасад не узнает свои UC до рантайма. Нарушение — исключение
- * сборки. Единственный вход в модули. @see src/app/api-app/api-app.test.ts
+ * сборки. Единственный вход в модули.
+ * @see src/app/api-app/api-app.test.ts
  */
 export class ApiApp<U extends Identified> {
   /** Собранные модули по имени — в порядке сборки. */
@@ -54,7 +55,8 @@ export class ApiApp<U extends Identified> {
   /**
    * Команда модулю по имени — для транспорта без типов Def (CLI `call`, HTTP).
    * Неизвестный модуль или UC — `OPERATION_NOT_FOUND`; без Def выход и ошибки
-   * не типизированы. @see docs/reference/transport.md
+   * не типизированы.
+   * @see docs/reference/transport.md
    */
   dispatchByName<D extends AnyUseCaseDef = AnyUseCaseDef>(
     module: string,

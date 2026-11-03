@@ -18,7 +18,7 @@ export type MemoryAr<S extends MemorySnapshot> = Versioned & {
  * версии (`VersionConflict`), хранит снапшоты, `restored` отдаёт новый Ar.
  * Выборку (`find*`) не реализует: ответ задаёт тест (`unanswered`), а
  * проверяет контрактный тест настоящего репозитория.
- * @see src/testing/example/app/todo/task/task.repo.fake.ts
+ * @see docs/guides/repo.md
  */
 export class MemoryRepo<
   A extends MemoryAr<S>,

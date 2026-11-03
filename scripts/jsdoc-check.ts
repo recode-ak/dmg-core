@@ -32,7 +32,29 @@ export function longJsdoc(sources: readonly DocFile[]): string[] {
   return warnings;
 }
 
+/** `@see` после текста строки JSDoc: тег TS распознаёт только в начале строки */
+export function inlineSee(sources: readonly DocFile[]): string[] {
+  const warnings: string[] = [];
+  for (const file of sources) {
+    if (file.path.endsWith('.test.ts')) continue;
+    let inDoc = false;
+    file.text.split('\n').forEach((line, i) => {
+      const text = line.trim();
+      if (text.startsWith('/**')) inDoc = true;
+      if (inDoc && /\S.*@see/.test(text.replace(/^(\/\*\*|\*)\s*/, ''))) {
+        warnings.push(
+          `${file.path}:${i + 1}: @see не в начале строки JSDoc (CODE-04)`,
+        );
+      }
+      if (text.includes('*/')) inDoc = false;
+    });
+  }
+  return warnings;
+}
+
 if (import.meta.main) {
   const { sources } = readDocs(join(import.meta.dir, '..'));
-  for (const line of longJsdoc(sources)) console.warn(`warn: ${line}`);
+  for (const line of [...longJsdoc(sources), ...inlineSee(sources)]) {
+    console.warn(`warn: ${line}`);
+  }
 }

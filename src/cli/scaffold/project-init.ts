@@ -17,7 +17,8 @@ const DMG_CORE = 'dmg-core';
  * Каркас в каталог проекта (`dmg-core init --profile`): имя, план
  * `ProjectScaffold`, запись `applyPlan` без перезаписи; `package.json`
  * проекта сливается и пишется последним. Конфликт или коллизия — `GenError`
- * до любой записи. @see src/cli/scaffold/project-init.test.ts
+ * до любой записи.
+ * @see src/cli/scaffold/project-init.test.ts
  */
 export class ProjectInit {
   /** Подсказка следующего шага после записи каркаса. */
@@ -66,7 +67,8 @@ export class ProjectInit {
   /**
    * Слияние с `package.json` проекта; `dmg-core` не из реестра — путь от
    * корня проекта, в monorepo ещё `overrides.dmg-core`, иначе `bun install`
-   * ищет пакет в реестре. @see docs/guides/project.md
+   * ищет пакет в реестре.
+   * @see docs/guides/project.md
    */
   private merge(
     scaffold: string,

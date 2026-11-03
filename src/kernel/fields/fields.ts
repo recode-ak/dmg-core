@@ -95,7 +95,8 @@ export const BaseEntityFields = {
  * Копия схемы state: запись старого формата без `updatedAt` читается как
  * `updatedAt = createdAt`. Фолбэк — на уровне схемы, потому что поле соседей
  * не видит; меняется только разбор. Производные схемы его наследуют, схема,
- * собранная заново из `entries`, — теряет. @see src/kernel/fields/fields.test.ts
+ * собранная заново из `entries`, — теряет.
+ * @see src/kernel/fields/fields.test.ts
  */
 export function withEntityDefaults<S extends v.GenericSchema>(schema: S): S {
   const original = schema['~run'];

@@ -19,7 +19,8 @@ export type SystemCallable<M extends AnyModuleDef> = SystemCallableUc<
  * Фасад модуля M — граница для других модулей (D-42): вход в UC, доступные
  * системе, от `SystemCaller` потребителя; выход и ошибки — как у UC.
  * Реализация — `ModuleFacade`, сетевой клиент или `StubFacade`, вызывающий
- * код от неё не зависит. @see docs/guides/facade.md
+ * код от неё не зависит.
+ * @see docs/guides/facade.md
  */
 export interface Facade<M extends AnyModuleDef> {
   readonly def: M;

@@ -47,8 +47,8 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
   private stored: number | undefined;
 
   /**
-   * Агрегат только для чтения из state — так потребитель фасада видит выход
-   * UC другого модуля (D-43, API-04), а не entity. Полиморфный `this`: тип и
+   * Агрегат только для чтения из state (D-43) — так потребитель фасада видит
+   * выход UC другого модуля, а не entity (API-04). Полиморфный `this`: тип и
    * проверка state — по `restore` конкретного Ar, кода в наследнике не нужно.
    */
   static readonly<S, A>(

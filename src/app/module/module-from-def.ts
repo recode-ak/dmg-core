@@ -96,7 +96,8 @@ export type AnyModuleFromDef<U extends Identified> = ModuleFromDef<
  * Модуль DMG в рантайме — единственная точка входа в его операции (D-49):
  * UC — `dispatch`, Job — `runJob`, реакции — `subscribe`. Реализации наружу
  * не раздаются; фасад для других модулей собирает приложение поверх
- * `dispatch`. @see docs/concepts/reading-a-module.md
+ * `dispatch`.
+ * @see docs/concepts/reading-a-module.md
  */
 export class ModuleFromDef<
   M extends AnyModuleDef,

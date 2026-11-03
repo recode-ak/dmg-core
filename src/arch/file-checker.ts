@@ -16,7 +16,8 @@ export type ModuleLayout = { readonly domain: string; readonly app: string };
  * Проверки по файлам модулей: ARC-04, ARC-06, MAN-06, MAN-10. `entry` —
  * вход модуля домена для других (имя файла без `.ts`, `index` — и сам
  * каталог). У внешнего модуля прикладной слой не проверяется, импорты
- * между двумя внешними — тоже. @see src/arch/file-checker.test.ts
+ * между двумя внешними — тоже.
+ * @see src/arch/file-checker.test.ts
  */
 export class FileChecker {
   private readonly scan = new SourceScan();

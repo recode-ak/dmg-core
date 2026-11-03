@@ -75,7 +75,8 @@ export type TraceStamp = {
  * След операции (D-43): `cause` — шаг назад, `correlationId` — вся цепочка
  * от точки входа, `channel` — канал входа, идёт по цепочке вызовов. Создаётся
  * фабриками точек входа, внутрь операций передаётся неизменным. Класс — в
- * ядре: его принимает фасад модуля. @see docs/reference/caller.md
+ * ядре: его принимает фасад модуля.
+ * @see docs/reference/caller.md
  */
 export class Trace {
   private constructor(

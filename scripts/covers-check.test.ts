@@ -110,6 +110,10 @@ describe('lastCodeChangeAt: время последней правки кода 
     expect(lastCodeChangeAt(commit(5, '+run(); // шаг'))).toBe(5);
   });
 
+  it('код после однострочного JSDoc — правка кода', () => {
+    expect(lastCodeChangeAt(commit(5, '+/** x */ const a = 1;'))).toBe(5);
+  });
+
   it('только комментарии во всей истории — undefined', () => {
     expect(lastCodeChangeAt(commit(5, '+// x'))).toBeUndefined();
   });

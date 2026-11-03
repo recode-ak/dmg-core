@@ -62,10 +62,14 @@ export function checkCovers(
   return report;
 }
 
-// Не код: пустая строка и строка, начатая с `//`, `/*` или `*` (тело и конец JSDoc).
+// Не код: пустая строка и строка, начатая с `//`, `/*` или `*` (тело и конец
+// JSDoc), без кода после `*/`. Допущение: строка кода с `*` в начале
+// (генератор, продолжение умножения) считается комментарием.
 function isCodeLine(line: string): boolean {
   const text = line.trim();
-  return text !== '' && !/^(\/\/|\/\*|\*)/.test(text);
+  if (text === '') return false;
+  if (!/^(\/\/|\/\*|\*)/.test(text)) return true;
+  return !text.startsWith('//') && /\*\/\s*\S/.test(text);
 }
 
 /**

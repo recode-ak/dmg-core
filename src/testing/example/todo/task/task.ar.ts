@@ -117,9 +117,9 @@ export class TaskAr extends Aggregate<typeof TaskArDef> {
 
   /**
    * Назначает исполнителя открытой задаче через `change`. Тот же — `ok` без
-   * изменений; смена — `unassigned` прежнего, затем `assigned` нового.
-   * Активен ли исполнитель, решает правило UC `assigneeActive`, а не Ar:
-   * у Ar нет чужих данных.
+   * изменений; смена — `unassigned` прежнего, затем `assigned` нового: по
+   * событиям исполнитель восстанавливается всегда. Активность исполнителя —
+   * правило UC `assigneeActive`: у Ar нет чужих данных.
    */
   assign(
     assigneeId: string,

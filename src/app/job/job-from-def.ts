@@ -25,7 +25,8 @@ export type JobRun = {
  * Реализация Job по Def (API-05). Наследник пишет `run`: пройти записи через
  * `job.forEach` — у каждой своя UoW, сбой записи не прерывает обход (API-06).
  * Вызывающий — `SystemCaller` без человека; прогон — одна запись лога
- * операций. @see docs/guides/job.md
+ * операций.
+ * @see docs/guides/job.md
  */
 export abstract class JobFromDef<
   D extends AnyJobDef,

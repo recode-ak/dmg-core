@@ -17,7 +17,7 @@ export type ReplayClaim =
  * проверяет и занимает ключ атомарно: два параллельных не займут его оба.
  * `complete` и `release` действуют только по токену владельца, чужую запись
  * не трогают. Ответ — JSON-данные, отдаётся копией.
- * @see src/app/replay/replay-store.test.ts
+ * @see docs/reference/transport.md
  */
 export type ReplayStore = {
   claim(key: string, input: string): Promise<ReplayClaim>;
@@ -44,7 +44,8 @@ type ReplayEntry = {
  * `ReplayStore` в памяти процесса: запись живёт `ttlMs` от последней записи,
  * сверх `capacity` старейшие забываются. Допущение: часы монотонны, иначе
  * истёкшие снимаются позже. Атомарность `claim` — без `await` между проверкой
- * и занятием. Рестарт забывает всё. @see src/app/replay/replay-store.test.ts
+ * и занятием. Рестарт забывает всё.
+ * @see src/app/replay/replay-store.test.ts
  */
 export class InProcReplayStore implements ReplayStore {
   /** Порядок вставки — порядок последней записи, значит и истечения срока. */

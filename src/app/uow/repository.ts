@@ -50,7 +50,8 @@ export abstract class VersionedRepository<A extends Versioned>
   /**
    * `stored` — запись с uuid агрегата или `undefined`. У нового агрегата
    * записи быть не должно, у восстановленного её версия (без поля — 0) равна
-   * загруженной; иначе — `VersionConflict`. @see src/app/uow/repository.test.ts
+   * загруженной; иначе — `VersionConflict`.
+   * @see src/app/uow/repository.test.ts
    */
   private checkVersion(ar: A, stored: StoredRecord | undefined): void {
     const ok =

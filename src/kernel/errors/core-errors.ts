@@ -18,8 +18,7 @@ export const CoreErrors = ErrorDef.define('', {
   UNAUTHORIZED: {
     kind: 'unauthorized',
     label: 'Вызов не разрешён',
-    description:
-      'Вид вызывающего не входит в `callers` операции. Вызов UC другого модуля вне `calls` отсекает тип (D-43).',
+    description: 'Вид вызывающего не входит в `callers` операции.',
     payload: v.object({
       callerKind: v.pipe(v.string(), v.description('Вид вызывающего')),
     }),
@@ -59,7 +58,7 @@ export const CoreErrors = ErrorDef.define('', {
     kind: 'not_found',
     label: 'Операция не найдена',
     description:
-      'По адресу транспорта нет модуля или в модуле нет UC с именем из команды (D-49); обычно — расхождение версий клиента и сервиса.',
+      'По адресу транспорта нет модуля или в модуле нет UC с именем из команды; обычно — расхождение версий клиента и сервиса.',
     payload: v.object({
       module: v.pipe(v.string(), v.description('Адрес модуля')),
       uc: v.pipe(v.string(), v.description('Имя UC из команды')),
@@ -69,7 +68,7 @@ export const CoreErrors = ErrorDef.define('', {
     kind: 'conflict',
     label: 'Запрос уже принят',
     description:
-      'Команда с этим `requestId` от того же вызывающего уже есть (D-56): `input` — с другим входом (нужен новый `requestId`), `in_progress` — первый запрос ещё исполняется (повторите позже).',
+      'Команда с этим `requestId` от того же вызывающего уже есть: `input` — с другим входом (нужен новый `requestId`), `in_progress` — первый запрос ещё исполняется (повторите позже).',
     payload: v.object({
       requestId: v.pipe(v.string(), v.description('Id запроса клиента')),
       reason: v.pipe(
