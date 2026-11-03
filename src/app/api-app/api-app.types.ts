@@ -7,7 +7,7 @@ import type { AnyModuleFromDef } from '../module/module-from-def';
  * Фабрика модуля приложения (D-50): паспорт модуля и сборка по резолверу
  * платформы. `def` нужен до сборки — по `dependsOn` `ApiApp` решает порядок
  * и раздаёт фасады; `create` замыкает репозитории приложения и расширяет
- * ими `ModuleDeps`. Внешний модуль (D-37) — такая же фабрика.
+ * ими `ModuleDeps`. Внешний модуль — такая же фабрика.
  */
 export type ModuleFactory<U extends Identified> = {
   readonly def: AnyModuleDef;

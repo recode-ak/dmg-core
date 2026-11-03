@@ -12,8 +12,8 @@ import {
 type Loaded = { readonly task: TaskAr };
 
 /**
- * Задача для других модулей: Policy `canManage` — по субъекту исходного
- * человека (`SystemCaller.person()`, D-43).
+ * Задача для других модулей (D-43): Policy `canManage` — по субъекту
+ * исходного человека (`SystemCaller.person()`).
  */
 export class GetTaskUc extends UseCaseFromDef<
   typeof GetTaskUcDef,

@@ -55,7 +55,7 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
     this: Restorable<S, A>,
     state: NoInfer<S>,
   ): ReadonlyAr<A> {
-    // biome-ignore lint/complexity/noThisInStatic: полиморфный `this` — restore конкретного Ar, а не базы (D-43, Р7)
+    // biome-ignore lint/complexity/noThisInStatic: полиморфный `this` — restore конкретного Ar, а не базы
     return this.restore(state);
   }
 
@@ -118,7 +118,7 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
   }
 
   /**
-   * Состояние наружу: выход UC, рендереры UI (D-44). По умолчанию — копия
+   * Состояние наружу (D-44): выход UC, рендереры UI. По умолчанию — копия
    * state. Агрегат, объявивший свою форму `V`, переопределяет `view()` и
    * собирает объект явно (не `{ ...this.state }`).
    */

@@ -147,8 +147,8 @@ export class DefChecker {
     for (const op of this.index.operations()) {
       for (const e of op.emits) published.add(e);
     }
-    // События внешнего модуля публикует внешняя сторона (D-37); его UC —
-    // контракт без реализации, цель `calls` других модулей (D-42).
+    // События внешнего модуля публикует внешняя сторона; его UC — контракт
+    // без реализации, цель `calls` других модулей.
     for (const m of this.index.modules.filter((m) => m.external)) {
       if (m.reactions.length > 0 || m.jobs.length > 0) {
         add(`модуль ${m.name} внешний — ER и Job у него не объявляются`);

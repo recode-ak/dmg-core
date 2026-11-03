@@ -25,10 +25,10 @@ type Loaded = { readonly task: TaskAr };
 type Fetched = { readonly assignee: UserActivity };
 
 /**
- * Назначение исполнителя: `load` — задача (контекст Policy), `fetch` — ответ
- * `users` после права (D-58: не-владелец не узнаёт о пользователе), правило
- * `assigneeActive` — над ним, `execute` — переход `TaskAr.assign`. Решений
- * по ответу `users` в UC нет (API-01).
+ * Назначение исполнителя (D-58): `load` — задача (контекст Policy), `fetch`
+ * — ответ `users` после права (не-владелец не узнаёт о пользователе),
+ * правило `assigneeActive` — над ним, `execute` — переход `TaskAr.assign`.
+ * Решений по ответу `users` в UC нет (API-01).
  */
 export class AssignTaskUc extends UseCaseFromDef<
   typeof AssignTaskUcDef,

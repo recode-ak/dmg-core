@@ -32,7 +32,7 @@ export class CompleteTaskUc extends UseCaseFromDef<
     { task }: Loaded,
     uow: UnitOfWork,
   ) {
-    // Устаревшее действие клиента — отказ до операции (D-57).
+    // Устаревшее действие клиента — отказ до операции.
     const expected = this.expectVersion(task, expectedVersion);
     if (!expected.ok) return expected;
     const res = task.complete(this.now());

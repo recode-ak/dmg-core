@@ -7,7 +7,7 @@ import type { AnyUseCaseDef } from './use-case-def.types';
 export type OperationSpec<N extends string = string> = DefTexts<N> & {
   /**
    * UC других модулей (с `'system'` в `callers`), которые операция вызывает
-   * через их фасады (D-42, D-43, MAN-05).
+   * через их фасады (D-42, MAN-05).
    */
   readonly calls?: readonly AnyUseCaseDef[];
 };
@@ -25,9 +25,9 @@ export type OperationFileKind = 'uc' | 'er' | 'job';
 export type AnyOperationDef = AnyUseCaseDef | AnyEventReactionDef | AnyJobDef;
 
 /**
- * Необязательный список спеки Def: объявлен — его тип, нет — пустой
+ * Необязательный список спеки Def (D-43): объявлен — его тип, нет — пустой
  * кортеж. Для `calls` это значит: не объявлены — `OperationFromDef.call`
- * не пропускает ни одного UC (D-43); общий тип (`Any*Def`) — любой список.
+ * не пропускает ни одного UC; общий тип (`Any*Def`) — любой список.
  */
 export type Declared<S, K extends string> = [K] extends [keyof S]
   ? NonNullable<S[K & keyof S]>

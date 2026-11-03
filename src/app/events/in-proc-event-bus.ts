@@ -30,7 +30,7 @@ export class InProcEventBus implements EventBus {
     def: D,
     handler: (envelope: EnvelopeOf<D>) => Promise<void>,
   ): () => void {
-    // Имя события уникально (D-10): конверт под этим именем имеет тип def.
+    // Имя события уникально: конверт под этим именем имеет тип def.
     const wrapped: Handler = (envelope) => handler(envelope as EnvelopeOf<D>);
     const set = this.handlers.get(def.name) ?? new Set();
     set.add(wrapped);

@@ -16,7 +16,7 @@ export type OwnerTasksCtx = {
 
 /**
  * Доменное правило без субъекта (D-40): ответ зависит только от задач
- * владельца, а не от того, кто спрашивает. Статус задачи решает Ar (D-39).
+ * владельца, а не от того, кто спрашивает. Статус задачи решает Ar.
  */
 const withinOpenLimit = DomainRuleDef.define({
   name: 'withinOpenLimit',
@@ -32,8 +32,8 @@ const withinOpenLimit = DomainRuleDef.define({
 });
 
 /**
- * Контекст назначения: ответ модуля `users` об исполнителе (UC `getUser`,
- * D-42) — делегирование минимумом, без state чужого агрегата.
+ * Контекст назначения (D-42): ответ модуля `users` об исполнителе (UC
+ * `getUser`) — делегирование минимумом, без state чужого агрегата.
  */
 export type AssigneeCtx = { readonly assignee: UserActivity };
 

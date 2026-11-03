@@ -27,9 +27,9 @@ export type FacadeModule<M extends AnyModuleDef> = {
 };
 
 /**
- * In-proc фасад модуля (D-43): команда модулю (`ModuleFromDef.dispatch`,
- * D-49), `handle` по Def — типизированный сахар поверх; доменных решений
- * нет. Отказы UC (`UNAUTHORIZED` без `'system'` в `callers`, Policy, ошибки
+ * In-proc фасад модуля (D-43): команда модулю (`ModuleFromDef.dispatch`),
+ * `handle` по Def — типизированный сахар поверх; доменных решений нет.
+ * Отказы UC (`UNAUTHORIZED` без `'system'` в `callers`, Policy, ошибки
  * Def) — ответ модуля как есть.
  */
 export class ModuleFacade<M extends AnyModuleDef> implements Facade<M> {

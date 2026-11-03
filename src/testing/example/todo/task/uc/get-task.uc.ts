@@ -6,9 +6,9 @@ import { TaskPolicy } from '../task.policy';
 import { TaskState } from '../task.state';
 
 /**
- * Задача целиком — для других модулей (D-42, D-43): вызывается только
- * системой (через фасад todo), выход — state агрегата; вызывающий сам
- * собирает из него `ReadonlyAr<TaskAr>` (`TaskAr.readonly`).
+ * Задача целиком — для других модулей (D-43): вызывается только системой
+ * (через фасад todo), выход — state агрегата; вызывающий сам собирает из
+ * него `ReadonlyAr<TaskAr>` (`TaskAr.readonly`).
  */
 export const GetTaskUcDef = UseCaseDef.define({
   name: 'getTask',

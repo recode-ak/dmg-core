@@ -10,8 +10,8 @@ export type {
 } from './module-def.types';
 
 /**
- * Паспорт модуля: зависимости и состав. Фасада здесь нет — это рантайм-
- * граница модуля, связи объявляет `calls` операций (D-42).
+ * Паспорт модуля (D-42): зависимости и состав. Фасада здесь нет — это
+ * рантайм-граница модуля, связи объявляет `calls` операций.
  */
 export class ModuleDef<const S extends ModuleSpec = ModuleSpec> extends Def<
   S['name']

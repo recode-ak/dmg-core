@@ -39,7 +39,7 @@ export class MemoryBus extends RecordingBus {
     def: D,
     handler: (envelope: EnvelopeOf<D>) => Promise<void>,
   ): () => void {
-    // Имя события уникально (D-10): конверт под этим именем имеет тип def.
+    // Имя события уникально: конверт под этим именем имеет тип def.
     const wrapped = (envelope: EventEnvelope) =>
       handler(envelope as EnvelopeOf<D>);
     const set = this.handlers.get(def.name) ?? new Set();

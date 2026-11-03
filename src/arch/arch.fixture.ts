@@ -1,6 +1,6 @@
 // Чистая пара модулей для контрактных проверок: `alpha` зависит от `beta`,
-// слушает его событие и вызывает его UC через фасад (`calls`, D-42). Негативные фикстуры — в тестах,
-// как варианты этих Def.
+// слушает его событие и вызывает его UC через фасад (`calls`). Негативные
+// фикстуры — в тестах, как варианты этих Def.
 import * as v from 'valibot';
 import { AggregateDef } from '../domain/aggregate/aggregate-def';
 import { EventReactionDef } from '../domain/contracts/event-reaction-def';

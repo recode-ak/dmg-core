@@ -2,10 +2,10 @@ import type { Timestamp } from '#core/kernel/time/timestamp';
 import type { Clock } from '../context';
 
 /**
- * Итог `ReplayStore.claim`: `claimed` — ключ занят, команду можно
- * исполнять, `token` — владелец записи для `complete`/`release`; `answered` — тот же вход уже исполнен, `answer` — сохранённый
- * ответ; `conflict` — `input`: тот же ключ с другим входом, `in_progress`:
- * первый запрос ещё исполняется (D-56).
+ * Итог `ReplayStore.claim` (D-56): `claimed` — ключ занят, команду можно
+ * исполнять, `token` — владелец записи для `complete`/`release`; `answered`
+ * — тот же вход уже исполнен, `answer` — сохранённый ответ; `conflict` —
+ * `input`: тот же ключ с другим входом, `in_progress`: первый ещё идёт.
  */
 export type ReplayClaim =
   | { readonly kind: 'claimed'; readonly token: string }

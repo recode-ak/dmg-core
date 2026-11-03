@@ -83,9 +83,9 @@ export abstract class Rule<U, C> {
 }
 
 /**
- * Именованное правило. Без субъекта — отказ, `check` не вызывается:
+ * Именованное правило (D-43). Без субъекта — отказ, `check` не вызывается:
  * системный вызов без человека разрешается только явно (`allowAll` или
- * переопределение `checkPolicy` в UC, D-43).
+ * переопределение `checkPolicy` в UC).
  */
 export class NamedRule<U, C> extends Rule<U, C> {
   readonly op = 'rule';

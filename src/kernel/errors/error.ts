@@ -11,8 +11,8 @@ export const ERROR_KINDS = [
 export type ErrorKind = (typeof ERROR_KINDS)[number];
 
 /**
- * Значение ошибки: штатный отказ, передаётся в `Err`.
- * Транспорт не знает (D-14): маппинг на HTTP/MCP/текст — в адаптерах.
+ * Значение ошибки (D-14): штатный отказ, передаётся в `Err`. Транспорт не
+ * знает: маппинг на HTTP/MCP/текст — в адаптерах.
  */
 export type DomainError<
   C extends string = string,

@@ -7,9 +7,9 @@ import type { Timestamp } from '#core/kernel/time/timestamp';
 import type { Cause } from '#core/kernel/trace/trace';
 
 /**
- * Опубликованное событие: доменный факт + конверт. Конверт добавляет UoW
- * при фиксации; домен о нём не знает (reference/caller.md §2 п. 5). Вызывающего в
- * конверте нет (D-43, Р7): «кто» — в записи породившей операции в логе
+ * Опубликованное событие (D-43): доменный факт + конверт. Конверт добавляет
+ * UoW при фиксации; домен о нём не знает (reference/caller.md §2 п. 5).
+ * Вызывающего в конверте нет: «кто» — в записи породившей операции в логе
  * операций, найти её можно по `eventId` (`OperationRecord.events`).
  */
 export type EventEnvelope<E extends DomainEvent = DomainEvent> = E & {

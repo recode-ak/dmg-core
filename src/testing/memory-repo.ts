@@ -14,8 +14,8 @@ export type MemoryAr<S extends MemorySnapshot> = Versioned & {
 };
 
 /**
- * Репозиторий в памяти для тестов UC/ER/Job: `save` со сверкой версии
- * (`VersionConflict`, D-36), хранит снапшоты, `restored` отдаёт новый Ar.
+ * Репозиторий в памяти для тестов UC/ER/Job (D-36): `save` со сверкой
+ * версии (`VersionConflict`), хранит снапшоты, `restored` отдаёт новый Ar.
  * Выборку (`find*`) не реализует: ответ задаёт тест (`unanswered`), а
  * проверяет контрактный тест настоящего репозитория.
  * @see src/testing/example/app/todo/task/task.repo.fake.ts

@@ -9,8 +9,8 @@ export type {
 } from './repository.types';
 
 /**
- * Версия в хранилище не совпала с `storedVersion` агрегата: запись изменили
- * параллельно (D-36). Бросает репозиторий; UoW превращает в `VERSION_CONFLICT`.
+ * Версия в хранилище не совпала с `storedVersion` агрегата (D-36): запись
+ * изменили параллельно. Бросает репозиторий; UoW превращает в `VERSION_CONFLICT`.
  */
 export class VersionConflict extends Error {
   constructor(

@@ -16,10 +16,10 @@ type Import =
   | { readonly from: string; readonly namespace: string };
 
 /**
- * Исходники приложения в каркасе — одни шаблоны на все профили, по учебному
- * приложению (`src/testing/example/{app,runner,shared}`): тип пользователя,
- * пустой корень сборки (D-50), раннер CLI и тесты. Пути — из раскладки
- * профиля, платформа — только через публичные входы пакета.
+ * Исходники приложения в каркасе (D-50) — одни шаблоны на все профили, по
+ * учебному приложению (`src/testing/example/{app,runner,shared}`): тип
+ * пользователя, пустой корень сборки, раннер CLI и тесты. Пути — из
+ * раскладки профиля, платформа — только через публичные входы пакета.
  * @see docs/guides/project.md
  */
 export class AppSources {
@@ -110,9 +110,9 @@ export type { AppEnv, AppPorts, CallerResolver } from './app.types';
 
   private appUser(): string {
     return `/**
- * Пользователь приложения — им приложение замыкает дженерик \`Caller\` (D-04).
- * Общий домен (D-53): тип импортируют прикладной слой модулей, корень сборки
- * и раннер; реализации здесь нет.
+ * Пользователь приложения (D-04) — им приложение замыкает дженерик
+ * \`Caller\`. Общий домен: тип импортируют прикладной слой модулей, корень
+ * сборки и раннер; реализации здесь нет.
  */
 export type AppUser = {
   readonly uuid: string;
@@ -161,8 +161,8 @@ export type AppPorts = {
 /**
  * Резолвер \`Caller\` (D-50): идентичность из транспорта (uuid или её
  * отсутствие) → человек на входе. \`trace\` — для вызова модуля
- * пользователей через \`api.dispatch\` (D-51). Раннер получает резолвер
- * как \`app.callers\`.
+ * пользователей через \`api.dispatch\`. Раннер получает резолвер как
+ * \`app.callers\`.
  */
 export type CallerResolver = {
   resolve(
@@ -213,7 +213,7 @@ export class App {
   constructor(env: AppEnv, ports: AppPorts = {}) {
     const context = App.context(env, ports);
     // Фабрики модулей — из входа прикладного пакета ${this.layout.moduleEntry}
-    // (D-52) с замыканием на репозитории. Вставляет \`dmg-core gen module\`
+    // с замыканием на репозитории. Вставляет \`dmg-core gen module\`
     // (корень Def — и в scripts/arch-check.ts), репозитории — \`gen aggregate\`.
     const modules: ModuleFactory<AppUser>[] = [
       ${WIRING_MARKERS.modules}
@@ -268,7 +268,7 @@ const TRUSTED_CHANNEL = 'cli';
  */
 export class AppCallerResolver implements CallerResolver {
   // TODO: после модуля пользователей — \`UserCaller\` через \`api.dispatch\`
-  // от \`SystemCaller\` \`kind: 'app'\` (D-51); образец — учебное приложение.
+  // от \`SystemCaller\` \`kind: 'app'\`; образец — учебное приложение.
   async resolve(
     uuid: string | undefined,
     trace: Trace,

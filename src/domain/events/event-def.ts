@@ -33,8 +33,8 @@ export class EventDef<
   }
 
   /**
-   * Группа событий агрегата. Имя — `module.aggregate.event` (D-10, MAN-08:
-   * совпадение префикса с модулем и агрегатом проверяет `arch:check`).
+   * Группа событий агрегата (D-10). Имя — `module.aggregate.event`
+   * (MAN-08: совпадение префикса с модулем и агрегатом проверяет `arch:check`).
    */
   static define<
     const P extends EventPrefix,

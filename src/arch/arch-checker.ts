@@ -7,10 +7,10 @@ import { FileChecker, type ModuleLayout } from './file-checker';
 import type { Violation } from './violation';
 
 /**
- * Приложение для `arch:check`: корневые модули, где лежат их файлы и вход
- * модуля домена для других (`entry`, по умолчанию `index`; см. `FileChecker`);
- * необязательно — каталог корня сборки (`root`) и каталоги раннеров
- * (`runners`), их импорты проверяет `AssemblyChecker` (D-52).
+ * Приложение для `arch:check` (D-52): корневые модули, где лежат их файлы и
+ * вход модуля домена для других (`entry`, по умолчанию `index`; см.
+ * `FileChecker`); необязательно — каталог корня сборки (`root`) и каталоги
+ * раннеров (`runners`), их импорты проверяет `AssemblyChecker`.
  */
 export type ArchApp = {
   readonly name: string;

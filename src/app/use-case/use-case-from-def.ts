@@ -85,9 +85,9 @@ export abstract class UseCaseFromDef<
   private readonly rules: readonly UseCaseRule<D, L & F>[];
 
   /**
-   * `module` — Def модуля-владельца: его передаёт `ModuleFromDef` (D-43),
-   * наследник проксирует в `super`. UC не из его `useCases` — исключение
-   * (ошибка сборки).
+   * `module` — Def модуля-владельца: его передаёт `ModuleFromDef`, наследник
+   * проксирует в `super`. UC не из его `useCases` — исключение (ошибка
+   * сборки).
    */
   constructor(
     def: D & {
@@ -106,7 +106,7 @@ export abstract class UseCaseFromDef<
    * `trace` — для вызова UC другого модуля (`this.call`). Ошибки —
    * объявленные в `errors` и базовые ядра: отказ UC другого модуля
    * (`ACCESS_DENIED`, `UNAUTHORIZED`, …) приходит как есть, и UC
-   * возвращает его дальше (D-43).
+   * возвращает его дальше.
    */
   protected abstract load(
     input: ParsedInputOf<D>,

@@ -20,7 +20,7 @@ import { CommandReplay } from '../replay/command-replay';
 import type { UseCaseHandler } from '../use-case/use-case-from-def';
 
 /**
- * Класс реализации: резолвер и модуль-владелец (D-43) — модуль передаёт
+ * Класс реализации (D-43): резолвер и модуль-владелец — модуль передаёт
  * себя, наследник проксирует его в `super` (база строит `ref`).
  */
 type Ctor<R, M, T> = new (deps: R, module: M) => T;

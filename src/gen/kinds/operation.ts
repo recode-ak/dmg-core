@@ -105,7 +105,7 @@ ${list('    ', 'expect(', [`normalize(${c.defName})`], ').toMatchObject({')}
     );
   }
 
-  /** Конструктор реализации: модуль передаёт себя (D-43), наследник — в `super`. */
+  /** Конструктор реализации (D-43): модуль передаёт себя, наследник — в `super`. */
   protected get constructorBlock(): string {
     const c = this.c;
     return `${list('  ', 'constructor(', [`deps: ${c.deps}`, `module: typeof ${this.moduleDef}`], ') {')}

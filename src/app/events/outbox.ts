@@ -11,8 +11,8 @@ export type Outbox = {
 };
 
 /**
- * Outbox в процессе по умолчанию: публикует партию в шину сразу — поведение
- * то же, что до D-47.
+ * Outbox в процессе по умолчанию (D-47): публикует партию в шину сразу —
+ * поведение то же, что до outbox.
  */
 export class InProcOutbox implements Outbox {
   constructor(private readonly bus: EventBus) {}

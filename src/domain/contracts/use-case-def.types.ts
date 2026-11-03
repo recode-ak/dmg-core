@@ -75,9 +75,9 @@ export type SystemCallableUc<D> = D extends {
   : never;
 
 /**
- * Проверка `calls` спецификации UC/ER/Job: UC, который система не может
- * вызвать (нет `'system'` в `callers`), становится `never` на своём месте —
- * ошибка компиляции указывает на него (D-43, Р7).
+ * Проверка `calls` спецификации UC/ER/Job (D-43): UC, который система не
+ * может вызвать (нет `'system'` в `callers`), становится `never` на своём
+ * месте — ошибка компиляции указывает на него.
  */
 export type SystemCalls<S> = S extends {
   readonly calls: infer C extends readonly AnyUseCaseDef[];
