@@ -4,17 +4,20 @@
 
 | Роль | Что делает |
 |---|---|
-| [domain-author](./roles/domain-author.md) | домен среза: state, Ar, Policy, события, ошибки, DCS/DQS, все Def и их тесты |
-| [api-author](./roles/api-author.md) | прикладной слой среза: UC/ER/Job по готовым Def, репозитории, сборка модуля и тесты |
-| [reviewer](./roles/reviewer.md) | ревью diff среза по правилам с проверкой `review`; код не правит |
+| [dmg-tech-lead](./roles/dmg-tech-lead.md) | черновик плана по spec и коду; черновик брифа среза в начале фазы; только читает |
+| [dmg-test-designer](./roles/dmg-test-designer.md) | тесты среза до реализации: характеризация текущего поведения и red по Def |
+| [dmg-domain-author](./roles/dmg-domain-author.md) | домен среза: state, Ar, Policy, события, ошибки, DCS/DQS, все Def и их тесты |
+| [dmg-api-author](./roles/dmg-api-author.md) | прикладной слой среза: UC/ER/Job по готовым Def, репозитории, сборка модуля и тесты |
+| [dmg-data-keeper](./roles/dmg-data-keeper.md) | что станет с уже лежащими записями: чтение старого формата, путь миграции, резервная копия; по триггеру (state, репозитории, снимки) |
+| [dmg-reviewer](./roles/dmg-reviewer.md) | ревью diff среза по правилам с проверкой `review`; код не правит |
 
-Порядок среза: `domain-author` → `api-author` → `check` проекта → `reviewer`. Общий блок всех ролей — [common.md](./common.md).
+Порядок среза: `dmg-tech-lead` (бриф) → `dmg-test-designer` → `dmg-domain-author` → `dmg-api-author` → `check` проекта → `dmg-data-keeper` (по триггеру) → `dmg-reviewer`. Процесс целиком — [docs/process.md](../docs/process.md), решение — D-61. Общий блок всех ролей — [common.md](./common.md); привязку к проекту (где лежат spec, план и брифы, эталон, правила данных) проект дописывает своим общим блоком.
 
 ## Формат `roles/<role>.md`
 
 ```markdown
 ---
-name: reviewer            # совпадает с именем файла
+name: dmg-reviewer            # совпадает с именем файла
 description: Что делает роль и когда её вызывать
 tools: [read, grep, find, bash]
 model:                    # необязательно; без него — модель среды
@@ -43,7 +46,7 @@ bunx dmg-core sync --check  # для check проекта: код 1, если к
 {
   "skills": { "names": ["dmg-architecture"], "dirs": [".claude/skills"] },
   "roles": {
-    "names": ["domain-author", "api-author", "reviewer"],
+    "names": ["dmg-domain-author", "dmg-api-author", "dmg-reviewer"],
     "targets": [{ "dir": ".claude/agents", "format": "claude" }]
   },
   "instructions": "AGENTS.md"

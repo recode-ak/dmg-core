@@ -82,9 +82,12 @@ describe('PackageSource', () => {
   test('настоящий пакет: роли платформы и скил dmg-architecture', async () => {
     const pkg = await PackageSource.load(join(import.meta.dir, '../..'));
     expect(pkg.roles.map((r) => r.name).sort()).toEqual([
-      'api-author',
-      'domain-author',
-      'reviewer',
+      'dmg-api-author',
+      'dmg-data-keeper',
+      'dmg-domain-author',
+      'dmg-reviewer',
+      'dmg-tech-lead',
+      'dmg-test-designer',
     ]);
     expect([...pkg.skills.keys()]).toEqual(['dmg-architecture']);
   });

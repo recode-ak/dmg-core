@@ -35,7 +35,8 @@
 ## Агенты
 
 - [Скил dmg-architecture](skills/dmg-architecture/SKILL.md): маршрутизатор по документации для агента
-- [Роли](agents/README.md): domain-author, api-author, reviewer и общий блок
+- [Роли](agents/README.md): dmg-tech-lead, dmg-test-designer, dmg-domain-author, dmg-api-author, dmg-data-keeper, dmg-reviewer и общий блок
+- [Процесс](docs/process.md): уровни постановки (spec, план, бриф), роли, срез, проверки
 
 ## Optional
 

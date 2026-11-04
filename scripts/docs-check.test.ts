@@ -203,7 +203,7 @@ describe('документация пакета (контракт)', () => {
     expect(paths).toContain('llms.txt');
     expect(paths).toContain('docs/guides/use-case.md');
     expect(paths).toContain('skills/dmg-architecture/SKILL.md');
-    expect(paths).toContain('agents/roles/reviewer.md');
+    expect(paths).toContain('agents/roles/dmg-reviewer.md');
     expect(rules.size).toBeGreaterThan(50);
     expect(checkDocs(files, exists, rules)).toEqual([]);
   });

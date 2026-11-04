@@ -26,10 +26,10 @@ test('init → sync --check зелёный; правка копии — код 1
   expect(run('init').code).toBe(0);
   expect(run('sync', '--check')).toMatchObject({ code: 0, stderr: '' });
 
-  await appendFile(join(root, '.claude/agents/reviewer.md'), 'правка\n');
+  await appendFile(join(root, '.claude/agents/dmg-reviewer.md'), 'правка\n');
   const check = run('sync', '--check');
   expect(check.code).toBe(1);
-  expect(check.stderr).toContain('.claude/agents/reviewer.md');
+  expect(check.stderr).toContain('.claude/agents/dmg-reviewer.md');
   expect(check.stderr).toContain('Обнови копии: dmg-core sync');
   expect(run('sync').code).toBe(0);
   expect(run('sync', '--check').code).toBe(0);
