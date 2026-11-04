@@ -11,7 +11,7 @@
 | [dmg-data-keeper](./roles/dmg-data-keeper.md) | что станет с уже лежащими записями: чтение старого формата, путь миграции, резервная копия; по триггеру (state, репозитории, снимки) |
 | [dmg-reviewer](./roles/dmg-reviewer.md) | ревью diff среза по правилам с проверкой `review`; код не правит |
 
-Порядок среза: `dmg-tech-lead` (бриф) → `dmg-test-designer` → `dmg-domain-author` → `dmg-api-author` → `check` проекта → `dmg-data-keeper` (по триггеру) → `dmg-reviewer`. Процесс целиком — [docs/process.md](../docs/process.md), решение — D-61. Общий блок всех ролей — [common.md](./common.md); привязку к проекту (где лежат spec, план и брифы, эталон, правила данных) проект дописывает своим общим блоком.
+Порядок среза: `dmg-tech-lead` (бриф) → `dmg-test-designer` → `dmg-domain-author` → `dmg-api-author` → `check` проекта → `dmg-data-keeper` (по триггеру) → `dmg-reviewer`. Процесс целиком — [docs/process.md](../docs/process.md), решение — D-62. Общий блок всех ролей — [common.md](./common.md); привязку к проекту (где лежат spec, план и брифы, эталон, правила данных) проект дописывает своим общим блоком.
 
 ## Формат `roles/<role>.md`
 
