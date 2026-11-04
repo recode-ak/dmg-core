@@ -244,13 +244,16 @@ describe('buildGraph', () => {
   describe('L1 — модуль', () => {
     it('UC → агрегат, обратная связь — UC агрегата', () => {
       expect(graph.useCases['todo.createTask']?.aggregate).toBe('todo.task');
-      expect(graph.aggregates['todo.task']?.useCases).toEqual([
-        'todo.createTask',
-        'todo.completeTask',
-        'todo.listTasks',
-        'todo.getTask',
-        'todo.assignTask',
-      ]);
+      // вхождение, а не равенство: срезы-примеры расширяют учебный модуль
+      expect(graph.aggregates['todo.task']?.useCases).toEqual(
+        expect.arrayContaining([
+          'todo.createTask',
+          'todo.completeTask',
+          'todo.listTasks',
+          'todo.getTask',
+          'todo.assignTask',
+        ]),
+      );
     });
 
     it('UC/ER/Job → UC из calls, обратная связь — calledBy у UC', () => {
@@ -299,10 +302,15 @@ describe('buildGraph', () => {
     });
 
     it('ошибка: агрегат-владелец и кто её объявляет', () => {
-      expect(graph.errors.TASK_NOT_FOUND).toMatchObject({
-        aggregate: 'todo.task',
-        usedBy: ['todo.completeTask', 'todo.getTask', 'todo.assignTask'],
-      });
+      // асимметричный матчер внутри toMatchObject в Bun портит общий graph
+      expect(graph.errors.TASK_NOT_FOUND?.aggregate).toBe('todo.task');
+      expect(graph.errors.TASK_NOT_FOUND?.usedBy).toEqual(
+        expect.arrayContaining([
+          'todo.completeTask',
+          'todo.getTask',
+          'todo.assignTask',
+        ]),
+      );
       expect(graph.errors.TASK_ARCHIVED?.def.kind).toBe('conflict');
     });
 
