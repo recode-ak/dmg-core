@@ -23,7 +23,7 @@
 
 - [Каталог правил](docs/reference/rules.md): ID правил (ARC, DOM, MAN, ERR, API, CODE, TST), способ проверки, карта линтера «правило → каталоги слоёв»
 - [Решения](docs/decisions.md): реестр решений платформы D-NN
-- [Тестирование](docs/reference/testing.md): принципы, пирамида, правило на одном уровне (TST-08) (UC/ER/Job — фейк порта `MemoryRepo`, репозиторий и smoke модуля — временный каталог), хелперы `dmg-core/testing`
+- [Тестирование](docs/reference/testing.md): принципы, пирамида, правило на одном уровне (TST-08), тест проверяет код модуля (TST-09) (UC/ER/Job — фейк порта `MemoryRepo`, репозиторий и smoke модуля — временный каталог), хелперы `dmg-core/testing`
 - [Стиль TypeScript](docs/reference/typescript.md)
 
 ## Гайды по видам артефактов
