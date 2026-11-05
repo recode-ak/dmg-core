@@ -1,0 +1,7 @@
+// expect: DOM-11 error
+import * as v from 'valibot';
+import { F } from '#core/kernel/fields/fields';
+
+export const RawState = v.object({
+  createdAt: F.timestamp('создания'),
+});

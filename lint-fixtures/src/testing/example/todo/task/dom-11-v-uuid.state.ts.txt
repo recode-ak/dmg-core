@@ -1,0 +1,6 @@
+// expect: DOM-11 error
+import * as v from 'valibot';
+
+export const RawState = v.object({
+  ref: v.pipe(v.string(), v.uuid()),
+});

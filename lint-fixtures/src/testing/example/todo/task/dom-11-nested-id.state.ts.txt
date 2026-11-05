@@ -1,0 +1,13 @@
+// expect: none
+import * as v from 'valibot';
+import { BaseEntityFields, F } from '#core/kernel/fields/fields';
+
+export const SubtaskEntity = v.object({
+  uuid: F.uuid('подзадачи'),
+  title: F.string('Название подзадачи'),
+});
+
+export const NestedState = v.object({
+  ...BaseEntityFields,
+  subtasks: v.array(SubtaskEntity),
+});

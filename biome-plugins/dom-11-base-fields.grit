@@ -1,7 +1,8 @@
 // DOM-11: базовые поля entity — только ...BaseEntityFields / F.*; свои `v.uuid()` и ключи uuid/createdAt/updatedAt запрещены.
+// Ключ `uuid: F.uuid(...)` разрешён: это идентичность вложенной сущности агрегата (у корня uuid — из BaseEntityFields).
 or {
   `v.uuid()`,
-  `uuid: $x`,
+  `uuid: $x` where { $x <: not `F.uuid($_)` },
   `createdAt: $x`,
   `updatedAt: $x`
 } as $m where {

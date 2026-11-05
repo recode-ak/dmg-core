@@ -19,6 +19,7 @@
 | RepoFake | фейк порта для тестов UC/ER/Job (`MemoryRepo`) | `TaskRepoFake` | `.repo.fake.ts` |
 | Uow | Unit of Work | `Uow` | — |
 | Vo | Value Object | `TaskAssignmentVo` | — |
+| Entity | вложенная сущность агрегата: своя идентичность `uuid`, живёт только внутри Ar | `SubtaskEntity` | — |
 | Fqn | полное имя (`todo.task.completed`) | — | — |
 
 В тексте — заглавными (DCS, DQS), в коде — как слово (Google TS style): `TaskReleaseDcs`, не `TaskReleaseDCS`.
