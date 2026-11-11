@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AnyOperationDef, DefIndex } from '../graph/def-index';
+import { DomainEntries } from './domain-entries';
 import { SourceScan } from './source-scan';
 import { TODO_TEXT } from './todo-text';
 import { type ArchRule, Violation } from './violation';
@@ -13,20 +14,25 @@ const POLICY_TEXT =
 export type ModuleLayout = { readonly domain: string; readonly app: string };
 
 /**
- * Проверки по файлам модулей: ARC-04, ARC-06, MAN-06, MAN-10. `entry` —
- * вход модуля домена для других (имя файла без `.ts`, `index` — и сам
- * каталог). У внешнего модуля прикладной слой не проверяется, импорты
- * между двумя внешними — тоже.
+ * Проверки по файлам модулей: ARC-04, ARC-06, MAN-06, MAN-10, TST-07. `entry`
+ * — вход модуля домена для других (имя файла без `.ts`, `index` — и сам
+ * каталог), `testing` — его фикстуры, вход только тестового кода (D-70). У
+ * внешнего модуля прикладной слой не проверяется, импорты между двумя
+ * внешними — тоже.
  * @see src/arch/file-checker.test.ts
  */
 export class FileChecker {
   private readonly scan = new SourceScan();
+  private readonly entries: DomainEntries;
 
   constructor(
     private readonly index: DefIndex,
     private readonly layout: (module: string) => ModuleLayout,
-    private readonly entry = 'index',
-  ) {}
+    entry = 'index',
+    testing = 'testing',
+  ) {
+    this.entries = new DomainEntries(entry, testing);
+  }
 
   /**
    * Незаполненные тексты Policy (MAN-01, предупреждения): PolicyDef не входит
@@ -138,13 +144,13 @@ export class FileChecker {
               // Связи двух внешних модулей реализованы вне приложения:
               // вход платформа не проверяет, `dependsOn` — проверяет.
               const bothExternal = m.external === true && x.external === true;
-              if (
-                !bothExternal &&
-                !this.scan.isEntry(target, xDir.domain, this.entry)
-              ) {
+              const misuse = bothExternal
+                ? undefined
+                : this.entries.misuse(f, target, xDir.domain, x.name);
+              if (misuse !== undefined) {
                 add(
-                  'ARC-04',
-                  `${where} импортирует ${x.name} мимо ${this.entry}.ts: ${spec}`,
+                  misuse.testing ? 'TST-07' : 'ARC-04',
+                  `${where} ${misuse.message}: ${spec}`,
                 );
               }
               if (!m.dependsOn.includes(x)) {

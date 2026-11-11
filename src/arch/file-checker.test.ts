@@ -220,6 +220,79 @@ describe('FileChecker', () => {
     });
   });
 
+  describe('TST-07 — вход testing (фикстуры владельца, D-70)', () => {
+    const run = (testing?: string): string[] =>
+      new FileChecker(
+        DefIndex.from([AlphaModuleDef]),
+        layout,
+        'contract',
+        testing,
+      )
+        .check()
+        .map((v) => v.format());
+    const fixturesTree = (): void => {
+      cleanTree();
+      write('domain/beta/contract.ts');
+      write('domain/beta/testing.ts');
+    };
+    const use = (spec: string): string => `import { itemOf } from '${spec}';\n`;
+
+    it('тестовый код домена и прикладного слоя импортирует testing', () => {
+      fixturesTree();
+      write('domain/alpha/note/note.ar.test.ts', use('../../beta/testing'));
+      write('domain/alpha/testing.ts', use('../beta/testing'));
+      write(
+        'app/alpha/note/er/add-note.fixture.ts',
+        use('../../../../domain/beta/testing'),
+      );
+      write(
+        'app/alpha/note/er/add-note.test-kit.ts',
+        use('../../../../domain/beta/testing'),
+      );
+      write(
+        'app/alpha/note/note.repo.fake.ts',
+        use('../../../domain/beta/testing'),
+      );
+      write('app/alpha/tests/notes.ts', use('../../../domain/beta/testing'));
+      expect(run()).toEqual([]);
+    });
+
+    it('рабочий код импортирует testing — нарушение', () => {
+      fixturesTree();
+      write(
+        'domain/alpha/note/er/add-note.er.ts',
+        use('../../../beta/testing'),
+      );
+      write(
+        'app/alpha/note/job/purge-notes.job.ts',
+        use('../../../../domain/beta/testing'),
+      );
+      expect(run()).toEqual([
+        'TST-07: alpha/note/er/add-note.er.ts импортирует testing.ts модуля beta — вход только для тестового кода: ../../../beta/testing',
+        'TST-07: alpha/note/job/purge-notes.job.ts импортирует testing.ts модуля beta — вход только для тестового кода: ../../../../domain/beta/testing',
+      ]);
+    });
+
+    it('тестовый код мимо contract и testing — ARC-04, как рабочий', () => {
+      fixturesTree();
+      write(
+        'domain/alpha/note/note.ar.test.ts',
+        use('../../beta/item/item.ar'),
+      );
+      expect(run()).toEqual([
+        'ARC-04: alpha/note/note.ar.test.ts импортирует beta мимо contract.ts: ../../beta/item/item.ar',
+      ]);
+    });
+
+    it('имя входа задаёт приложение: при другом имени testing.ts — не вход', () => {
+      fixturesTree();
+      write('domain/alpha/note/note.ar.test.ts', use('../../beta/testing'));
+      expect(run('fixtures')).toEqual([
+        'ARC-04: alpha/note/note.ar.test.ts импортирует beta мимо contract.ts: ../../beta/testing',
+      ]);
+    });
+  });
+
   describe('ARC-06 — прикладные пакеты', () => {
     it('импорт прикладного пакета другого модуля', () => {
       cleanTree();

@@ -2,6 +2,8 @@ import { dirname, join, relative, sep } from 'node:path';
 import type { AnyModuleDef } from '../domain/contracts/module-def';
 import type { DefIndex } from '../graph/def-index';
 import type { AssemblyPlaces } from './assembly-checker.types';
+import { DomainEntries } from './domain-entries';
+import type { EntryMisuse } from './domain-entries.types';
 import type { ModuleLayout } from './file-checker';
 import { SourceScan } from './source-scan';
 import { type ArchRule, Violation } from './violation';
@@ -25,13 +27,17 @@ type Side = {
  */
 export class AssemblyChecker {
   private readonly scan = new SourceScan();
+  private readonly entries: DomainEntries;
 
   constructor(
     private readonly index: DefIndex,
     private readonly layout: (module: string) => ModuleLayout,
-    private readonly entry: string,
+    entry: string,
     private readonly places: AssemblyPlaces,
-  ) {}
+    testing = 'testing',
+  ) {
+    this.entries = new DomainEntries(entry, testing);
+  }
 
   check(): Violation[] {
     const modules = this.index.modules.map(
@@ -78,9 +84,14 @@ export class AssemblyChecker {
       const where = `${side.title} ${this.path(from, file)}`;
       for (const { spec, target } of this.scan.imports(file)) {
         for (const [m, dir] of modules) {
-          const message = this.misuse(side, m, dir, target);
-          if (message !== undefined) {
-            out.push(new Violation(side.rule, `${where} ${message}: ${spec}`));
+          const misuse = this.misuse(side, m, dir, f, target);
+          if (misuse !== undefined) {
+            out.push(
+              new Violation(
+                misuse.testing ? 'TST-07' : side.rule,
+                `${where} ${misuse.message}: ${spec}`,
+              ),
+            );
           }
         }
       }
@@ -133,24 +144,27 @@ export class AssemblyChecker {
     return first.slice(0, n).join(sep) || sep;
   }
 
-  /** Почему импорт `target` модуля `m` запрещён слою, или `undefined`. */
+  /**
+   * Почему импорт `target` модуля `m` запрещён файлу `file` слоя, или
+   * `undefined`.
+   */
   private misuse(
     side: Side,
     m: AnyModuleDef,
     dir: ModuleLayout,
+    file: string,
     target: string,
-  ): string | undefined {
+  ): EntryMisuse | undefined {
     if (this.scan.inside(target, dir.domain)) {
-      return this.scan.isEntry(target, dir.domain, this.entry)
-        ? undefined
-        : `импортирует ${m.name} мимо ${this.entry}.ts`;
+      return this.entries.misuse(file, target, dir.domain, m.name);
     }
     if (m.external === true || !this.scan.inside(target, dir.app)) {
       return undefined;
     }
-    if (!side.appEntry) return `импортирует прикладной пакет ${m.name}`;
+    const app = (message: string): EntryMisuse => ({ testing: false, message });
+    if (!side.appEntry) return app(`импортирует прикладной пакет ${m.name}`);
     return this.scan.isEntry(target, dir.app, 'index')
       ? undefined
-      : `импортирует прикладной пакет ${m.name} мимо index.ts`;
+      : app(`импортирует прикладной пакет ${m.name} мимо index.ts`);
   }
 }

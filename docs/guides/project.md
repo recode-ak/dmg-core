@@ -35,7 +35,7 @@ bun install && bun run check
 | `tsconfig.json`, `biome.json` | строгий TS; `overrides` по [карте линтера](../reference/rules.md#карта-линтера); `data/` biome не проверяет | то же; у каждого пакета свой `tsconfig.json` поверх корневого |
 | `dmg-core.json` | секция `gen`: `compositionRoot: src/app` | `gen` с `domainImport`, `package`, `compositionRoot: app/src` |
 | `scripts/arch-check.ts` | `ArchApp` из `GenLayout`, `root` и `runners` — для ARC-07/08; список `modules` с маркером генератора | то же |
-| домен | `src/domain/shared/app-user.ts` — тип пользователя | `domain/` — пакет с `exports` `./*/contract`, `./*` |
+| домен | `src/domain/shared/app-user.ts` — тип пользователя | `domain/` — пакет с `exports` `./*/contract`, `./*/testing`, `./*` |
 | корень сборки | `src/app/app.ts`, резолвер `Caller`, тест | `app/` — пакет `@<scope>/app` |
 | раннер | `src/runner/`: окружение, CLI, `main.ts`, тесты | `runners/cli/` |
 | `.gitignore`; агенты (`init` выполняет `dmg-core sync`) | `.gitignore`; скилы и роли (`.claude/`), ссылка на `llms.txt` в `AGENTS.md` | то же |

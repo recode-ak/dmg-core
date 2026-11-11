@@ -85,6 +85,7 @@ export class ScaffoldLayout {
           exports: {
             '.': './src/index.ts',
             './*/contract': './src/*/contract.ts',
+            './*/testing': './src/*/testing.ts',
             './*': './src/*/index.ts',
           },
           dependencies: ['dmg-core', 'valibot'],

@@ -16,7 +16,8 @@ export type ArchRule =
   | 'MAN-08'
   | 'MAN-10'
   | 'MAN-12'
-  | 'MAN-13';
+  | 'MAN-13'
+  | 'TST-07';
 
 /** Нарушение правила `rules.md`, найденное `arch:check`. */
 export class Violation {

@@ -2,6 +2,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import type { ResolvedImport } from './source-scan.types';
 
+/** Суффиксы тестового кода: тесты, фикстуры, наборы клиентов, фейки портов. */
+const TEST_FILE = /\.(test|fixture|test-kit|repo\.fake)\.ts$/;
+
 const IMPORT =
   /(?:^|[\s;])(?:import|export)\s+(?:type\s+)?(?:[^'"]*?\sfrom\s*)?['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g;
 
@@ -42,6 +45,20 @@ export class SourceScan {
   isEntry(path: string, dir: string, entry: string): boolean {
     const bare = path.replace(/\.[jt]s$/, '');
     return bare === join(dir, entry) || (entry === 'index' && bare === dir);
+  }
+
+  /**
+   * Файл — тестовый код (D-70): тест, фикстура, набор клиента, фейк порта,
+   * файл каталога `tests/` или сам вход `<testing>.ts` модуля. `file` —
+   * путь через `/`, как из `files()`.
+   */
+  isTest(file: string, testing: string): boolean {
+    const parts = file.split('/');
+    return (
+      TEST_FILE.test(file) ||
+      parts.at(-1) === `${testing}.ts` ||
+      parts.slice(0, -1).includes('tests')
+    );
   }
 
   private resolve(spec: string, from: string): string | undefined {

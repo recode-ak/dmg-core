@@ -7,16 +7,17 @@ import { FileChecker, type ModuleLayout } from './file-checker';
 import type { Violation } from './violation';
 
 /**
- * Приложение для `arch:check` (D-52): корневые модули, где лежат их файлы и
- * вход модуля домена для других (`entry`, по умолчанию `index`; см.
- * `FileChecker`); необязательно — каталог корня сборки (`root`) и каталоги
- * раннеров (`runners`), их импорты проверяет `AssemblyChecker`.
+ * Приложение для `arch:check` (D-52): корневые модули, где лежат их файлы,
+ * входы модуля домена (`entry`, по умолчанию `index`; `testing` — фикстуры
+ * для тестового кода, см. `FileChecker`); необязательно — каталог корня
+ * сборки (`root`) и раннеров (`runners`), их импорты — `AssemblyChecker`.
  */
 export type ArchApp = {
   readonly name: string;
   readonly modules: readonly AnyModuleDef[];
   readonly layout: (module: string) => ModuleLayout;
   readonly entry?: string;
+  readonly testing?: string;
   readonly root?: string;
   readonly runners?: readonly string[];
 };
@@ -37,18 +38,23 @@ export class ArchChecker {
     layout?: (module: string) => ModuleLayout,
     entry = 'index',
     places: AssemblyPlaces = {},
+    testing = 'testing',
   ) {
     this.defs = new DefChecker(index);
-    this.files = layout && new FileChecker(index, layout, entry);
-    this.assembly = layout && new AssemblyChecker(index, layout, entry, places);
+    this.files = layout && new FileChecker(index, layout, entry, testing);
+    this.assembly =
+      layout && new AssemblyChecker(index, layout, entry, places, testing);
   }
 
   /** Все проверки приложения: по Def, по файлам модулей и вокруг них. */
   static of(app: ArchApp): ArchChecker {
-    return new ArchChecker(DefIndex.from(app.modules), app.layout, app.entry, {
-      root: app.root,
-      runners: app.runners,
-    });
+    return new ArchChecker(
+      DefIndex.from(app.modules),
+      app.layout,
+      app.entry,
+      { root: app.root, runners: app.runners },
+      app.testing,
+    );
   }
 
   /** Только проверки Def по корневым модулям — для теста модуля домена. */

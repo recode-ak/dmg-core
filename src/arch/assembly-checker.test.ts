@@ -169,6 +169,21 @@ describe('AssemblyChecker', () => {
       ]);
     });
 
+    it('testing модуля — тестовому коду раннера и корня, рабочему — TST-07 (D-70)', () => {
+      cleanTree();
+      write('domain/beta/testing.ts');
+      const use = "import { itemOf } from '../domain/beta/testing';\n";
+      write('runner/cli.test.ts', use);
+      write('runner/cli.fixture.ts', use);
+      write('app/app.test.ts', use);
+      write('runner/main.ts', use);
+      write('app/wiring.ts', use);
+      expect(check()).toEqual([
+        'TST-07: корень сборки app/wiring.ts импортирует testing.ts модуля beta — вход только для тестового кода: ../domain/beta/testing',
+        'TST-07: раннер runner/main.ts импортирует testing.ts модуля beta — вход только для тестового кода: ../domain/beta/testing',
+      ]);
+    });
+
     it('раннер внутри каталога корня сборки — проверяется как раннер', () => {
       cleanTree();
       write('app/cli/main.ts', "import { createBeta } from '../beta';\n");

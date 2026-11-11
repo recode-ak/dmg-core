@@ -148,6 +148,7 @@ describe('ProjectScaffold monorepo: package.json', () => {
       exports: {
         '.': './src/index.ts',
         './*/contract': './src/*/contract.ts',
+        './*/testing': './src/*/testing.ts',
         './*': './src/*/index.ts',
       },
       scripts: { test: 'bun test --pass-with-no-tests' },
