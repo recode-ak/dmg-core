@@ -28,7 +28,7 @@
 
 ```
 <m>/
-  contract.ts              вход для остального кода: ModuleDef, Def внешних операций, события, ошибки, VO контрактов (D-45)
+  contract.ts              вход для остального кода: ModuleDef, Def внешних операций, события, ошибки, VO контрактов (D-45); Ar/Policy/DQS по нужде (D-69)
   index.ts                 API домена для своего прикладного пакета (включая contract)
   <m>.module.ts            ModuleDef.define — паспорт, dependsOn
   <topic>.dcs.ts           DCS модуля (несколько агрегатов)
