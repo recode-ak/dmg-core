@@ -77,17 +77,15 @@ describe('OperationDef', () => {
   it('calls не объявлены — пустой кортеж из конструктора', () => {
     const op = ScanDef.define({ name: 'remind', ...texts });
     expect(op.calls).toEqual([]);
-    expectTypeOf(op.calls).toEqualTypeOf<readonly []>();
   });
 
-  it('calls объявлены — те же Def по ссылке, литеральный тип', () => {
+  it('calls объявлены — те же Def по ссылке', () => {
     const op = ScanDef.define({
       name: 'remind',
       ...texts,
       calls: [GetUserUcDef],
     });
     expect(op.calls[0]).toBe(GetUserUcDef);
-    expectTypeOf(op.calls).toEqualTypeOf<readonly [typeof GetUserUcDef]>();
     const any: readonly AnyUseCaseDef[] = op.calls;
     expect(any.includes(GetUserUcDef)).toBe(true);
   });

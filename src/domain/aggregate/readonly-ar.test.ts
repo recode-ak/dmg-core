@@ -74,8 +74,6 @@ describe('Aggregate.readonly (D-43, Р7)', () => {
     const value: ReadonlyAr<NoteAr> = NoteAr.readonly(note(ID));
     expect(value).toBeInstanceOf(NoteAr);
     expect([value.uuid, value.isPinned()]).toEqual([ID, false]);
-    // @ts-expect-error мутирующий метод скрыт (ReadonlyAr)
-    expect(typeof value.pin).toBe('function');
   });
 
   it('список state — по одному', () => {

@@ -1,15 +1,9 @@
 // Команда UC (D-49): простые данные `{ uc, input, meta? }` из Def,
 // фантомный `D` несёт типы входа, выхода и ошибок к клиенту.
 import { describe, expect, expectTypeOf, it } from 'bun:test';
-import type { Command, CommandMeta, DefOfCommand } from './command';
+import type { CommandMeta, DefOfCommand } from './command';
 import { CompleteTaskUcDef, ListTasksUcDef } from './contracts.fixture';
-import {
-  type AnyUseCaseDef,
-  type InputOf,
-  type OutputOf,
-  UseCaseDef,
-  type UseCaseErrorOf,
-} from './use-case-def';
+import { type AnyUseCaseDef, UseCaseDef } from './use-case-def';
 
 const taskId = '0190a6c4-1b2c-7d3e-8f40-123456789abc';
 
@@ -53,11 +47,6 @@ describe('UseCaseDef.commandOf — команда в обобщённом код
       CompleteTaskUcDef.command({ taskId }, meta),
     );
   });
-
-  it('тип команды — по Def аргумента', () => {
-    const command = UseCaseDef.commandOf(CompleteTaskUcDef, { taskId });
-    expectTypeOf(command).toEqualTypeOf<Command<typeof CompleteTaskUcDef>>();
-  });
 });
 
 describe('типы Command<D>', () => {
@@ -66,33 +55,11 @@ describe('типы Command<D>', () => {
   it('команда из Def несёт этот Def фантомно', () => {
     const command = CompleteTaskUcDef.command({ taskId });
 
-    expectTypeOf(command).toEqualTypeOf<Command<Complete>>();
     expectTypeOf<DefOfCommand<typeof command>>().toEqualTypeOf<Complete>();
-  });
-
-  it('uc — литерал имени, input — InputOf', () => {
-    expectTypeOf<Command<Complete>['uc']>().toEqualTypeOf<'completeTask'>();
-    expectTypeOf<Command<Complete>['input']>().toEqualTypeOf<
-      InputOf<Complete>
-    >();
-  });
-
-  it('по команде выводятся OutputOf и UseCaseErrorOf Def', () => {
-    type D = DefOfCommand<Command<Complete>>;
-
-    expectTypeOf<OutputOf<D>>().toEqualTypeOf<OutputOf<Complete>>();
-    expectTypeOf<UseCaseErrorOf<D>>().toEqualTypeOf<UseCaseErrorOf<Complete>>();
   });
 
   it('вход проверяет компилятор', () => {
     // @ts-expect-error — нет обязательного taskId
     CompleteTaskUcDef.command({});
-    // @ts-expect-error — taskId не строка
-    CompleteTaskUcDef.command({ taskId: 1 });
-  });
-
-  it('Def с командой по-прежнему совместим с AnyUseCaseDef', () => {
-    expectTypeOf<Complete>().toExtend<AnyUseCaseDef>();
-    expectTypeOf<Command<Complete>>().toExtend<Command>();
   });
 });

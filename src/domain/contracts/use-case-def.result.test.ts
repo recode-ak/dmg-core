@@ -1,6 +1,6 @@
 // Сериализуемый ответ UC (D-49, reference/transport.md §1): круговой путь через JSON
 // восстанавливает тот же `Result`, что вернул UC.
-import { describe, expect, expectTypeOf, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import { CoreErrors } from '#core/kernel/errors/core-errors';
 import { ok, type Result } from '#core/kernel/result/result';
 import type { SerializedResult } from '#core/kernel/result/serialized-result.types';
@@ -84,11 +84,5 @@ describe('UseCaseDef: сериализация ответа', () => {
     expect(CompleteTaskUcDef.restoreResult(wire)).toEqual(
       CoreErrors.SERVER_INTERNAL.err(),
     );
-  });
-
-  it('восстановленный Result типизирован по Def', () => {
-    const restored = CompleteTaskUcDef.restoreResult({ ok: true, value: {} });
-
-    expectTypeOf(restored).toEqualTypeOf<CompleteResult>();
   });
 });

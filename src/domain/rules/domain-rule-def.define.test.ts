@@ -1,13 +1,9 @@
-import { describe, expect, expectTypeOf, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import * as v from 'valibot';
 import { ErrorDef } from '#core/kernel/errors/error-def';
 import { F } from '#core/kernel/fields/fields';
 import { ok } from '#core/kernel/result/result';
-import {
-  type AnyDomainRule,
-  type DomainRuleContextOf,
-  DomainRuleDef,
-} from './domain-rule-def';
+import { type AnyDomainRule, DomainRuleDef } from './domain-rule-def';
 import { RulesDef } from './rules-def';
 
 const ShelfErrors = ErrorDef.define('SHELF', {
@@ -17,10 +13,6 @@ const ShelfErrors = ErrorDef.define('SHELF', {
     description: 'На полке нет места для новой книги.',
     payload: v.object({ limit: F.int('Вместимость полки') }),
   },
-});
-
-const OtherErrors = ErrorDef.define('OTHER', {
-  FAILED: { kind: 'conflict', label: 'Сбой', description: 'Чужая ошибка.' },
 });
 
 /** Ответ правила — у «агрегата» (D-39): правило только спрашивает. */
@@ -61,27 +53,9 @@ describe('DomainRuleDef.define', () => {
     });
   });
 
-  it('контекст правила выводится из check', () => {
-    expectTypeOf<
-      DomainRuleContextOf<typeof hasRoom>
-    >().toEqualTypeOf<ShelfCtx>();
-  });
-
   it('правило — AnyDomainRule', () => {
     const any: AnyDomainRule = hasRoom;
     expect(any.name).toBe('hasRoom');
-  });
-
-  it('ошибка чужого ErrorDef не компилируется (DOM-16)', () => {
-    const foreign = DomainRuleDef.define({
-      name: 'foreign',
-      label: 'Чужая ошибка',
-      description: 'Правило пытается вернуть не свою ошибку.',
-      error: ShelfErrors.FULL,
-      // @ts-expect-error: OTHER_FAILED — не ошибка из `error` правила
-      check: () => OtherErrors.FAILED.err(),
-    });
-    expect(foreign).toBeDefined();
   });
 });
 

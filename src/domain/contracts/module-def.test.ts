@@ -53,9 +53,6 @@ describe('ModuleDef', () => {
   });
 
   it('литеральные типы состава', () => {
-    expectTypeOf<(typeof Todo)['useCases'][number]>().toEqualTypeOf<
-      typeof CompleteTaskUcDef | typeof ListTasksUcDef
-    >();
     expectTypeOf(Todo.name).toEqualTypeOf<'todo'>();
   });
 

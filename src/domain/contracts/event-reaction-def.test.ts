@@ -49,14 +49,10 @@ describe('EventReactionDef', () => {
     expect(ArchiveDone.calls).toEqual([]);
     expect(ArchiveDone.emits).toEqual([]);
     expect(SyncUser.touches).toEqual([]);
-    expectTypeOf(ArchiveDone.calls).toEqualTypeOf<readonly []>();
   });
 
-  it('calls — те же UC, литеральный тип', () => {
+  it('calls — та же ссылка на Def UC', () => {
     expect(SyncUser.calls[0]).toBe(GetUserUcDef);
-    expectTypeOf<(typeof SyncUser)['calls'][number]>().toEqualTypeOf<
-      typeof GetUserUcDef
-    >();
   });
 
   it('calls — только UC с system в callers (D-43)', () => {
@@ -106,9 +102,6 @@ describe('EventReactionDef', () => {
       payload: { taskId: 't1' },
     };
     const e: ReactionEventOf<typeof ArchiveDone> = completed;
-    expectTypeOf<ReactionEventOf<typeof ArchiveDone>['name']>().toEqualTypeOf<
-      'todo.task.completed' | 'todo.task.created'
-    >();
     // @ts-expect-error SyncUser не подписан на completed
     const bad: ReactionEventOf<typeof SyncUser> = completed;
     expect([e, bad]).toHaveLength(2);

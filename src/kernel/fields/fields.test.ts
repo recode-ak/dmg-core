@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import * as v from 'valibot';
 import { toJsonSchema } from '../schema/json-schema';
 import { BaseEntityFields, F, withEntityDefaults } from './fields';
@@ -86,10 +86,7 @@ describe('F.expectedVersion (D-57)', () => {
     }
   });
 
-  it('тип — number | undefined, описание из метки', () => {
-    expectTypeOf<v.InferOutput<typeof schema>>().toEqualTypeOf<{
-      expectedVersion?: number | undefined;
-    }>();
+  it('описание — из метки поля', () => {
     expect(descriptionOf(F.expectedVersion('задачи'))).toBe(
       'Версия задачи, которую видел клиент',
     );

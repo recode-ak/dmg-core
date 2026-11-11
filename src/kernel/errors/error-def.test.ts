@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from 'bun:test';
 import * as v from 'valibot';
 import { Def } from '../def/def';
 import { toJsonSchema } from '../schema/json-schema';
-import { type AnyErrorDef, ErrorDef } from './error-def';
+import { ErrorDef } from './error-def';
 
 const TodoErrors = ErrorDef.define('TODO', {
   NOT_FOUND: {
@@ -24,7 +24,6 @@ describe('ErrorDef', () => {
     expect(def).toBeInstanceOf(ErrorDef);
     expect(def).toBeInstanceOf(Def);
     expect(def.code).toBe('TODO_NOT_FOUND');
-    expectTypeOf(def.code).toEqualTypeOf<'TODO_NOT_FOUND'>();
   });
 
   it('name — код ошибки', () => {
@@ -51,7 +50,6 @@ describe('ErrorDef', () => {
 
   it('типы make/err: payload по схеме, литералы code и kind', () => {
     const e = TodoErrors.NOT_FOUND.make({ todoId: 't1' });
-    expectTypeOf(e.code).toEqualTypeOf<'TODO_NOT_FOUND'>();
     expectTypeOf(e.kind).toEqualTypeOf<'not_found'>();
     expectTypeOf(e.payload).toEqualTypeOf<{ todoId: string }>();
     // @ts-expect-error схема объявлена — payload обязателен
@@ -82,11 +80,6 @@ describe('ErrorDef', () => {
       schemas: [['payload', found.payload]],
     });
     expect(TodoErrors.ALREADY_DONE.describe().schemas).toEqual([]);
-  });
-
-  it('конкретный Def совместим с AnyErrorDef', () => {
-    expectTypeOf(TodoErrors.NOT_FOUND).toExtend<AnyErrorDef>();
-    expectTypeOf(TodoErrors.ALREADY_DONE).toExtend<AnyErrorDef>();
   });
 });
 

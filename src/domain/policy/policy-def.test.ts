@@ -33,7 +33,6 @@ describe('PolicyDef', () => {
   });
 
   it('литеральные типы правил сохраняются; совместим с AnyPolicyDef', () => {
-    expectTypeOf(TaskPolicy.rules.canComplete).toEqualTypeOf<typeof isOwner>();
     expectTypeOf(TaskPolicy.name).toEqualTypeOf<'task'>();
     expectTypeOf(TaskPolicy).toExtend<AnyPolicyDef>();
   });

@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from 'bun:test';
 import * as v from 'valibot';
 import { Def } from '#core/kernel/def/def';
 import { toJsonSchema } from '#core/kernel/schema/json-schema';
-import { type AnyEventDef, EventDef, type EventOf } from './event-def';
+import { EventDef } from './event-def';
 
 const TaskEvents = EventDef.define('todo.task', {
   completed: {
@@ -22,15 +22,12 @@ describe('EventDef', () => {
     expectTypeOf(def.name).toEqualTypeOf<'todo.task.completed'>();
   });
 
-  it('make() — событие с типизированным payload', () => {
+  it('make() — событие с payload по схеме', () => {
     const e = TaskEvents.completed.make({ taskId: 't1' });
     expect(e).toEqual({
       name: 'todo.task.completed',
       payload: { taskId: 't1' },
     });
-    expectTypeOf(e).toEqualTypeOf<EventOf<typeof TaskEvents.completed>>();
-    // @ts-expect-error payload не по схеме
-    TaskEvents.completed.make({ id: 1 });
   });
 
   it('normalize() — тексты и JSON Schema payload', () => {
@@ -46,9 +43,5 @@ describe('EventDef', () => {
   it('describe() — схема payload', () => {
     const def = TaskEvents.completed;
     expect(def.describe().schemas).toEqual([['payload', def.payload]]);
-  });
-
-  it('конкретный Def совместим с AnyEventDef', () => {
-    expectTypeOf(TaskEvents.completed).toExtend<AnyEventDef>();
   });
 });

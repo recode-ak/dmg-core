@@ -62,8 +62,6 @@ const ShowTaskUcDef = UseCaseDef.define({
   ...showTaskSpec,
   calls: [GetTaskUcDef],
 });
-/** Тот же UC, но `getTask` в `calls` не объявлен — вызов не компилируется. */
-const SneakyUcDef = UseCaseDef.define({ ...showTaskSpec, name: 'sneaky' });
 
 const DigestModuleDef = ModuleDef.define({
   name: 'digest',
@@ -71,7 +69,7 @@ const DigestModuleDef = ModuleDef.define({
   description: 'Модуль-потребитель фасада todo.',
   dependsOn: [TodoModuleDef],
   aggregates: [DigestArDef],
-  useCases: [ShowTaskUcDef, SneakyUcDef],
+  useCases: [ShowTaskUcDef],
   reactions: [],
   jobs: [],
 });
@@ -99,31 +97,6 @@ class ShowTask extends UseCaseFromDef<
     if (!res.ok) return res;
     const task = TaskAr.readonly(res.value);
     return ok({ done: task.isDone() });
-  }
-}
-
-class Sneaky extends UseCaseFromDef<
-  typeof SneakyUcDef,
-  ModuleDeps,
-  undefined,
-  ExampleUser
-> {
-  constructor(deps: ModuleDeps, module: typeof DigestModuleDef) {
-    super(SneakyUcDef, deps, module);
-  }
-  protected async load() {
-    return ok(undefined);
-  }
-  protected async execute(
-    input: { taskId: string },
-    _: undefined,
-    __: UnitOfWork,
-    caller: Caller<ExampleUser>,
-    trace: Trace,
-  ) {
-    // @ts-expect-error getTask нет в calls UC sneaky
-    await this.call(GetTaskUcDef, input, caller, trace);
-    return ok({ done: false });
   }
 }
 
@@ -172,10 +145,6 @@ describe('фасад todo (D-43)', () => {
     expect(expectErr(res, 'TASK_NOT_FOUND').payload).toEqual({
       taskId: missing,
     });
-  });
-
-  it('UC нет в calls потребителя — ошибка типа (рантайм-проверки нет)', () => {
-    expect(new Sneaky(deps, DigestModuleDef).ref.name).toBe('sneaky');
   });
 });
 

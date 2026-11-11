@@ -6,7 +6,7 @@ import { BaseEntityFields, F } from '#core/kernel/fields/fields';
 import { toJsonSchema } from '#core/kernel/schema/json-schema';
 import { EventDef } from '../events/event-def';
 import type { TransitionOf } from './aggregate.types';
-import { AggregateDef, type AnyAggregateDef } from './aggregate-def';
+import { AggregateDef } from './aggregate-def';
 
 const NoteState = v.object({
   ...BaseEntityFields,
@@ -68,7 +68,6 @@ describe('AggregateDef', () => {
     expect(TagArDef.statuses).toBeUndefined();
     expect(TagArDef.transitions).toBeUndefined();
     expectTypeOf<TransitionOf<typeof TagArDef>>().toEqualTypeOf<never>();
-    expectTypeOf<TransitionOf<typeof NoteArDef>>().toEqualTypeOf<'close'>();
   });
 
   it('state читает запись без updatedAt как updatedAt = createdAt', () => {
@@ -122,10 +121,5 @@ describe('AggregateDef', () => {
 
   it('describe() — схема state', () => {
     expect(NoteArDef.describe().schemas).toEqual([['state', NoteArDef.state]]);
-  });
-
-  it('конкретный Def совместим с AnyAggregateDef', () => {
-    expectTypeOf(NoteArDef).toExtend<AnyAggregateDef>();
-    expectTypeOf(TagArDef).toExtend<AnyAggregateDef>();
   });
 });

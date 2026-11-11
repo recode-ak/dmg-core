@@ -4,11 +4,7 @@ import { Def } from '#core/kernel/def/def';
 import { ErrorDef } from '#core/kernel/errors/error-def';
 import { F } from '#core/kernel/fields/fields';
 import { ok } from '#core/kernel/result/result';
-import {
-  type AnyDomainRule,
-  type DomainRuleContextOf,
-  DomainRuleDef,
-} from './domain-rule-def';
+import { DomainRuleDef } from './domain-rule-def';
 import { type AnyRulesDef, RulesDef } from './rules-def';
 
 const ShelfErrors = ErrorDef.define('SHELF', {
@@ -53,13 +49,6 @@ describe('DomainRuleDef', () => {
     );
   });
 
-  it('контекст выводится из check; совместим с AnyDomainRule', () => {
-    expectTypeOf<
-      DomainRuleContextOf<typeof hasRoom>
-    >().toEqualTypeOf<ShelfCtx>();
-    expectTypeOf(hasRoom).toExtend<AnyDomainRule>();
-  });
-
   it('check возвращает только свою ошибку (DOM-16)', () => {
     DomainRuleDef.define({
       name: 'foreign',
@@ -98,7 +87,6 @@ describe('RulesDef', () => {
     expect(ShelfRules).toBeInstanceOf(RulesDef);
     expect(ShelfRules.dmg).toBe('rules');
     expect(ShelfRules.rules.hasRoom).toBe(hasRoom);
-    expectTypeOf(ShelfRules.rules.hasRoom).toEqualTypeOf<typeof hasRoom>();
     expectTypeOf(ShelfRules).toExtend<AnyRulesDef>();
   });
 

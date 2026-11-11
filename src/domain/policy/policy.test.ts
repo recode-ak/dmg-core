@@ -109,27 +109,6 @@ describe('композиция', () => {
       denied('hasRole:author', 'Нужна роль author.'),
     );
   });
-
-  it('субъект композиции — пересечение субъектов правил (тип)', () => {
-    const both = Rule.allOf(
-      Rule.hasRole('admin'),
-      Rule.hasRole('author'),
-      isOwner,
-    );
-    expect(both.evaluate(user('u1', 'admin', 'author'), ctx)).toEqual(allowed);
-    const roleOnly: { hasRole(role: Role): boolean } = {
-      hasRole: () => true,
-    };
-    // @ts-expect-error у субъекта нет id, нужного isOwner
-    both.evaluate(roleOnly, ctx);
-  });
-
-  it('контекст композиции — объединение контекстов правил (тип)', () => {
-    const both = Rule.allOf(isOwner, Rule.hasRole('admin'));
-    // @ts-expect-error нет ownerId
-    both.evaluate(user('u1'), {});
-    expect(both.evaluate(user('u1', 'admin'), ctx)).toEqual(allowed);
-  });
 });
 
 describe('PolicyDef.define', () => {

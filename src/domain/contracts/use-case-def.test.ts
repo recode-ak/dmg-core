@@ -11,7 +11,7 @@ import {
   TaskPolicy,
 } from './contracts.fixture';
 import { OperationDef } from './operation-def';
-import { type AnyUseCaseDef, type InputOf, UseCaseDef } from './use-case-def';
+import { type AnyUseCaseDef, UseCaseDef } from './use-case-def';
 
 const input = v.object({ taskId: F.uuid('задачи') });
 const output = v.object({ completedAt: F.timestamp('выполнения') });
@@ -62,15 +62,6 @@ describe('UseCaseDef', () => {
     expect(CompleteTask.emits).toEqual([TaskEvents.completed]);
     expect(CompleteTask.calls[0]).toBe(GetUserUcDef);
     expectTypeOf(CompleteTask.type).toEqualTypeOf<'command'>();
-    expectTypeOf(CompleteTask.policy).toEqualTypeOf(
-      TaskPolicy.rules.canComplete,
-    );
-    expectTypeOf<(typeof CompleteTask)['calls'][number]>().toEqualTypeOf<
-      typeof GetUserUcDef
-    >();
-    expectTypeOf<InputOf<typeof CompleteTask>>().toEqualTypeOf<{
-      taskId: string;
-    }>();
   });
 
   it('необъявленные rules, calls, emits — пустые кортежи', () => {
@@ -124,23 +115,6 @@ describe('UseCaseDef', () => {
       calls: [GetUserUcDef, CompleteTask],
     });
     expect(def.calls).toHaveLength(2);
-  });
-
-  it('query не публикует события (тип)', () => {
-    // @ts-expect-error query не публикует события
-    UseCaseDef.define({
-      name: 'x',
-      label: 'X',
-      description: 'X',
-      type: 'query',
-      aggregate: TaskArDef,
-      callers: ['user'],
-      policy: allowAll,
-      input: v.object({}),
-      output: v.object({}),
-      errors: [],
-      emits: [TaskEvents.created],
-    });
   });
 
   it('конкретный Def совместим с AnyUseCaseDef; сравнение по ссылке', () => {

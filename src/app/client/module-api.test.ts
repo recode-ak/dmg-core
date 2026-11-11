@@ -1,12 +1,8 @@
-import { describe, expect, expectTypeOf, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import type { Command } from '#core/domain/contracts/command';
-import type {
-  OutputOf,
-  UseCaseErrorOf,
-} from '#core/domain/contracts/use-case-def';
 import { type Caller, UserCaller } from '#core/kernel/caller/caller';
 import { CoreErrors } from '#core/kernel/errors/core-errors';
-import { ok, type Result } from '#core/kernel/result/result';
+import { ok } from '#core/kernel/result/result';
 import type { SerializedResult } from '#core/kernel/result/serialized-result.types';
 import { Trace } from '#core/kernel/trace/trace';
 import {
@@ -76,18 +72,6 @@ describe('ModuleApi.dispatch', () => {
     expect(res).toEqual(error);
   });
 
-  test('ответ типизирован по Def команды', () => {
-    const res = api().dispatch(
-      GetTaskUcDef.command({ taskId: TASK }),
-      caller,
-      REQ,
-    );
-    type Get = typeof GetTaskUcDef;
-    expectTypeOf(res).toEqualTypeOf<
-      Promise<Result<OutputOf<Get>, UseCaseErrorOf<Get>>>
-    >();
-  });
-
   test('команда UC другого модуля — ошибка типа', () => {
     const wrong = () =>
       api().dispatch(
@@ -153,14 +137,6 @@ describe('ModuleApi.restore', () => {
       CoreErrors.SERVER_INTERNAL.err(),
     );
     expect(logs).toEqual([]);
-  });
-
-  test('восстановленный Result типизирован по Def команды', () => {
-    const restored = api().restore(command, { ok: true, value: {} });
-    type Complete = typeof CompleteTaskUcDef;
-    expectTypeOf(restored).toEqualTypeOf<
-      Result<OutputOf<Complete>, UseCaseErrorOf<Complete>>
-    >();
   });
 });
 

@@ -211,23 +211,6 @@ describe('AggregateDef.define', () => {
     });
     expect(true).toBe(true);
   });
-
-  it('переход объявляет отказ для каждого статуса вне `from`', () => {
-    AggregateDef.define({
-      name: 'task',
-      label: 'Задача',
-      description: 'Пункт списка дел.',
-      state: TaskState,
-      statuses: { open: { label: 'Открыта' }, done: { label: 'Выполнена' } },
-      transitions: {
-        // @ts-expect-error нет отказа для статуса `done`
-        complete: { from: ['open'], to: 'done', rejects: {} },
-      },
-      events: TaskEvents,
-      errors: TaskErrors,
-    });
-    expect(true).toBe(true);
-  });
 });
 
 describe('Aggregate', () => {

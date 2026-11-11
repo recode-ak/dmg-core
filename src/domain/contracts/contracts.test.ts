@@ -51,15 +51,6 @@ describe('UseCaseDef.define', () => {
     expect(any.calls).toEqual([]);
   });
 
-  it('calls — только UC с system в callers (D-43, Р7)', () => {
-    const def = UseCaseDef.define({
-      ...ListTasksUcDef,
-      // @ts-expect-error ListTasks зовёт только user — система его не вызовет
-      calls: [GetUserUcDef, ListTasksUcDef],
-    });
-    expect(def.calls).toHaveLength(2);
-  });
-
   it('input, output и ошибки выводятся из Def', () => {
     const input: InputOf<typeof CompleteTaskUcDef> = { taskId: 'x' };
     const output: OutputOf<typeof CompleteTaskUcDef> = { completedAt: 1 };

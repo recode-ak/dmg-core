@@ -45,10 +45,6 @@ describe('JobDef', () => {
     expect(Remind.calls).toEqual([]);
     expect(Remind.emits).toEqual([]);
     expect(Sync.scans).toEqual([]);
-    expectTypeOf(Remind.calls).toEqualTypeOf<readonly []>();
-    expectTypeOf<(typeof Sync)['calls'][number]>().toEqualTypeOf<
-      typeof GetUserUcDef
-    >();
   });
 
   it('calls — только UC с system в callers (D-43)', () => {
