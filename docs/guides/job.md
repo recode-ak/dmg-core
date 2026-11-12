@@ -41,3 +41,15 @@ covers:
 ## 6. Как тестировать
 
 Обработка подходящих записей и пропуск остальных; повторный прогон ничего не пишет; сбой одной записи — остальные обработаны, отчёт `failed` и `logger.error`; запуск через модуль — `runJob`. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts)): выборку задаёт тест присваиванием, сбой записи — `failOn(uuid)` ([testing.md](../reference/testing.md)).
+
+## 7. Запуск по расписанию
+
+Планировщик — часть платформы (`dmg-core/app`), приложение его собирает и запускает (D-71).
+
+- **Вход.** `new InProcJobScheduler({ api, modules, clock, logger, store?, startDelayMs? })`: `api` — `Pick<ApiApp, 'runJob'>`, `modules` — Def подключённых модулей, задания берутся из их `jobs`; `store` — история прогонов (`JobRunRepo`), по умолчанию `MemoryJobRunRepo` (живёт до рестарта). Порт — `JobScheduler { start(); stop() }`: повторный `start()` без `stop()` — исключение, `stop()` идущий прогон не прерывает.
+- **Время — `Timestamp`** (мс UTC, D-34): `JobSchedulePlanner.nextRunAfter(schedule, after): Timestamp`, `JobRunRepo.getLastRunAt(name): Timestamp | undefined`; `Date` — только внутри календарной арифметики (`Date.UTC`, `getUTC*`).
+- **Ключ истории — `def.name`** задания: два задания с одним именем в `modules` — ошибка конфигурации в `start()`.
+- **Догон упущенного.** Расписание считается от фактического конца прогона; упущенный запуск выполняется один раз через стартовую задержку `DEFAULT_START_DELAY_MS` (3 мин), сколько бы ни пропущено; `runAtStart` без истории — тоже через неё. Тик во время прогона того же задания пропускается.
+- **Параллельные прогоны.** В пределах одного `start()` их нет: тик во время прогона пропускается; `stop()` и новый `start()` во время идущего прогона могут запустить то же задание параллельно (идущий прогон `stop()` не прерывает).
+- **Сбой прогона.** `Err` из `runJob` и исключение — `logger.warn` источника `job-runner`; `lastRunAt` пишется всё равно, чтобы рестарт не зацикливал догон.
+- Реализация — `src/app/job/`, тесты рядом: `job-schedule-planner.test.ts`, `scheduled-job-runner.test.ts`, `in-proc-job-scheduler.test.ts`.

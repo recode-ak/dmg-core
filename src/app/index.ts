@@ -38,10 +38,18 @@ export { InProcOutbox, type Outbox } from './events/outbox';
 export { type FacadeModule, ModuleFacade } from './facade/module-facade';
 export { ModuleFacades, type RoutableFacade } from './facade/module-facades';
 export {
+  InProcJobScheduler,
+  type InProcJobSchedulerDeps,
+} from './job/in-proc-job-scheduler';
+export {
   JobFromDef,
   type JobReport,
   type JobRun,
 } from './job/job-from-def';
+export { type JobRunRepo, MemoryJobRunRepo } from './job/job-run-repo';
+export { JobSchedulePlanner } from './job/job-schedule-planner';
+export type { JobRunApi, JobScheduler } from './job/job-scheduler';
+export { DEFAULT_START_DELAY_MS } from './job/scheduled-job-runner';
 export {
   ConsoleLogger,
   type ConsoleLoggerOptions,
