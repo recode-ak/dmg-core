@@ -357,6 +357,26 @@ describe('DebtChecker: владелец записи и шапка реестр�
     expect(run(CODE, registry('C-DEBT-5', DEBT_1, DEBT_5))).toEqual([]);
   });
 
+  test('строка «Последний выданный ID» только внутри ``` — нет строки', () => {
+    const fenced = '```\n**Последний выданный ID:** C-DEBT-50\n```';
+    expect(run(CODE.slice(2), registry(undefined, fenced, DEBT_5))).toEqual([
+      `ARC-12: ${CODE_MD}: нет строки «Последний выданный ID»`,
+    ]);
+  });
+
+  test('«Последний выданный ID» с чужим префиксом — неверный префикс', () => {
+    expect(run(CODE.slice(2), registry('D-DEBT-3', DEBT_5))).toEqual([
+      `ARC-12: ${CODE_MD}: «Последний выданный ID» D-DEBT-3 — неверный префикс, нужен C-DEBT-<n>`,
+    ]);
+  });
+
+  test('повтор поля в записи — ошибка', () => {
+    const codeMd = md(`${DEBT_5}\n- **Место:** \`nowhere/**\``);
+    expect(run(CODE.slice(2), codeMd)).toEqual([
+      'ARC-12: C-DEBT-5: поле Место повторено',
+    ]);
+  });
+
   test('пустой реестр и код без маркеров — нарушений нет', () => {
     const code = [file('src/a.ts', 'export const a = 1;')];
     expect(checker().check(input(code, { code: md() }))).toEqual([]);
@@ -551,6 +571,32 @@ describe('DebtChecker.read: код и реестры с диска', () => {
       code: '# долг кода',
       tests: '# долг тестов',
     });
+  });
+
+  test('dist на любой глубине не обходится', async () => {
+    await put(CODE_MD, '# долг кода');
+    await put(PATHS.tests, '# долг тестов');
+    await put('dist/index.js', CORE);
+    await put('pkg/dist/index.js', CORE);
+    await put('pkg/a.ts', CORE);
+    const read = await DebtChecker.read(tmp().path, LAYOUT);
+    expect([...read.files].sort()).toEqual([CODE_MD, PATHS.tests, 'pkg/a.ts']);
+  });
+
+  test('реестр из раскладки, которого нет на диске, — реестр не найден', async () => {
+    await put(CODE_MD, md());
+    const layout: DebtLayout = { ...LAYOUT, registries: PATHS };
+    const lines = checker().report(await DebtChecker.read(tmp().path, layout));
+    expect(lines).toEqual([
+      `ARC-12: ${PATHS.tests}: реестр не найден`,
+      `ARC-12: ${PATHS.product}: реестр не найден`,
+    ]);
+  });
+
+  test('нет реестра долга кода — реестр не найден', async () => {
+    const layout: DebtLayout = { ...LAYOUT, registries: { code: CODE_MD } };
+    const lines = checker().report(await DebtChecker.read(tmp().path, layout));
+    expect(lines).toEqual([`ARC-12: ${CODE_MD}: реестр не найден`]);
   });
 
   test('долг вне Места и неизвестный ID — нарушения; голый маркер — нарушение', async () => {

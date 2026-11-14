@@ -28,12 +28,14 @@ export type DebtCheckerOptions = {
 
 /**
  * Вход проверки: исходники (Признак, ID в коде, маркеры временности), все
- * пути файлов репо (Файлы записей `T-DEBT`) и тексты реестров.
+ * пути файлов репо (Файлы записей `T-DEBT`), тексты реестров и пути
+ * реестров раскладки, которых нет на диске.
  */
 export type DebtInput = {
   readonly code: readonly SourceFile[];
   readonly files: readonly string[];
   readonly registries: DebtRegistries;
+  readonly missing?: readonly string[];
 };
 
 /** Где лежат исходники проверки (glob'ы и исключения) и реестры. */

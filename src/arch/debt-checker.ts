@@ -16,12 +16,15 @@ const FIELD = /^- \*\*([^*]+):\*\*(.*)$/;
 const SUB_ITEM = /^ {2}- (.*)$/;
 const FENCE = /^\s*```/;
 const TICK = /^`([^`]+)`\s*,?\s*/;
+const LAST_ISSUED = /Последний выданный ID/;
+/** ID в строке «Последний выданный ID»: префикс и номер. */
+const LAST_ID = /Последний выданный ID:?\**:?\s*`?((?:[A-Z]-)?DEBT)-(\d+)/;
 /** ID любого реестра; префикс `X-` отличает чужой реестр от долга кода. */
 const DEBT_ID = /(?<![A-Za-z])(?:([A-Z])-)?DEBT-\d+\b/g;
 // Фразы, а не слово «временный»; `\b` для кириллицы не работает, «ВРЕМЕННЫЙ» — только заглавными.
 const TEMP_MARKERS = [/временное решение|уходит с миграцией/gi, /ВРЕМЕННЫЙ/g];
-/** Каталоги вне `files`: `node_modules` и `.git` на любой глубине, `data` — в корне. */
-const SKIP_DIRS = new Set(['node_modules', '.git']);
+/** Каталоги вне `files`: `node_modules`, `.git`, `dist` на любой глубине, `data` — в корне. */
+const SKIP_DIRS = new Set(['node_modules', '.git', 'dist']);
 const ROOT_SKIP_DIRS = new Set(['data']);
 
 const DEFAULT_PATHS: DebtRegistryPaths = {
@@ -32,23 +35,26 @@ const DEFAULT_PATHS: DebtRegistryPaths = {
 
 /**
  * Реестр долга одного вида: записи `### <prefix>-<n>` до следующего
- * заголовка (блоки ``` пропускаются), дубли, заголовки чужого префикса и
- * строка «Последний выданный ID». Поле — токены в бэктиках подряд в начале
- * строки поля и пунктов первого уровня под ним до пустой строки.
+ * заголовка вне блоков ```, дубли, чужой префикс, повторы полей, строка
+ * «Последний выданный ID». Поле — токены в бэктиках подряд в начале строки
+ * поля и пунктов первого уровня под ним до пустой строки.
  */
 class DebtRegistry {
   private constructor(
     private readonly prefix: string,
-    private readonly md: string,
+    private readonly lastIssued: string | undefined,
     readonly entries: ReadonlyMap<string, DebtEntry>,
     private readonly duplicates: readonly string[],
     private readonly foreign: readonly string[],
+    private readonly repeated: readonly string[],
   ) {}
 
   static parse(md: string, prefix: string): DebtRegistry {
     const entries = new Map<string, DebtEntry>();
     const duplicates: string[] = [];
     const foreign: string[] = [];
+    const repeated: string[] = [];
+    let lastIssued: string | undefined;
     let entry: DebtEntry | undefined;
     let field: string[] | undefined;
     let fenced = false;
@@ -58,6 +64,7 @@ class DebtRegistry {
         continue;
       }
       if (fenced) continue;
+      if (lastIssued === undefined && LAST_ISSUED.test(line)) lastIssued = line;
       if (!line.trim()) {
         field = undefined;
         continue;
@@ -80,15 +87,26 @@ class DebtRegistry {
       if (!entry) continue;
       const f = FIELD.exec(line);
       if (f) {
+        const name = f[1] ?? '';
         field = DebtRegistry.leadingTicks(f[2] ?? '');
-        entry.fields.set(f[1] ?? '', field);
+        // Повтор: значение первого поля остаётся, пункты повтора — в никуда.
+        if (entry.fields.has(name))
+          repeated.push(`${entry.id}: поле ${name} повторено`);
+        else entry.fields.set(name, field);
         continue;
       }
       const item = SUB_ITEM.exec(line);
       if (item && field)
         field.push(...DebtRegistry.leadingTicks(item[1] ?? ''));
     }
-    return new DebtRegistry(prefix, md, entries, duplicates, foreign);
+    return new DebtRegistry(
+      prefix,
+      lastIssued,
+      entries,
+      duplicates,
+      foreign,
+      repeated,
+    );
   }
 
   /** Токены в бэктиках подряд в начале текста (через запятую). */
@@ -102,28 +120,32 @@ class DebtRegistry {
     return out;
   }
 
-  /** Шапка и заголовки: чужой префикс, «Последний выданный ID», дубли. */
+  /** Структура: чужой префикс, «Последний выданный ID», дубли, повторы полей. */
   checkHeadings(path: string): string[] {
     const out = this.foreign.map(
       (id) =>
         `${path}: заголовок ${id} — неверный префикс, нужен ${this.prefix}-<n>`,
     );
-    const last = new RegExp(
-      `Последний выданный ID:?\\**:?\\s*\`?${this.prefix}-(\\d+)`,
-    ).exec(this.md);
+    const last =
+      this.lastIssued === undefined ? undefined : LAST_ID.exec(this.lastIssued);
     if (!last) out.push(`${path}: нет строки «Последний выданный ID»`);
+    else if (last[1] !== this.prefix)
+      out.push(
+        `${path}: «Последний выданный ID» ${last[1]}-${last[2]} — неверный префикс, нужен ${this.prefix}-<n>`,
+      );
     else {
       const max = Math.max(
         0,
         ...[...this.entries.keys()].map((id) => this.numberOf(id)),
       );
-      const issued = Number(last[1]);
+      const issued = Number(last[2]);
       if (issued < max)
         out.push(
           `${path}: «Последний выданный ID» ${this.prefix}-${issued} меньше максимального ${this.prefix}-${max}`,
         );
     }
     out.push(...this.duplicates.map((id) => `${id}: дубль записи`));
+    out.push(...this.repeated);
     return out;
   }
 
@@ -150,8 +172,9 @@ class DebtRegistry {
  * (Место, Признак, Корень; ID в коде — только в `biome-ignore`; маркеры
  * временности — только в Месте), долг тестов — Файлы находят пути репо,
  * пробелы продукта — обязательные поля. Чистая проверка над памятью;
- * чтение диска — `read`.
+ * чтение диска — `read`. Решение и форматы реестров — D-84.
  * @see docs/reference/rules.md
+ * @see docs/decisions.md
  */
 export class DebtChecker {
   private readonly paths: DebtRegistryPaths;
@@ -162,7 +185,11 @@ export class DebtChecker {
     this.skip = (options.tempMarkers?.skip ?? []).map((g) => new Bun.Glob(g));
   }
 
-  /** Исходники по glob'ам раскладки без `exclude`, все пути репо и реестры. */
+  /**
+   * Исходники по glob'ам раскладки без `exclude`, все пути репо и реестры.
+   * Не обходятся `node_modules`, `.git`, `dist` (на любой глубине) и `data`
+   * (в корне). Реестр раскладки, которого нет на диске, — в `missing`.
+   */
   static async read(root: string, layout: DebtLayout): Promise<DebtInput> {
     const files = DebtChecker.walk(root, '').sort();
     const include = layout.code.map((g) => new Bun.Glob(g));
@@ -177,22 +204,27 @@ export class DebtChecker {
         text: await Bun.file(join(root, path)).text(),
       })),
     );
-    const text = (path: string | undefined) =>
-      path === undefined ? undefined : Bun.file(join(root, path)).text();
+    const missing: string[] = [];
+    const text = async (path: string | undefined) => {
+      if (path === undefined) return undefined;
+      const f = Bun.file(join(root, path));
+      if (await f.exists()) return f.text();
+      missing.push(path);
+      return undefined;
+    };
     const { registries: r } = layout;
-    const [codeMd, tests, product] = await Promise.all([
-      text(r.code),
-      text(r.tests),
-      text(r.product),
-    ]);
+    const codeMd = await text(r.code);
+    const tests = await text(r.tests);
+    const product = await text(r.product);
     return {
       code,
       files,
       registries: {
-        code: codeMd,
+        ...(codeMd === undefined ? {} : { code: codeMd }),
         ...(tests === undefined ? {} : { tests }),
         ...(product === undefined ? {} : { product }),
       },
+      ...(missing.length ? { missing } : {}),
     };
   }
 
@@ -217,6 +249,7 @@ export class DebtChecker {
       this.options.idPrefix,
     );
     const lines = [
+      ...(input.missing ?? []).map((path) => `${path}: реестр не найден`),
       ...(registries.code === undefined
         ? []
         : code.checkHeadings(this.paths.code)),
