@@ -5,6 +5,7 @@ covers:
   - src/app/operation/**
   - src/app/oplog/**
   - src/app/events/event-envelope.ts
+verified: b57c858
 ---
 
 # Кто вызывает и откуда пришла операция

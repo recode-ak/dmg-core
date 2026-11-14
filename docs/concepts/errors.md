@@ -3,7 +3,7 @@ covers:
   - src/kernel/errors/**
   - src/kernel/result/**
   - src/app/use-case/use-case-from-def.ts
-verified: d20edbc
+verified: b57c858
 ---
 
 # Отказ, баг и сбой

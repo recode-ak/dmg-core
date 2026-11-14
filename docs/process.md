@@ -1,6 +1,7 @@
 ---
 covers:
   - agents/**
+verified: b57c858
 ---
 
 # Процесс разработки на DMG
