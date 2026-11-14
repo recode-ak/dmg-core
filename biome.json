@@ -290,6 +290,10 @@
     {
       "includes": ["src/testing/example/**/*.uc.ts", "!**/*.test.ts"],
       "plugins": ["./biome-plugins/api-07-no-call-in-load.grit"]
+    },
+    {
+      "includes": ["src/**"],
+      "plugins": ["./biome-plugins/api-05-step-methods.grit"]
     }
   ]
 }

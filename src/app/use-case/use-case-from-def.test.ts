@@ -862,11 +862,55 @@ describe('UseCaseFromDef — лог операций (D-43, Р6)', () => {
         input: { taskId: TASK },
         result: { ok: true, output: {} },
         events: ctx.published.map(({ name, eventId }) => ({ name, eventId })),
+        writes: [{ aggregate: 'task', uuid: TASK, from: 0, to: 1 }],
         durationMs: expect.any(Number),
       },
     ]);
     expect(ctx.oplog.records[0]?.events).toHaveLength(1);
     expect(ctx.oplog.records[0]?.durationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  test('длительность — с точностью до 0,1 мс', async () => {
+    expectOk(await uc.handle({ taskId: TASK }, user(OWNER), REQ));
+    expect(String(ctx.oplog.records[0]?.durationMs)).toMatch(/^\d+(\.\d)?$/);
+  });
+
+  test('query: выход — сводка { ok, size }, записей нет (D-73)', async () => {
+    const TitleUcDef = UseCaseDef.define({
+      name: 'taskTitle',
+      label: 'Заголовок задачи',
+      description: 'Заголовок задачи по идентификатору.',
+      type: 'query',
+      aggregate: TaskArDef,
+      callers: ['system'],
+      policy: allowAll,
+      input: v.object({ taskId: v.string() }),
+      output: v.object({ title: v.string() }),
+      errors: [TaskErrors.NOT_FOUND],
+    });
+    class TaskTitle extends UseCaseFromDef<typeof TitleUcDef, Deps, Loaded> {
+      constructor() {
+        super(
+          TitleUcDef,
+          { app: ctx.app, facades, tasks },
+          moduleOf(TitleUcDef),
+        );
+      }
+      protected load(i: { taskId: string }) {
+        return loadTask(tasks, i);
+      }
+      protected async execute() {
+        return ok({ title: 'Задача' });
+      }
+    }
+    expectOk(await new TaskTitle().handle({ taskId: TASK }, system, REQ));
+    const [rec] = ctx.oplog.records;
+    expect(rec?.result).toEqual({
+      ok: true,
+      size: new TextEncoder().encode(JSON.stringify({ title: 'Задача' }))
+        .length,
+    });
+    expect(rec?.writes).toEqual([]);
   });
 
   test('UNAUTHORIZED — запись отказа без событий', async () => {

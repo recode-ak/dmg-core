@@ -161,6 +161,9 @@ describe('JobFromDef — лог операций (D-43, Р6)', () => {
         input: null,
         result: { ok: true, output: report },
         events: ctx.published.map(({ name, eventId }) => ({ name, eventId })),
+        writes: ctx.published.map(({ aggregateId }) =>
+          expect.objectContaining({ aggregate: 'task', uuid: aggregateId }),
+        ),
         durationMs: expect.any(Number),
       },
     ]);

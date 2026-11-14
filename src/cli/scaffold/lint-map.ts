@@ -174,6 +174,7 @@ export class LintMap {
         plugin: 'api-07-no-call-in-load',
         includes: all('**/*.uc.ts'),
       },
+      { id: 'API-05', plugin: 'api-05-step-methods', includes: all('**') },
     ]);
   }
 

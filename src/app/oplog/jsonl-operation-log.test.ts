@@ -19,6 +19,7 @@ const record = (patch: Partial<OperationRecord> = {}): OperationRecord => ({
   input: { taskId: 't-1' },
   result: { ok: true, output: {} },
   events: [{ name: 'todo.task.completed', eventId: 'e-1' }],
+  writes: [{ aggregate: 'task', uuid: 't-1', from: 0, to: 1 }],
   durationMs: 3,
   ...patch,
 });
@@ -114,6 +115,36 @@ describe('JsonlOperationLog', () => {
         head: expect.any(String),
       },
     });
+  });
+
+  test('большой payload ошибки обрезается, код — как есть (D-73)', async () => {
+    const log = new JsonlOperationLog(dir, { maxBytes: 100 });
+    const error = CoreErrors.INPUT_VALIDATION.make({
+      issues: Array.from({ length: 20 }, (_, i) => ({
+        path: `items.${i}`,
+        message: 'Неверное значение',
+      })),
+    });
+    await log.append(record({ result: { ok: false, error } }));
+    const [written] = lines('2026-10-21') as OperationRecord[];
+    expect(written?.result).toEqual({
+      ok: false,
+      error: {
+        ...error,
+        payload: {
+          truncated: true,
+          bytes: expect.any(Number),
+          head: expect.any(String),
+        },
+      },
+    });
+  });
+
+  test('сводка выхода query — как есть', async () => {
+    const log = new JsonlOperationLog(dir, { maxBytes: 100 });
+    await log.append(record({ result: { ok: true, size: 5000 } }));
+    const [written] = lines('2026-10-21') as OperationRecord[];
+    expect(written?.result).toEqual({ ok: true, size: 5000 });
   });
 
   test('порог по умолчанию — 8 КБ', async () => {

@@ -2,7 +2,7 @@ import { appendFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { OperationLog, OperationRecord } from './operation-record';
 
-/** Порог размера `input`/`output` записи по умолчанию — ≈8 КБ. */
+/** Порог размера `input`, `output` и `payload` ошибки записи по умолчанию — ≈8 КБ. */
 export const DEFAULT_OPLOG_MAX_BYTES = 8 * 1024;
 
 /** Обрезанное значение: размер исходного JSON и его начало. */
@@ -44,7 +44,9 @@ class SizeLimit {
  * Лог операций в JSONL: файл на день (`YYYY-MM-DD.jsonl`, UTC по `at`),
  * строка на запись. Каталог создаётся при первой записи; записи идут
  * по очереди — строки параллельных операций не перемешиваются.
- * `input` и `output` больше порога обрезаются с пометкой (`TruncatedValue`).
+ * `input`, `output` и `payload` ошибки больше порога обрезаются с пометкой
+ * (`TruncatedValue`); `events` и `writes` — короткие ссылки, без порога.
+ * @see src/app/oplog/jsonl-operation-log.test.ts
  */
 export class JsonlOperationLog implements OperationLog {
   private readonly limit: SizeLimit;
@@ -75,14 +77,27 @@ export class JsonlOperationLog implements OperationLog {
   }
 
   private limited(record: OperationRecord): OperationRecord {
-    const { result } = record;
     return {
       ...record,
       input: this.limit.apply(record.input),
-      result: result.ok
-        ? { ok: true, output: this.limit.apply(result.output) }
-        : result,
+      result: this.limitedResult(record.result),
     };
+  }
+
+  private limitedResult(
+    result: OperationRecord['result'],
+  ): OperationRecord['result'] {
+    if (!result.ok) {
+      const { error } = result;
+      return {
+        ok: false,
+        error: { ...error, payload: this.limit.apply(error.payload) },
+      };
+    }
+    if ('output' in result) {
+      return { ok: true, output: this.limit.apply(result.output) };
+    }
+    return result;
   }
 
   private day(record: OperationRecord): string {

@@ -1,0 +1,21 @@
+// API-05: шаги базы (`load`, `fetch`, `execute`, `react`, `run`) у наследника
+// `*FromDef` — методами: поле-стрелка ломает `super.<шаг>()` у следующего
+// наследника, а из эталона и тестов пакета его копируют.
+JsPropertyClassMember(name=$name, value=$value) as $m where {
+  $name <: or {
+    `load`,
+    `execute`,
+    `react`,
+    `run`,
+    `fetch`
+  },
+  $value <: JsInitializerClause(expression=or {
+    JsArrowFunctionExpression(),
+    JsFunctionExpression()
+  }),
+  $m <: within or {
+    JsClassDeclaration(extends_clause=JsExtendsClause()),
+    JsClassExpression(extends_clause=JsExtendsClause())
+  } ,
+  register_diagnostic(span=$m, message="API-05: шаг базы (load/fetch/execute/react/run) — методом, не полем-стрелкой (rules.md)", severity="error")
+}

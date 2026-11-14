@@ -93,6 +93,7 @@ export {
   VersionedRepository,
 } from './uow/repository';
 export {
+  type AggregateWrite,
   type CommitError,
   type Committable,
   UnitOfWork,

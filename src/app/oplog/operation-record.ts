@@ -3,12 +3,13 @@ import type { DomainError } from '#core/kernel/errors/error';
 import type { Timestamp } from '#core/kernel/time/timestamp';
 import type { TraceLog } from '#core/kernel/trace/trace';
 import type { PublishedEvent } from '../events/event-envelope';
+import type { AggregateWrite } from '../uow/unit-of-work';
 
 /**
- * Запись лога операций (D-43, Р6): один вызов UC, одна реакция ER или один
- * прогон Job — кто, по какой причине, с каким входом, чем закончился и
- * какие события опубликовал. Аудит «кто породил событие» — через запись
- * операции с этим `eventId`.
+ * Запись лога операций (D-43, Р6; D-73): один вызов UC, одна реакция ER или
+ * один прогон Job — кто, по какой причине, с каким входом, чем закончился,
+ * какие агрегаты записал и какие события опубликовал. Аудит «кто породил
+ * событие» — через запись операции с этим `eventId`.
  */
 export type OperationRecord = {
   /** Начало операции по часам приложения. */
@@ -20,11 +21,18 @@ export type OperationRecord = {
   readonly trace: TraceLog;
   /** Вход как пришёл: UC — до схемы, ER — событие, Job — `null`. */
   readonly input: unknown;
+  /**
+   * Итог. Выход команды — целиком; query — сводкой: размер JSON выхода в
+   * байтах UTF-8 (выход — производная от state, D-73).
+   */
   readonly result:
     | { readonly ok: true; readonly output: unknown }
+    | { readonly ok: true; readonly size: number }
     | { readonly ok: false; readonly error: DomainError };
   readonly events: readonly PublishedEvent[];
-  /** Длительность по монотонным часам процесса, мс. */
+  /** Записанные агрегаты всех UoW операции; пусто — операция только читала. */
+  readonly writes: readonly AggregateWrite[];
+  /** Длительность по монотонным часам процесса, мс, до 0,1. */
   readonly durationMs: number;
 };
 

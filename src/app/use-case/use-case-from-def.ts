@@ -157,7 +157,7 @@ export abstract class UseCaseFromDef<
   /**
    * Шаги: `checkCaller` → `parseInput` → `load` → `checkPolicy` →
    * `fetch` → `checkRules` → `execute` → `parseOutput` → фиксация (с публикацией) →
-   * запись в лог операций (любой исход). Непредвиденное исключение —
+   * запись в лог операций (любой исход; выход query — сводкой, D-73). Непредвиденное исключение —
    * `SERVER_INTERNAL` с записью в лог.
    */
   handle(
@@ -165,18 +165,22 @@ export abstract class UseCaseFromDef<
     caller: Caller<U>,
     trace: Trace,
   ): Promise<Result<OutputOf<D>, UseCaseErrorOf<D>>> {
-    return this.journal({ input, caller, trace }, async (run) => {
-      try {
-        return await this.run(input, caller, trace, run);
-      } catch (error) {
-        this.resolve.app.logger.error(
-          this.def.name,
-          'Непредвиденный сбой UC',
-          serializeError(error),
-        );
-        return CoreErrors.SERVER_INTERNAL.err();
-      }
-    });
+    return this.journal(
+      { input, caller, trace },
+      async (run) => {
+        try {
+          return await this.run(input, caller, trace, run);
+        } catch (error) {
+          this.resolve.app.logger.error(
+            this.def.name,
+            'Непредвиденный сбой UC',
+            serializeError(error),
+          );
+          return CoreErrors.SERVER_INTERNAL.err();
+        }
+      },
+      this.def.type === 'query' ? 'size' : 'full',
+    );
   }
 
   /** Вид вызывающего — из `callers` Def; иначе `UNAUTHORIZED`. */

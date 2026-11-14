@@ -13,19 +13,24 @@ export type OperationCall = {
   readonly trace: Trace;
 };
 
+/** Как писать выход в запись: целиком или сводкой размера (query, D-73). */
+export type OutputMode = 'full' | 'size';
+
 /**
- * Один вызов операции для лога (D-43, Р6): момент начала, длительность и
- * UoW вызова (у Job — по одной на запись). События записи — опубликованные
- * всеми UoW, в том числе до сбоя фиксации.
+ * Один вызов операции для лога (D-43, Р6; D-73): момент начала, длительность
+ * и UoW вызова (у Job — по одной на запись). События и записи агрегатов —
+ * всех UoW, в том числе до сбоя фиксации.
  */
 export class OperationRun {
   private readonly uows: UnitOfWork[] = [];
   private readonly started = performance.now();
+  private readonly encoder = new TextEncoder();
 
   constructor(
     private readonly ref: OperationRef,
     private readonly at: Timestamp,
     private readonly call: OperationCall,
+    private readonly output: OutputMode = 'full',
   ) {}
 
   /** UoW вызова — её события попадут в запись. */
@@ -46,10 +51,17 @@ export class OperationRun {
       trace: call.trace.toLog(),
       input: call.input ?? null,
       result: result.ok
-        ? { ok: true, output: result.value ?? null }
+        ? this.success(result.value ?? null)
         : { ok: false, error: result.error },
       events: this.uows.flatMap((uow) => uow.published),
-      durationMs: performance.now() - this.started,
+      writes: this.uows.flatMap((uow) => uow.writes),
+      durationMs: Math.round((performance.now() - this.started) * 10) / 10,
     };
+  }
+
+  private success(value: unknown): OperationRecord['result'] {
+    if (this.output === 'full') return { ok: true, output: value };
+    const size = this.encoder.encode(JSON.stringify(value)).length;
+    return { ok: true, size };
   }
 }

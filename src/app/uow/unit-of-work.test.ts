@@ -340,6 +340,39 @@ describe('UnitOfWork.commit', () => {
   });
 });
 
+describe('UnitOfWork — writes для лога операций (D-73)', () => {
+  test('новый агрегат — from: null, загруженный — версии до и после записи', async () => {
+    const created = task(A);
+    const loaded = TaskAr.restore({ ...task(B).snapshot(), version: 2 });
+    expectOk(loaded.complete(AT));
+    uow.register(created, slowRepo(log));
+    uow.register(loaded, slowRepo(log));
+    expectOk(await uow.commit());
+    expect(uow.writes).toEqual([
+      { aggregate: 'task', uuid: A, from: null, to: created.version },
+      { aggregate: 'task', uuid: B, from: 2, to: 3 },
+    ]);
+  });
+
+  test('конфликт на N-м агрегате — только записанные до него', async () => {
+    const conflicting: Repository<TaskAr> = {
+      aggregate: TaskArDef,
+      async save(ar) {
+        throw new VersionConflict(TaskArDef, ar.uuid);
+      },
+    };
+    uow.register(task(A), slowRepo(log));
+    uow.register(task(B), conflicting);
+    expectErr(await uow.commit(), 'VERSION_CONFLICT');
+    expect(uow.writes.map((w) => w.uuid)).toEqual([A]);
+  });
+
+  test('без регистраций — пусто', async () => {
+    expectOk(await uow.commit());
+    expect(uow.writes).toEqual([]);
+  });
+});
+
 describe('UnitOfWork — outbox (D-47)', () => {
   /** Outbox, который пишет в журнал каждую принятую партию. */
   function recordingOutbox(batches: string[][], fail = false): Outbox {

@@ -10,11 +10,24 @@ import type { EventEnvelope, PublishedEvent } from '../events/event-envelope';
 import type { Outbox } from '../events/outbox';
 import { type Repository, VersionConflict } from './repository';
 
-/** Что UoW нужно от агрегата: идентификатор, события, отметка записи. */
+/** Что UoW нужно от агрегата: идентификатор, версии, события, отметка записи. */
 export type Committable = {
   readonly uuid: string;
+  readonly version: number;
+  readonly storedVersion: number | undefined;
   pullEvents(): readonly DomainEvent[];
   markStored(): void;
+};
+
+/**
+ * Запись агрегата фиксацией (D-73): версия до (`null` — создан) и после.
+ * Идёт в лог операций — по ней видно, что изменила операция.
+ */
+export type AggregateWrite = {
+  readonly aggregate: string;
+  readonly uuid: string;
+  readonly from: number | null;
+  readonly to: number;
 };
 
 /** Ошибка фиксации: запись изменили параллельно. */
@@ -38,7 +51,11 @@ export type UnitOfWorkContext = {
   readonly onViolation?: (message: string) => void;
 };
 
-type Entry = { readonly ar: Committable; readonly save: () => Promise<void> };
+type Entry = {
+  readonly ar: Committable;
+  readonly aggregate: string;
+  readonly save: () => Promise<void>;
+};
 
 /**
  * Единица работы одной операции (D-15): зарегистрированные агрегаты
@@ -48,6 +65,7 @@ type Entry = { readonly ar: Committable; readonly save: () => Promise<void> };
 export class UnitOfWork {
   private readonly entries: Entry[] = [];
   private readonly sent: PublishedEvent[] = [];
+  private readonly written: AggregateWrite[] = [];
 
   constructor(private readonly ctx: UnitOfWorkContext) {}
 
@@ -55,7 +73,11 @@ export class UnitOfWork {
     this.assertOwnModule(repo.aggregate);
     this.assertTouches(repo.aggregate);
     if (this.entries.some((e) => e.ar === ar)) return;
-    this.entries.push({ ar, save: () => repo.save(ar) });
+    this.entries.push({
+      ar,
+      aggregate: repo.aggregate.name,
+      save: () => repo.save(ar),
+    });
   }
 
   /**
@@ -72,9 +94,11 @@ export class UnitOfWork {
     for (const envelope of batches.flat()) this.assertDeclared(envelope);
     let written = 0;
     try {
-      for (const entry of this.entries) {
-        await entry.save();
-        entry.ar.markStored();
+      for (const { ar, aggregate, save } of this.entries) {
+        const from = ar.storedVersion ?? null;
+        await save();
+        ar.markStored();
+        this.written.push({ aggregate, uuid: ar.uuid, from, to: ar.version });
         written++;
       }
     } catch (error) {
@@ -98,6 +122,11 @@ export class UnitOfWork {
   /** События, опубликованные этой UoW (в том числе до сбоя фиксации). */
   get published(): readonly PublishedEvent[] {
     return [...this.sent];
+  }
+
+  /** Записанные агрегаты (в том числе до сбоя фиксации), D-73. */
+  get writes(): readonly AggregateWrite[] {
+    return [...this.written];
   }
 
   private async send(envelopes: readonly EventEnvelope[]): Promise<void> {

@@ -22,7 +22,11 @@ import type { Timestamp } from '#core/kernel/time/timestamp';
 import type { Trace } from '#core/kernel/trace/trace';
 import type { ModuleDeps } from '../context';
 import type { OperationRecord } from '../oplog/operation-record';
-import { type OperationCall, OperationRun } from '../oplog/operation-run';
+import {
+  type OperationCall,
+  OperationRun,
+  type OutputMode,
+} from '../oplog/operation-run';
 import { UnitOfWork } from '../uow/unit-of-work';
 
 export type { AnyOperationDef };
@@ -127,13 +131,15 @@ export abstract class OperationFromDef<
   /**
    * Вызов операции с записью в лог операций последним шагом при любом
    * исходе; `body` не бросает. Сбой записи лога — только `warn`: данные уже
-   * зафиксированы, отказ вызвал бы повтор и дубль.
+   * зафиксированы, отказ вызвал бы повтор и дубль. `output` — как писать
+   * выход: query пишет сводку размера (D-73).
    */
   protected async journal<T, E extends DomainError>(
     call: OperationCall,
     body: (run: OperationRun) => Promise<Result<T, E>>,
+    output: OutputMode = 'full',
   ): Promise<Result<T, E>> {
-    const run = new OperationRun(this.ref, this.now(), call);
+    const run = new OperationRun(this.ref, this.now(), call, output);
     const result = await body(run);
     await this.append(run.record(result));
     return result;
