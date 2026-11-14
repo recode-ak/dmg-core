@@ -40,11 +40,8 @@ export type UnitOfWorkContext = {
   readonly trace: Trace;
   /** Заявленные события операции; без поля проверка не выполняется. */
   readonly emits?: readonly AnyEventDef[];
-  /**
-   * Модуль операции (D-28): UoW меняет только его агрегаты (MAN-13); без
-   * поля проверка не выполняется.
-   */
-  readonly module?: Pick<AnyModuleDef, 'name' | 'aggregates'>;
+  /** Модуль операции (D-28): UoW меняет только его агрегаты (MAN-13). */
+  readonly module: Pick<AnyModuleDef, 'name' | 'aggregates'>;
   /** Агрегаты, которые операции разрешено менять; без поля — любые. */
   readonly touches?: readonly AnyAggregateDef[];
   /** Что делать с расхождением с контрактом; по умолчанию — `throw`. */
@@ -148,7 +145,7 @@ export class UnitOfWork {
 
   private assertOwnModule(aggregate: AnyAggregateDef): void {
     const { module } = this.ctx;
-    if (module === undefined || module.aggregates.includes(aggregate)) return;
+    if (module.aggregates.includes(aggregate)) return;
     this.violate(
       `UoW: MAN-13: агрегат ${aggregate.name} не из модуля ${module.name}`,
     );

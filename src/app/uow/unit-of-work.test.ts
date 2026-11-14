@@ -84,6 +84,7 @@ beforeEach(() => {
   log = [];
   published = [];
   uow = new UnitOfWork({
+    module: TodoModuleDef,
     outbox: new InProcOutbox(new LoggingBus(published, log)),
     trace: TRACE,
     clock: () => AT,
@@ -228,6 +229,7 @@ describe('UnitOfWork.commit', () => {
     expectOk(await uow.commit());
     expectOk(ar.complete(AT));
     const next = new UnitOfWork({
+      module: TodoModuleDef,
       outbox: new InProcOutbox(new LoggingBus(published, log)),
       trace: TRACE,
       clock: () => AT,
@@ -246,6 +248,7 @@ describe('UnitOfWork.commit', () => {
 
   test('незаявленное событие при `emits` — исключение до сохранения', async () => {
     const strict = new UnitOfWork({
+      module: TodoModuleDef,
       outbox: new InProcOutbox(new LoggingBus(published, log)),
       trace: TRACE,
       clock: () => AT,
@@ -260,6 +263,7 @@ describe('UnitOfWork.commit', () => {
 
   test('агрегат вне `touches` — исключение при регистрации', () => {
     const narrow = new UnitOfWork({
+      module: TodoModuleDef,
       outbox: new InProcOutbox(new LoggingBus(published, log)),
       trace: TRACE,
       clock: () => AT,
@@ -273,6 +277,7 @@ describe('UnitOfWork.commit', () => {
   test('с onViolation нарушения сообщаются, работа не прерывается', async () => {
     const violations: string[] = [];
     const lenient = new UnitOfWork({
+      module: TodoModuleDef,
       outbox: new InProcOutbox(new LoggingBus(published, log)),
       trace: TRACE,
       clock: () => AT,
@@ -388,6 +393,7 @@ describe('UnitOfWork — outbox (D-47)', () => {
   test('конверты записанных агрегатов — одной партией после записи', async () => {
     const batches: string[][] = [];
     const out = new UnitOfWork({
+      module: TodoModuleDef,
       outbox: recordingOutbox(batches),
       trace: TRACE,
       clock: () => AT,
@@ -409,6 +415,7 @@ describe('UnitOfWork — outbox (D-47)', () => {
   test('сбой N-го агрегата — в outbox только записанные до него', async () => {
     const batches: string[][] = [];
     const out = new UnitOfWork({
+      module: TodoModuleDef,
       outbox: recordingOutbox(batches),
       trace: TRACE,
       clock: () => AT,
@@ -422,6 +429,7 @@ describe('UnitOfWork — outbox (D-47)', () => {
   test('ничего не записано — outbox не вызывается', async () => {
     const batches: string[][] = [];
     const out = new UnitOfWork({
+      module: TodoModuleDef,
       outbox: recordingOutbox(batches),
       trace: TRACE,
       clock: () => AT,
@@ -434,6 +442,7 @@ describe('UnitOfWork — outbox (D-47)', () => {
 
   test('сбой outbox — исключение фиксации, опубликованным ничего не считается', async () => {
     const out = new UnitOfWork({
+      module: TodoModuleDef,
       outbox: recordingOutbox([], true),
       trace: TRACE,
       clock: () => AT,
@@ -445,6 +454,7 @@ describe('UnitOfWork — outbox (D-47)', () => {
 
   test('сбой сохранения, затем сбой outbox — исходное исключение, сбой outbox в cause', async () => {
     const out = new UnitOfWork({
+      module: TodoModuleDef,
       outbox: recordingOutbox([], true),
       trace: TRACE,
       clock: () => AT,
@@ -460,6 +470,7 @@ describe('UnitOfWork — outbox (D-47)', () => {
 
   test('сбой сохранения с занятым cause, затем сбой outbox — AggregateError из обоих', async () => {
     const out = new UnitOfWork({
+      module: TodoModuleDef,
       outbox: recordingOutbox([], true),
       trace: TRACE,
       clock: () => AT,
@@ -485,6 +496,7 @@ describe('UnitOfWork — outbox (D-47)', () => {
 
   test('сбой сохранения не Error, затем сбой outbox — AggregateError из обоих', async () => {
     const out = new UnitOfWork({
+      module: TodoModuleDef,
       outbox: recordingOutbox([], true),
       trace: TRACE,
       clock: () => AT,
