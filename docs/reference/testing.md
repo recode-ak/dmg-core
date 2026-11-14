@@ -1,3 +1,8 @@
+---
+covers:
+  - src/testing/**
+---
+
 # Тестирование
 
 **Назначение:** общие правила тестов. Правила с ID — раздел TST в [rules.md](./rules.md).
@@ -43,9 +48,10 @@ expect(res.ok ? undefined : res.error.code).toBe('TASK_ALREADY_DONE');
 - В прикладном слое мокаются порты (репозитории, фасады) — типизированно, без `any`.
 - Время (D-34): домен получает момент аргументом операции (`task.complete(at)`) — в тесте Ar это просто константа. Прикладной слой берёт его из часов приложения (`this.now()` в UC/ER/Job); в тесте — `testAppContext({ at })` и `ctx.setNow(ts)` (`dmg-core/testing`). Глобальных часов нет, `Date` напрямую не читается.
 - Пирамида хранилища: UC/ER/Job — фейк порта; репозиторий (контракт, каждая выборка) и smoke модуля — настоящий репозиторий во временном каталоге; e2e UI — настоящие репозитории.
-- Фейк порта — `<A>RepoFake` в `<a>/<a>.repo.fake.ts` рядом с портом (создаёт `gen aggregate`): наследник `MemoryRepo` из `dmg-core/testing`. `save` сверяет версию, как настоящий репозиторий (`VersionConflict`); начальные записи — `seed(...)`; записанное — `saved` («ничего не записано» — `saved` пуст); чтение — `restored(uuid)`; сбой записи — `failOn(uuid)`. Тип снапшота — `StateOf<typeof <A>ArDef>` (DOM-01). Выборку `find*` фейк не реализует: метод порта объявлен `this.unanswered(...)`, ответ тест задаёт присваиванием (`tasks.findDone = async () => [...]`); корректность выборки — контрактный тест репозитория. Образец — `src/testing/example/app/todo/task/task.repo.fake.ts`.
+- Фейк порта — `<A>RepoFake` в `<a>/<a>.repo.fake.ts` рядом с портом (создаёт `gen aggregate`): наследник `MemoryRepo` из `dmg-core/testing`. `save` сверяет версию, как настоящий репозиторий (`VersionConflict`); начальные записи — `seed(...)`; записанное — `saved` («ничего не записано» — `saved` пуст); чтение — `restored(uuid)`; сбой записи — `failOn(uuid)`. Тип снапшота — `StateOf<typeof <A>ArDef>` (DOM-01). Выборка `find*` (D-75): тривиальная — через `this.where(s => …)` (предикат по снимку, новые Ar в порядке вставки; `seed` и `save` видны); если тесту нужен заданный им ответ (порядок, сбой, нетривиальный запрос) — метод порта объявлен `this.unanswered(...)`, ответ тест задаёт присваиванием (`tasks.findDone = async () => [...]`). В `where` — только предикат по полям снимка, без сортировки и логики выборки; корректность выборки — контрактный тест настоящего репозитория. Образец — `src/testing/example/app/todo/task/task.repo.fake.ts`.
 - Фикстуры чужого модуля (субъект `Caller` — Ar пользователей) тест не собирает сам: их отдаёт владелец входом `<domain>/<m>/testing.ts` (`userSubject({ uuid, roles })` → `UserAr.restore(...)`). Импортирует его только тестовый код — `*.test.ts`, `*.fixture.ts`, `*.test-kit.ts`, фейки, каталоги `tests/`, сам `testing.ts`; из рабочего — TST-07 в `arch:check` (D-70).
 - Готовые `testAppContext` (шина — `RecordingBus`, логгер — `MemoryLogger`), `MemoryBus` (доставляет события подписчикам), `MemoryRepo`, `StubFacade`, `expectIdempotentReaction` — для UC/ER без реального приложения (`src/testing/index.ts`); учебный модуль — `src/testing/example`.
+- Данные теста (D-75): след запроса — `TEST_TRACE` (`requestId: 'r-1'`) или `testTrace()` — свежий `r-<n>` на каждый вызов (отсев повторов D-56 считает одинаковый `requestId` повтором; вместо `crypto.randomUUID()`), `testTrace('r-42')` — заданный; uuid — `testUuid(n, prefix?)` → `<prefix>-0000-4000-8000-<n, 12 hex>`, проходит `F.uuid`; временный каталог — `TempDir.create(prefix?)` (`path`, `file(...segments)`, `dispose()`, `using`) или `useTempDir(prefix?)` — свой каталог на каждый тест блока (`beforeEach`/`afterEach`, возвращает `() => TempDir`) вместо ручного `mkdtemp`/`rm`.
 
 ## 5. Один уровень на правило (TST-08)
 

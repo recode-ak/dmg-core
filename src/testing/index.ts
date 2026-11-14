@@ -25,3 +25,6 @@ export {
   type ReactionIdempotencySpec,
 } from './reaction-idempotency';
 export { type StubCall, StubFacade } from './stub-facade';
+export { TempDir, useTempDir } from './temp-dir';
+export { TEST_TRACE, testTrace } from './test-trace';
+export { testUuid } from './test-uuid';

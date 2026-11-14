@@ -40,7 +40,7 @@
 - [guides/](./guides/index.md) — гайды по видам артефактов на учебном модуле
 
 **Что обязательно** (`reference/`)
-- [rules.md](./reference/rules.md) — **каталог правил с ID** и способом проверки
+- [rules.md](./reference/rules.md) — **каталог правил с ID** и способом проверки; учёт долга — ARC-12 (`DebtChecker`)
 - [layers.md](./reference/layers.md) — оси, импорты, доменный API, доступ к entity, прикладной слой, адаптеры
 - [domain-modeling.md](./reference/domain-modeling.md) — модуль-владелец, антипаттерны, границы модулей, агрегат
 - [naming.md](./reference/naming.md) — сокращения, файловая структура, имена, генератор
@@ -48,7 +48,7 @@
 - [errors-result.md](./reference/errors-result.md) — `Result`, модель ошибки, базовые ошибки ядра, гарантии исполнения UC
 - [caller.md](./reference/caller.md) — кто вызывает: `guest`, `user`, `delegate`, `system`; след `Trace`
 - [transport.md](./reference/transport.md) — HTTP (JSON-команда), отсев повторов, MCP, in-proc
-- [testing.md](./reference/testing.md) — тестирование
+- [testing.md](./reference/testing.md) — тестирование; хелперы `dmg-core/testing` (фейк `MemoryRepo`, `testTrace`, `testUuid`, `TempDir`)
 - [typescript.md](./reference/typescript.md) — стиль TypeScript
 
 ## Как устроена документация

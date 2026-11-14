@@ -53,6 +53,23 @@ APP_DATA_DIR=data bun <раннер>/main.ts call <module>.<operation> [--input 
 
 `check` проекта: `dmg-core sync --check` → `biome check` → `tsc --noEmit` → `arch:check` → `bun test`. Незаполненные `TODO` в `label`/`description` Def `arch:check` печатает предупреждением (MAN-01) и не роняет — заготовки зелёные; `bun run arch:check --strict` считает их нарушениями (код 1) — для CI и перед выпуском.
 
+**Учёт долга (ARC-12, D-75).** Проект с реестром долга подключает `DebtChecker` из `dmg-core/arch` в `scripts/arch-check.ts` (каркас его не пишет): строки отчёта печатаются вместе с нарушениями `arch:check` и влияют на код выхода.
+
+```ts
+const LAYOUT: DebtLayout = {
+  code: ['src/**/*.ts', 'scripts/**/*.ts'],
+  exclude: ['scripts/**/*.test.ts'],
+  registries: { code: 'debt/code.md', tests: 'debt/tests.md' },
+};
+const debt = new DebtChecker({
+  idPrefix: 'C-DEBT',
+  tempMarkers: { skip: ['scripts/**'] },
+  registryPaths: LAYOUT.registries,
+}).report(await DebtChecker.read('.', LAYOUT));
+```
+
+Форматы реестров и что проверяется — ARC-12 в [rules.md](../reference/rules.md) и D-75.
+
 ## 4. Как растёт проект
 
 ```sh

@@ -134,3 +134,41 @@ describe('MemoryRepo', () => {
     expect(repo.saved).toHaveLength(1);
   });
 });
+
+const TASK_3 = '2d8b4e3a-0c6f-4b5d-9e4a-3f7c9d1a5b32';
+
+/** Фейк с тривиальной выборкой через `where` (предикат по снимку). */
+class WhereTaskRepo extends MemoryTaskRepo {
+  findDoneWhere = async () => this.where((s) => s.status === 'done');
+}
+
+describe('MemoryRepo.where', () => {
+  test('Ar записей по предикату снимка — в порядке вставки', async () => {
+    const repo = new WhereTaskRepo().seed(
+      taskRow(TASK_2, 'done'),
+      taskRow(TASK),
+      taskRow(TASK_3, 'done'),
+    );
+    const done = await repo.findDoneWhere();
+    expect(done.map((t) => t.uuid)).toEqual([TASK_2, TASK_3]);
+  });
+
+  test('видит записанное через save', async () => {
+    const repo = new WhereTaskRepo().seed(taskRow(TASK));
+    const ar = repo.restoredOrThrow(TASK);
+    expectOk(ar.complete(T1));
+    await repo.save(ar);
+    const done = await repo.findDoneWhere();
+    expect(done.map((t) => t.uuid)).toEqual([TASK]);
+  });
+
+  test('отдаёт новые Ar: правка без save не меняет память', async () => {
+    const repo = new WhereTaskRepo().seed(taskRow(TASK, 'done'));
+    const [first] = await repo.findDoneWhere();
+    if (first === undefined) throw new Error('нет задачи');
+    expectOk(first.archive(T1));
+    const [again] = await repo.findDoneWhere();
+    expect(again).not.toBe(first);
+    expect(again?.snapshot()).toEqual(taskRow(TASK, 'done'));
+  });
+});

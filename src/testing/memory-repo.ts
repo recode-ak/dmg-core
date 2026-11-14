@@ -16,8 +16,9 @@ export type MemoryAr<S extends MemorySnapshot> = Versioned & {
 /**
  * Репозиторий в памяти для тестов UC/ER/Job (D-36): `save` со сверкой
  * версии (`VersionConflict`), хранит снапшоты, `restored` отдаёт новый Ar.
- * Выборку (`find*`) не реализует: ответ задаёт тест (`unanswered`), а
- * проверяет контрактный тест настоящего репозитория.
+ * Тривиальная выборка (`find*`) — `where` по снимку, иначе ответ задаёт
+ * тест (`unanswered`); корректность выборки — контрактный тест настоящего
+ * репозитория.
  * @see docs/guides/repo.md
  */
 export class MemoryRepo<
@@ -65,6 +66,13 @@ export class MemoryRepo<
       throw new Error(`MemoryRepo ${this.aggregate.name}: нет записи ${uuid}`);
     }
     return ar;
+  }
+
+  /** Новые Ar записей в памяти, чей снимок проходит предикат, в порядке вставки. */
+  protected where(predicate: (snapshot: S) => boolean): A[] {
+    return [...this.rows.values()]
+      .filter(predicate)
+      .map((row) => this.restore(structuredClone(row)));
   }
 
   /**
