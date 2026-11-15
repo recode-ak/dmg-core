@@ -12,6 +12,7 @@ export { TEST_NOW, testAppContext } from './app-context';
 export { AwaitingBus } from './awaiting-bus';
 export { ExampleAppDef } from './example/example.app';
 export { ExampleArch } from './example/example.arch';
+export { ExampleGraph } from './example/example.graph';
 export { expectErr, expectOk } from './expect-result';
 export { MemoryBus, RecordingBus } from './memory-bus';
 export { type LogRecord, MemoryLogger } from './memory-logger';

@@ -1,10 +1,12 @@
 #!/usr/bin/env bun
 /**
  * CLI пакета: каркас проекта, доставка скилов, ролей и вставки в инструкции
- * агентов, генератор модулей, чтение лога операций. Команды — `USAGE` ниже.
+ * агентов, генератор модулей, чтение лога операций, документ графа
+ * приложения. Команды — `USAGE` ниже.
  */
 import { join } from 'node:path';
 import { DmgCoreCli } from './dmg-core-cli';
+import { GraphCommand } from './graph-command';
 import { OplogCommand } from './oplog-command';
 import { PackageSource } from './package-source';
 
@@ -12,6 +14,7 @@ const USAGE = [
   'Использование: dmg-core init | sync [--check] | gen <вид> <модуль>[.<агрегат>] [<имя>] [--write] [--dry-run] [--adopt]',
   '               dmg-core init --profile single|monorepo [--name <имя>] [--dry-run]',
   '               dmg-core oplog <dir> [--request <id>] [--aggregate <uuid>] [--subject <id>] [--actor <id>] [--module <m>] [--op <o>] [--failed] [--since <d>] [--until <d>] [--json]',
+  '               dmg-core graph <файл> [--out <путь>]',
 ].join('\n');
 
 const [command, ...flags] = process.argv.slice(2);
@@ -23,6 +26,16 @@ if (command === 'oplog') {
   for (const message of done.messages) print(message);
   if (done.usage) console.error(USAGE);
   process.exit(done.ok ? 0 : 2);
+}
+
+// graph — тоже без пакета проекта: файл приложения и `package.json` корня.
+// Ошибка ввода — код 2 и справка, отказ по состоянию проекта — код 1.
+if (command === 'graph') {
+  const done = await new GraphCommand(process.cwd()).run(flags);
+  const print = done.ok ? console.log : console.error;
+  for (const message of done.messages) print(message);
+  if (done.usage) console.error(USAGE);
+  process.exit(done.ok ? 0 : done.usage ? 2 : 1);
 }
 
 const cli = new DmgCoreCli(
