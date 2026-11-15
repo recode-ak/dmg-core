@@ -1,6 +1,7 @@
 import type { JsonSchema } from '@valibot/to-json-schema';
 import type * as v from 'valibot';
 import type { AnyModuleDef } from '../domain/contracts/module-def';
+import { UseCaseDef } from '../domain/contracts/use-case-def';
 import type { AnyEventDef } from '../domain/events/event-def';
 import type { AnyDomainRule } from '../domain/rules/domain-rule-def';
 import type { DefIndex } from '../graph/def-index';
@@ -38,6 +39,7 @@ export class DefChecker {
       ...this.checkRejects(),
       ...this.checkUseCaseRules(),
       ...this.checkCalls(),
+      ...this.checkQueryCalls(),
       ...this.checkOwnAggregates(),
     ];
   }
@@ -321,6 +323,31 @@ export class DefChecker {
               ),
             );
           }
+        }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * MAN-14 (D-89): query UC вызывает только query UC — иначе «только чтение»
+   * заместителя обходится вложенной командой.
+   */
+  private checkQueryCalls(): Violation[] {
+    const out: Violation[] = [];
+    for (const m of this.index.modules) {
+      for (const op of m.operations()) {
+        if (!(op instanceof UseCaseDef) || op.type !== 'query') continue;
+        for (const uc of op.calls) {
+          if (uc.type === 'query') continue;
+          const owner = this.index.moduleOf(uc);
+          if (owner === undefined) continue;
+          out.push(
+            new Violation(
+              'MAN-14',
+              `${op.title(m)}: query вызывает command ${owner.localId(uc)}`,
+            ),
+          );
         }
       }
     }

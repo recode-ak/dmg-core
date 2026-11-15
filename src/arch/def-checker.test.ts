@@ -410,6 +410,60 @@ describe('DefChecker', () => {
     });
   });
 
+  describe('MAN-14 — query вызывает только query (D-89)', () => {
+    const WriteItemUcDef = UseCaseDef.define({
+      ...CreateItemUcDef,
+      name: 'writeItem',
+      callers: ['user', 'system'],
+    });
+    const betaWith = ModuleDef.define({
+      ...BetaModuleDef,
+      useCases: [...BetaModuleDef.useCases, WriteItemUcDef],
+    });
+    const alphaWith = (
+      type: 'query' | 'command',
+      calls: AnyUseCaseDef[],
+    ): AnyModuleDef => {
+      const CallerUcDef = UseCaseDef.define({
+        name: 'showNote',
+        label: 'Показать заметку',
+        description: 'Заметка с позицией каталога.',
+        type,
+        aggregate: NoteArDef,
+        callers: ['user'],
+        policy: allowAll,
+        calls,
+        input: v.object({}),
+        output: v.object({}),
+        errors: [],
+      });
+      return ModuleDef.define({
+        ...AlphaModuleDef,
+        dependsOn: [betaWith],
+        useCases: [CallerUcDef],
+        reactions: [],
+        jobs: [],
+      });
+    };
+    const man14 = (m: AnyModuleDef): string[] =>
+      report(m, betaWith).filter((l) => l.startsWith('MAN-14'));
+
+    it('query с command в calls — нарушение с именами обоих UC', () => {
+      const lines = man14(alphaWith('query', [WriteItemUcDef]));
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain('alpha.showNote');
+      expect(lines[0]).toContain('beta.writeItem');
+    });
+
+    it('query с query в calls — без нарушения', () => {
+      expect(man14(alphaWith('query', [GetItemUcDef]))).toEqual([]);
+    });
+
+    it('command с command в calls — MAN-14 не касается', () => {
+      expect(man14(alphaWith('command', [WriteItemUcDef]))).toEqual([]);
+    });
+  });
+
   describe('ARC-05 — dependsOn без циклов', () => {
     it('цикл назван путём', () => {
       const deps: AnyModuleDef[] = [];

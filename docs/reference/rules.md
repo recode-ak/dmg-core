@@ -83,7 +83,7 @@
 | MAN-02 | Каждое поле схем имеет `description` | test |
 | MAN-03 | Схемы input/output/payload конвертируются в JSON Schema | test |
 | MAN-04 | UC/ER/Job публикуют только события из `emits` | test |
-| MAN-05 | ER трогает только `touches`; UC и ER вызывают только UC из `calls` (Def UC других модулей из `dependsOn` с `'system'` в `callers`; `call` типизирован по `calls`, D-43) | test |
+| MAN-05 | ER трогает только `touches`; UC и ER вызывают только UC из `calls` (Def UC других модулей из `dependsOn` с `'system'` в `callers`; `call` типизирован по `calls`, D-43); query — только query (MAN-14) | test |
 | MAN-06 | Граф связен: нет висячих подписчиков, неопубликованных событий, Def вне модуля; у внешнего модуля (`external`) нет ER/Job, его UC — только контракт (D-42), его события публикует внешняя сторона (D-37) | test |
 | MAN-07 | Ссылки между Def — объектами, не строками | type + review |
 | MAN-08 | FQN события = `module.aggregate.event` своего модуля и агрегата | test |
@@ -92,6 +92,7 @@
 | MAN-11 | Def UC объявляет `callers`; домен и Policy работают с субъектом (`caller.subject()`), а не с `kind`; Policy вызывается всегда (D-43) | type + review |
 | MAN-12 | Переход в Def агрегата объявляет отказ (`rejects`) для каждого статуса вне `from` ошибкой из группы этого агрегата; статус Ar меняет только `transition` | type + test |
 | MAN-13 | Один UoW — один модуль: `aggregate` UC, `touches` ER и `scans` Job — агрегаты своего модуля; чужой модуль меняется только через его фасад или событие (D-28) | test |
+| MAN-14 | query UC вызывает только query UC (`calls`): иначе запись идёт мимо признака «только чтение» заместителя (D-89) | test |
 
 ## ERR — ошибки
 
