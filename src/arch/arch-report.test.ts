@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { AppDef } from '../domain/contracts/app-def';
 import { ModuleDef } from '../domain/contracts/module-def';
 import { ExampleArch } from '../testing/example/example.arch';
 import type { ArchApp } from './arch-checker';
@@ -26,19 +27,23 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 /** Модуль-заготовка без нарушений: label и description не заполнены. */
 const draft: ArchApp = {
-  name: 'draft',
-  modules: [
-    ModuleDef.define({
-      name: 'draft',
-      label: 'TODO: название модуля',
-      description: 'TODO: что делает модуль',
-      dependsOn: [],
-      aggregates: [],
-      useCases: [],
-      reactions: [],
-      jobs: [],
-    }),
-  ],
+  def: AppDef.define({
+    name: 'draft',
+    label: 'Заготовка',
+    description: 'Приложение с модулем-заготовкой.',
+    modules: [
+      ModuleDef.define({
+        name: 'draft',
+        label: 'TODO: название модуля',
+        description: 'TODO: что делает модуль',
+        dependsOn: [],
+        aggregates: [],
+        useCases: [],
+        reactions: [],
+        jobs: [],
+      }),
+    ],
+  }),
   layout: () => ({ domain: join(root, 'domain'), app: join(root, 'app') }),
 };
 
@@ -67,8 +72,12 @@ describe('reportArchCheck', () => {
     });
     const { code, lines } = run([
       {
-        name: 'broken',
-        modules: [broken],
+        def: AppDef.define({
+          name: 'broken',
+          label: 'Сломанное',
+          description: 'Приложение с модулем без названия.',
+          modules: [broken],
+        }),
         layout: () => ({ domain: '/нет/домена', app: '/нет/пакета' }),
       },
     ]);
@@ -108,6 +117,20 @@ describe('reportArchCheck', () => {
         `Правила по ID: ${RULES_DOC}`,
       ],
     });
+  });
+
+  it('имя в строке отчёта — имя из AppDef', () => {
+    expect(run([draft]).lines[0]).toBe('arch:check draft: нарушений — 0');
+    const named: ArchApp = {
+      ...draft,
+      def: AppDef.define({
+        name: 'school',
+        label: 'Школа',
+        description: 'Приложение школы.',
+        modules: draft.def.modules,
+      }),
+    };
+    expect(run([named]).lines[0]).toBe('arch:check school: нарушений — 0');
   });
 
   it('RULES_DOC — путь к rules.md установленного пакета', async () => {

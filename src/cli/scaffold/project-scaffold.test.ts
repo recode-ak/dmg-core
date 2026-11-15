@@ -29,6 +29,7 @@ const SINGLE_FILES = [
   'biome.json',
   'dmg-core.json',
   'scripts/arch-check.ts',
+  'src/domain/acme.app.ts',
   'src/domain/shared/app-user.ts',
   'src/app/app.ts',
   'src/app/app.types.ts',
@@ -92,10 +93,25 @@ describe('ProjectScaffold single: состав плана', () => {
       expect(create).toThrow(GenError);
       expect(create).toThrow(`Имя проекта «${name}» — не имя пакета npm`);
     }
+    for (const name of ['acme', '@acme/school', 'my-app']) {
+      expect(
+        () => new ProjectScaffold({ profile: 'single', name, pkg }),
+      ).not.toThrow();
+    }
+  });
+
+  it('имя без scope не годится в имя приложения — GenError с именем и правилом', () => {
+    // `@acme/_x` отсекает уже правило имени пакета npm — тоже отказ.
     expect(
-      () =>
-        new ProjectScaffold({ profile: 'single', name: '@acme/school', pkg }),
-    ).not.toThrow();
+      () => new ProjectScaffold({ profile: 'single', name: '@acme/_x', pkg }),
+    ).toThrow(GenError);
+    for (const name of ['acme.io', '1school']) {
+      const create = () =>
+        new ProjectScaffold({ profile: 'single', name, pkg });
+      expect(create).toThrow(GenError);
+      expect(create).toThrow(`Имя проекта «${name}» не годится`);
+      expect(create).toThrow('^[a-z][a-z0-9-]*$');
+    }
   });
 });
 
@@ -160,12 +176,17 @@ describe('ProjectScaffold single: прочие конфиги', () => {
     const defaults = config.defaults();
     expect(data).toEqual({
       ...defaults,
-      gen: { ...defaults.gen, compositionRoot: 'src/app' },
+      gen: {
+        ...defaults.gen,
+        compositionRoot: 'src/app',
+        appDef: 'src/domain/acme.app.ts',
+      },
     });
     expect(config.parse(data).gen).toEqual({
       domain: 'src/domain/{m}',
       app: 'src/app/{m}',
       compositionRoot: 'src/app',
+      appDef: 'src/domain/acme.app.ts',
     });
   });
 
@@ -176,14 +197,29 @@ describe('ProjectScaffold single: прочие конфиги', () => {
     expect(src).toContain('await GenLayout.read(');
     expect(src).toContain('layout: (m) => layout.module(m)');
     expect(src).toContain(
-      "export const modules: ArchApp['modules'] = [\n  // gen:modules\n];",
+      "import { AcmeAppDef } from '../src/domain/acme.app';",
     );
-    expect(src).toContain("from 'dmg-core/gen';\n// gen:imports\n");
+    expect(src).toContain('def: AcmeAppDef');
+    expect(src).not.toContain("ArchApp['modules']");
+    expect(src).not.toContain('gen:');
     expect(src).toContain("root: join(root, 'src/app')");
     expect(src).toContain("runners: [join(root, 'src/runner')]");
-    expect(src).toContain(`name: '${NAME}'`);
+    expect(src).not.toContain('name:');
     expect(src).toContain('reportArchCheck(');
     expect(src).toContain("strict: process.argv.includes('--strict')");
+  });
+
+  it('acme.app.ts — AppDef с маркерами подключения модулей и TODO в текстах', () => {
+    const src = file('src/domain/acme.app.ts');
+
+    expect(src).toContain(
+      "import { AppDef } from 'dmg-core';\n// gen:imports\n",
+    );
+    expect(src).toContain('export const AcmeAppDef = AppDef.define({');
+    expect(src).toContain("name: 'acme'");
+    expect(src).toContain("label: 'TODO: название приложения'");
+    expect(src).toContain("description: 'TODO: что делает приложение'");
+    expect(src).toContain('modules: [\n    // gen:modules\n  ]');
   });
 
   it('app.ts — маркеры подключения модулей для gen module/aggregate', () => {

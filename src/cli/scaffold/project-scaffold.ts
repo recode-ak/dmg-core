@@ -9,6 +9,9 @@ import { ScaffoldLayout } from './scaffold-layout';
 /** Имя пакета npm: строчные, без пробелов, необязательный scope. */
 const PACKAGE_NAME = /^(?:@[a-z0-9~-][a-z0-9._~-]*\/)?[a-z0-9~-][a-z0-9._~-]*$/;
 
+/** Имя приложения (`AppDef`) — имя пакета без scope: сегмент `id` графа и часть имени константы. */
+const APP_NAME = /^[a-z][a-z0-9-]*$/;
+
 /**
  * Каркас нового проекта (`dmg-core init --profile`) как план файлов:
  * конфиги проекта и исходники по раскладке профиля (`ScaffoldLayout`). План ничего не пишет — запись делает
@@ -19,6 +22,12 @@ export class ProjectScaffold {
   constructor(private readonly options: ScaffoldOptions) {
     if (!PACKAGE_NAME.test(options.name)) {
       throw new GenError(`Имя проекта «${options.name}» — не имя пакета npm`);
+    }
+    const appName = options.name.replace(/^@[^/]+\//, '');
+    if (!APP_NAME.test(appName)) {
+      throw new GenError(
+        `Имя проекта «${options.name}» не годится в имя приложения: имя пакета без scope — «${appName}» — должно соответствовать ^[a-z][a-z0-9-]*$`,
+      );
     }
   }
 

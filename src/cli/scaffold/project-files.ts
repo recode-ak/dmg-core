@@ -1,5 +1,4 @@
-import { LINE_WIDTH } from '../../gen/import-order';
-import { WIRING_MARKERS } from '../../gen/kinds/app-wiring';
+import { LINE_WIDTH, sortImports } from '../../gen/import-order';
 import { PACKAGE_TEST } from '../../gen/kinds/module-package';
 import { CliConfig } from '../cli-config';
 import type { Dependencies, PackageSource } from '../package-source';
@@ -212,35 +211,28 @@ export class ProjectFiles {
   }
 
   private archCheck(): string {
-    const { app, runner } = this.layout;
-    const { imports, modules } = WIRING_MARKERS;
+    const { app, runner, appDef } = this.layout;
+    // Порядок biome: пакет `@scope/domain` раньше `dmg-core`, путь `../` — позже.
+    const imports = sortImports([
+      "import { join } from 'node:path';",
+      "import { type ArchApp, reportArchCheck } from 'dmg-core/arch';",
+      "import { GenLayout } from 'dmg-core/gen';",
+      `import { ${appDef.constant} } from '${appDef.scriptImport}';`,
+    ]);
     return `/**
  * \`bun run arch:check\` — контрактные проверки архитектуры (\`ArchChecker\`):
- * корни Def приложения, раскладка модулей из \`dmg-core.json\` (\`GenLayout\`),
+ * \`AppDef\` приложения, раскладка модулей из \`dmg-core.json\` (\`GenLayout\`),
  * корень сборки и раннер. Выход 1 — есть нарушения. \`--strict\` —
  * незаполненные \`TODO\` в описаниях Def тоже нарушения (MAN-01).
  */
-import { join } from 'node:path';
-import { type ArchApp, reportArchCheck } from 'dmg-core/arch';
-import { GenLayout } from 'dmg-core/gen';
 ${imports}
-
-/**
- * Корни Def — модули, которые собирает ${app}/app.ts (вставляет
- * \`dmg-core gen module\`). \`export\` нужен biome: маркер импортов под ними
- * organizeImports принимает, только если за ним идёт export.
- */
-export const modules: ArchApp['modules'] = [
-  ${modules}
-];
 
 const root = join(import.meta.dir, '..');
 const layout = await GenLayout.read(root);
 
 const app: ArchApp = {
-  name: '${this.name}',
+  def: ${appDef.constant},
   entry: 'contract',
-  modules,
   layout: (m) => layout.module(m),
   root: join(root, '${app}'),
   runners: [join(root, '${runner}')],

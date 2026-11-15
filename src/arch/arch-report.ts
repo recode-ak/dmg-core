@@ -30,12 +30,12 @@ export function reportArchCheck(
     const violations = options.strict
       ? [...checker.check(), ...warnings]
       : checker.check();
-    print(`arch:check ${app.name}: нарушений — ${violations.length}`);
+    print(`arch:check ${app.def.name}: нарушений — ${violations.length}`);
     for (const v of violations) print(v.format());
     total += violations.length;
     if (options.strict || warnings.length === 0) continue;
     print(
-      `arch:check ${app.name}: незаполненных TODO — ${warnings.length} (предупреждение)`,
+      `arch:check ${app.def.name}: незаполненных TODO — ${warnings.length} (предупреждение)`,
     );
     for (const w of warnings) print(`${w.rule} (предупреждение): ${w.message}`);
     todos += warnings.length;

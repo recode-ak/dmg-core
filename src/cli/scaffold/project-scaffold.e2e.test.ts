@@ -26,6 +26,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { type ArchApp, ArchChecker } from '../../arch';
+import { AppDef } from '../../domain/contracts/app-def';
 import { applyPlan } from '../../gen/apply';
 import { GenLayout } from '../../gen/layout';
 import { runGen } from '../../gen/main';
@@ -428,9 +429,13 @@ describe('ArchChecker на monorepo видит спецификаторы пак
     }
     const domain = await import(layout.domainDir('probe'));
     const app: ArchApp = {
-      name: 'acme',
+      def: AppDef.define({
+        name: 'acme',
+        label: 'Проба',
+        description: 'Приложение пробного модуля.',
+        modules: [domain.ProbeModuleDef],
+      }),
       entry: 'contract',
-      modules: [domain.ProbeModuleDef],
       layout: (m) => layout.module(m),
       root: join(project, 'app/src'),
       runners: [join(project, 'runners/cli/src')],
@@ -478,16 +483,33 @@ describe('monorepo: срез gen подключает модуль без руч
     );
   }, 60_000);
 
-  test('вывод gen: корень сборки, arch-check и package.json изменены, вручную — ничего', () => {
+  test('вывод gen: корень сборки, файл AppDef и package.json изменены, вручную — ничего', () => {
     expect(output).not.toContain('Вставь вручную');
+    expect(output).not.toContain(
+      `Изменён: ${join(project, 'scripts/arch-check.ts')}`,
+    );
     for (const path of [
       'app/src/app.ts',
-      'scripts/arch-check.ts',
+      'domain/src/acme.app.ts',
       'app/package.json',
     ]) {
       expect(output).toContain(`Изменён: ${join(project, path)}`);
     }
     expect(output).toContain('bun install');
+  });
+
+  test('файл AppDef: Def модуля в составе после gen module', () => {
+    const appDef = readFileSync(
+      join(project, 'domain/src/acme.app.ts'),
+      'utf8',
+    );
+    expect(appDef).toContain(
+      "import { TodoModuleDef } from './todo/contract';",
+    );
+    expect(appDef).toContain('    TodoModuleDef,\n');
+    expect(appDef.indexOf('TodoModuleDef,')).toBeLessThan(
+      appDef.indexOf('// gen:modules'),
+    );
   });
 
   test('корень сборки: фабрика модуля с JSON-репозиторием агрегата', () => {

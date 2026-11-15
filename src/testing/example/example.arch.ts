@@ -1,16 +1,15 @@
 import { join } from 'node:path';
 import type { ArchApp } from '#core/arch/arch-checker';
-import { TodoModuleDef } from './todo';
+import { ExampleAppDef } from './example.app';
 
 /**
  * Учебное приложение для `arch:check` (D-45): домен — `example/<m>`,
  * прикладной слой — `example/app/<m>`, вход модуля — `contract.ts`. Корень
- * сборки — `example/app`, раннер — `example/runner`; `users` — по `dependsOn`.
+ * сборки — `example/app`, раннер — `example/runner`; состав — `ExampleAppDef`.
  */
 export const ExampleArch: ArchApp = {
-  name: 'example',
+  def: ExampleAppDef,
   entry: 'contract',
-  modules: [TodoModuleDef],
   layout: (m) => ({
     domain: join(import.meta.dir, m),
     app: join(import.meta.dir, 'app', m),

@@ -14,8 +14,9 @@ const MONO: Gen = {
   domainImport: '@acme/domain/{m}',
   package: '@acme/{m}',
   compositionRoot: 'app/src',
+  appDef: '/d/acme.app.ts',
 };
-const SINGLE: Gen = GenLayout.defaults;
+const SINGLE: Gen = { ...GenLayout.defaults, appDef: 'src/domain/acme.app.ts' };
 const CUSTOM: Gen = {
   domain: '/d/{m}',
   app: '/p/{m}/src',
@@ -23,17 +24,52 @@ const CUSTOM: Gen = {
 };
 
 describe('AppWiring.moduleEdits', () => {
-  it('monorepo: маркеры app.ts и arch-check.ts', () => {
+  it('monorepo: маркеры app.ts и файла AppDef', () => {
     const edits = wiring(MONO).moduleEdits();
     const { imports, modules, repos } = WIRING_MARKERS;
     expect(edits.map((e) => [e.path, e.marker])).toEqual([
       ['app/src/app.ts', imports],
       ['app/src/app.ts', imports],
       ['app/src/app.ts', modules],
-      ['scripts/arch-check.ts', imports],
-      ['scripts/arch-check.ts', modules],
+      ['/d/acme.app.ts', imports],
+      ['/d/acme.app.ts', modules],
     ]);
     expect(edits[2]?.line).toContain(repos('stream'));
+  });
+
+  it('monorepo: AppDef получает импорт Def и элемент состава', () => {
+    const edits = wiring(MONO)
+      .moduleEdits()
+      .filter((e) => e.path === '/d/acme.app.ts');
+    expect(edits.map((e) => e.line)).toEqual([
+      "import { StreamModuleDef } from './stream/contract';",
+      '    StreamModuleDef,',
+    ]);
+  });
+
+  it('single: правки AppDef — src/domain/acme.app.ts', () => {
+    const edits = wiring(SINGLE).moduleEdits();
+    expect(
+      edits
+        .filter((e) => e.path === 'src/domain/acme.app.ts')
+        .map((e) => e.marker),
+    ).toEqual([WIRING_MARKERS.imports, WIRING_MARKERS.modules]);
+  });
+
+  it('своя раскладка без compositionRoot, но с appDef — только правки AppDef', () => {
+    const edits = wiring({ ...CUSTOM, appDef: '/d/acme.app.ts' }).moduleEdits();
+    expect(edits.map((e) => [e.path, e.marker])).toEqual([
+      ['/d/acme.app.ts', WIRING_MARKERS.imports],
+      ['/d/acme.app.ts', WIRING_MARKERS.modules],
+    ]);
+  });
+
+  it('compositionRoot без appDef — только правки app.ts', () => {
+    const { appDef: _, ...noApp } = MONO;
+    const edits = wiring(noApp).moduleEdits();
+    expect(new Set(edits.map((e) => e.path))).toEqual(
+      new Set(['app/src/app.ts']),
+    );
   });
 
   it('monorepo: фабрика импортируется из пакета модуля', () => {
@@ -53,7 +89,7 @@ describe('AppWiring.moduleEdits', () => {
     );
   });
 
-  it('своя раскладка без compositionRoot — правок нет', () => {
+  it('своя раскладка без compositionRoot и appDef — правок нет', () => {
     expect(wiring(CUSTOM).moduleEdits()).toEqual([]);
   });
 });
@@ -83,6 +119,27 @@ describe('AppWiring.moduleNotes', () => {
 
   it('без gen.package: подсказок нет', () => {
     expect(wiring(SINGLE).moduleNotes()).toEqual([]);
+  });
+
+  it('без appDef — подсказка про gen.appDef с Def и контрактом', () => {
+    const { appDef: _, ...noApp } = MONO;
+    const notes = wiring(noApp).moduleNotes();
+    expect(notes.join('\n')).toContain(
+      'Вставь вручную в манифест приложения (gen.appDef в dmg-core.json), modules: StreamModuleDef (из',
+    );
+    expect(notes.join('\n')).toContain('@acme/domain/stream/contract');
+  });
+
+  it('appDef задан — подсказки про манифест нет', () => {
+    expect(wiring(MONO).moduleNotes().join('\n')).not.toContain('gen.appDef');
+  });
+
+  it('без compositionRoot и appDef — общая подсказка называет gen.appDef', () => {
+    const notes = wiring(CUSTOM).moduleNotes().join('\n');
+    expect(notes).toContain('gen.compositionRoot');
+    expect(notes).toContain(
+      'манифест приложения (gen.appDef в dmg-core.json), modules: StreamModuleDef',
+    );
   });
 
   it('без compositionRoot — подсказка без правок, с именем пакета', () => {

@@ -12,7 +12,7 @@ export type ScaffoldProfile = 'single' | 'monorepo';
 /** Что нужно каркасу проекта. */
 export type ScaffoldOptions = {
   readonly profile: ScaffoldProfile;
-  /** Имя пакета проекта (`package.json`, `ArchApp.name`). */
+  /** Имя пакета проекта (`package.json`; без scope — имя `AppDef`). */
   readonly name: string;
   /** Пакет dmg-core: версия, версии зависимостей, значения `dmg-core.json`. */
   readonly pkg: PackageSource;
@@ -48,6 +48,18 @@ export type ScaffoldImports = {
   readonly appTypes: string;
 };
 
+/** `AppDef` приложения в каркасе (D-93): имя, константа и где лежит. */
+export type ScaffoldAppDef = {
+  /** Имя приложения — имя пакета без scope (сегмент `id` графа). */
+  readonly name: string;
+  /** Имя константы: `<Имя>AppDef`. */
+  readonly constant: string;
+  /** Файл от корня проекта (значение `gen.appDef`). */
+  readonly file: string;
+  /** Спецификатор импорта константы из `scripts/arch-check.ts`. */
+  readonly scriptImport: string;
+};
+
 /** Данные раскладки профиля (`ScaffoldLayout`); пути — от корня проекта. */
 export type ScaffoldLayoutData = {
   /** Исходники домена: тип пользователя — в `<domain>/shared`. */
@@ -61,6 +73,7 @@ export type ScaffoldLayoutData = {
   /** Секция `gen` dmg-core.json. */
   readonly gen: GenLayoutSettings;
   readonly imports: ScaffoldImports;
+  readonly appDef: ScaffoldAppDef;
   /** Вход прикладного пакета модуля — в подсказке корня сборки. */
   readonly moduleEntry: string;
   /** Глобы workspaces корневого package.json; нет — проект из одного пакета. */

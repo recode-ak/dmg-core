@@ -30,7 +30,7 @@
 | API-07 | `api-07-no-call-in-load.grit` | `*.uc.ts` | то же | то же |
 | API-05 | `api-05-step-methods.grit` | все исходники (в пакете — и тесты: эталон копируют) | то же | то же |
 
-**Известный пробел DOM-01.** Импорт чужого state по относительному пути (`../../users/user/user.state`) lint ловит только в `*.policy.ts`, `*.rules.ts`, `*.dcs.ts`. В остальных файлах домена (Ar, DQS) — только `arch:check` (ARC-04) и только для модулей из `modules` `arch-check.ts`; из `<domain>/shared` — никто, остаётся review.
+**Известный пробел DOM-01.** Импорт чужого state по относительному пути (`../../users/user/user.state`) lint ловит только в `*.policy.ts`, `*.rules.ts`, `*.dcs.ts`. В остальных файлах домена (Ar, DQS) — только `arch:check` (ARC-04) и только для модулей из `AppDef` приложения (и их замыкания по `dependsOn`); из `<domain>/shared` — никто, остаётся review.
 
 Имена модулей домена `app`, `runner` (single) и `app`, `runners`, `modules` (monorepo) зарезервированы: глоб запрета ARC-02 видит спецификатор `../app/…`, а не путь, и импорт такого соседа даёт ложное нарушение.
 
@@ -79,7 +79,7 @@
 
 | ID | Правило | Проверка |
 |---|---|---|
-| MAN-01 | Все Def (модуль, фасад, Ar, UC, ER, Job, событие, ошибка) имеют `label` и `description`; незаполненные `TODO` заготовок (в т. ч. метки статусов и Policy) — предупреждение `arch:check`, с `--strict` — нарушение | type + test + arch |
+| MAN-01 | Все Def (приложение, модуль, фасад, Ar, UC, ER, Job, событие, ошибка) имеют `label` и `description`; незаполненные `TODO` заготовок (в т. ч. метки статусов и Policy) — предупреждение `arch:check`, с `--strict` — нарушение | type + test + arch |
 | MAN-02 | Каждое поле схем имеет `description` | test |
 | MAN-03 | Схемы input/output/payload конвертируются в JSON Schema | test |
 | MAN-04 | UC/ER/Job публикуют только события из `emits` | test |
@@ -93,6 +93,7 @@
 | MAN-12 | Переход в Def агрегата объявляет отказ (`rejects`) для каждого статуса вне `from` ошибкой из группы этого агрегата; статус Ar меняет только `transition` | type + test |
 | MAN-13 | Один UoW — один модуль: `aggregate` UC, `touches` ER и `scans` Job — агрегаты своего модуля; чужой модуль меняется только через его фасад или событие (D-28) | test |
 | MAN-14 | query UC вызывает только query UC (`calls`): иначе запись идёт мимо признака «только чтение» заместителя (D-89) | test |
+| MAN-15 | Состав `AppDef`: модуль входит один раз (по ссылке и по имени); каждый не-external модуль из замыкания `dependsOn` перечислен в `modules` (`external` — не требуется, D-37); имя приложения — сегмент `id` графа (D-92, D-93) | test (`arch:check`) |
 
 ## ERR — ошибки
 

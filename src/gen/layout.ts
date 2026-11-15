@@ -23,10 +23,23 @@ export interface GenLayoutSettings {
    * `gen.package` и пути на `/src` — ещё зависимость в `package.json` пакета.
    */
   compositionRoot?: string;
+  /**
+   * Файл `AppDef` проекта (`<домен>/<имя>.app.ts`) — без `{m}`: `gen module`
+   * вписывает Def модуля в его `modules` по маркерам файла. Значения по
+   * умолчанию нет — имя приложения генератору неизвестно.
+   */
+  appDef?: string;
 }
 
 /** Поля секции `gen`. */
-const FIELDS = ['domain', 'app', 'domainImport', 'package', 'compositionRoot'];
+const FIELDS = [
+  'domain',
+  'app',
+  'domainImport',
+  'package',
+  'compositionRoot',
+  'appDef',
+];
 
 /** Суффикс каталога прикладного слоя в пакете модуля. */
 const SRC = '/src';
@@ -52,9 +65,6 @@ export class GenLayout {
    * не подключает модуль сам, а печатает общую подсказку.
    */
   static readonly defaultCompositionRoot = 'src/app';
-
-  /** Скрипт `arch:check` проекта (пишет `dmg-core init`) — от корня проекта */
-  static readonly archCheck = 'scripts/arch-check.ts';
 
   /** Раскладка проекта из `dmg-core.json`; нет файла или секции — по умолчанию */
   static async read(root: string): Promise<GenLayout> {
@@ -102,6 +112,13 @@ export class GenLayout {
         GenLayout.fail('gen.compositionRoot — путь каталога без {m}');
       }
       gen.compositionRoot = value as string;
+    }
+    if (data.appDef !== undefined) {
+      const value = data.appDef;
+      if (typeof value !== 'string' || value.includes('{m}')) {
+        GenLayout.fail('gen.appDef — путь файла без {m}');
+      }
+      gen.appDef = value as string;
     }
     if (data.package !== undefined) {
       const value = data.package;
@@ -176,9 +193,10 @@ export class GenLayout {
     return join(dir.slice(0, -SRC.length), 'package.json');
   }
 
-  /** Скрипт `arch:check` проекта */
-  archCheckFile(): string {
-    return this.path(GenLayout.archCheck, '');
+  /** Файл `AppDef` (`gen.appDef`); не задан — undefined */
+  appDefFile(): string | undefined {
+    const { appDef } = this.settings;
+    return appDef === undefined ? undefined : this.path(appDef, '');
   }
 
   /** Пакет прикладного слоя модуля; нет `gen.package` — undefined */
@@ -202,7 +220,8 @@ export class GenLayout {
     const withPackage =
       name === undefined ? line : `${line}, пакет модуля — ${name}`;
     const root = this.compositionRoot() ?? 'не задан (gen.compositionRoot)';
-    return `${withPackage}, корень сборки — ${root}`;
+    const appDef = this.settings.appDef ?? 'не задан (gen.appDef)';
+    return `${withPackage}, корень сборки — ${root}, манифест приложения — ${appDef}`;
   }
 
   /** Импорт домена по шаблону (`gen.domainImport`), а не относительный */

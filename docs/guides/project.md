@@ -26,7 +26,7 @@ bunx dmg-core init --profile monorepo   # или single; --dry-run — толь�
 bun install && bun run check
 ```
 
-Порядок важен: сначала `bun add dmg-core`, потом `init` — бинарь `dmg-core` берётся из установленного пакета. Имя проекта — `--name`, иначе `name` из `package.json`, иначе имя каталога. Существующие файлы не перезаписываются (коллизия — ошибка, ничего не записано); существующий `package.json` дополняется и пишется последним, после проверки коллизий; добавлять нечего — файл не переписывается. Если `dmg-core` поставлен не из реестра (tarball, `file:`), `init` переписывает путь в зависимости корня относительно корня проекта (`../dmg-core-0.1.0.tgz`) — проект переносим вместе с tarball. В monorepo он же добавляет `overrides.dmg-core` с тем же путём — иначе `bun install` ищет `dmg-core` пакетов workspaces в реестре и падает 404. Старый абсолютный `overrides` на тот же файл заменяется; на другой пакет — ошибка с подсказкой, ничего не записано. Поставил `dmg-core` не из реестра уже после `init` — добавь `overrides` руками.
+Порядок важен: сначала `bun add dmg-core`, потом `init` — бинарь `dmg-core` берётся из установленного пакета. Имя проекта — `--name`, иначе `name` из `package.json`, иначе имя каталога. Имя пакета без scope становится именем приложения (`AppDef`, сегмент `id` графа), поэтому оно должно соответствовать `^[a-z][a-z0-9-]*$` (`acme.io`, `1school`, `@acme/_x` — отказ). Существующие файлы не перезаписываются (коллизия — ошибка, ничего не записано); существующий `package.json` дополняется и пишется последним, после проверки коллизий; добавлять нечего — файл не переписывается. Если `dmg-core` поставлен не из реестра (tarball, `file:`), `init` переписывает путь в зависимости корня относительно корня проекта (`../dmg-core-0.1.0.tgz`) — проект переносим вместе с tarball. В monorepo он же добавляет `overrides.dmg-core` с тем же путём — иначе `bun install` ищет `dmg-core` пакетов workspaces в реестре и падает 404. Старый абсолютный `overrides` на тот же файл заменяется; на другой пакет — ошибка с подсказкой, ничего не записано. Поставил `dmg-core` не из реестра уже после `init` — добавь `overrides` руками.
 
 ## 3. Что создаёт `init`
 
@@ -34,8 +34,9 @@ bun install && bun run check
 |---|---|---|
 | `package.json` | скрипты `check`, `lint`, `format`, `arch:check`; версии из пакета | то же + `workspaces`, домен в `devDependencies` корня |
 | `tsconfig.json`, `biome.json` | строгий TS; `overrides` по [карте линтера](../reference/rules.md#карта-линтера); `data/` biome не проверяет | то же; у каждого пакета свой `tsconfig.json` поверх корневого |
-| `dmg-core.json` | секция `gen`: `compositionRoot: src/app` | `gen` с `domainImport`, `package`, `compositionRoot: app/src` |
-| `scripts/arch-check.ts` | `ArchApp` из `GenLayout`, `root` и `runners` — для ARC-07/08; список `modules` с маркером генератора | то же |
+| `dmg-core.json` | секция `gen`: `compositionRoot: src/app`, `appDef` | `gen` с `domainImport`, `package`, `compositionRoot: app/src`, `appDef` |
+| `scripts/arch-check.ts` | `ArchApp` с `def: <Имя>AppDef`, раскладка из `GenLayout`, `root` и `runners` — для ARC-07/08; маркеров генератора нет | то же; `AppDef` — из `@<scope>/domain` |
+| `AppDef` (D-93) | `src/domain/<имя>.app.ts` — `<Имя>AppDef` (имя пакета без scope) с маркерами `gen:imports`, `gen:modules`, `TODO` в `label` и `description`; путь — `gen.appDef` | `domain/src/<имя>.app.ts`, экспорт из `domain/src/index.ts` |
 | домен | `src/domain/shared/app-user.ts` — тип пользователя | `domain/` — пакет с `exports` `./*/contract`, `./*/testing`, `./*` |
 | корень сборки | `src/app/app.ts`, резолвер `Caller`, тест | `app/` — пакет `@<scope>/app` |
 | раннер | `src/runner/`: окружение, CLI, `main.ts`, тесты | `runners/cli/` |
@@ -83,9 +84,9 @@ APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e '
 ```
 
 1. **Подключение — генератор** ([naming.md](../reference/naming.md) §5, маркеры `// gen:imports`, `// gen:modules`, `// gen:repos:<m>`):
-   - `gen module` — фабрика в список модулей корня сборки (`{ def: <M>ModuleDef, create: (deps) => create<M>Module({ ...deps }) }`; фабрика — из входа прикладного пакета, Def — из контракта домена), `<M>ModuleDef` — в `modules` `scripts/arch-check.ts`, в monorepo — `"@<scope>/<m>": "workspace:*"` в `app/package.json` (затем `bun install`);
+   - `gen module` — фабрика в список модулей корня сборки (`{ def: <M>ModuleDef, create: (deps) => create<M>Module({ ...deps }) }`; фабрика — из входа прикладного пакета, Def — из контракта домена), `<M>ModuleDef` — в `modules` файла `AppDef` (`gen.appDef`; импорт Def — относительный, файл лежит в пакете домена), в monorepo — `"@<scope>/<m>": "workspace:*"` в `app/package.json` (затем `bun install`);
    - `gen aggregate` — репозиторий в фабрику: `<a>Repo: new <A>JsonRepo(join(env.dataDir, '<m>.<a>.json'))` (имя файла уникально в приложении).
-   - Нет маркера (своя раскладка, правленый `app.ts`) или конфликт имён импортов (агрегаты с одним именем в двух модулях) — генератор печатает «Вставь вручную в <файл> перед <маркер>» с причиной и не падает. Без `gen.compositionRoot` при своей раскладке корень сборки не правится — подсказка называет поле.
+   - Нет маркера (своя раскладка, правленый `app.ts`) или конфликт имён импортов (агрегаты с одним именем в двух модулях) — генератор печатает «Вставь вручную в <файл> перед <маркер>» с причиной и не падает. Без `gen.compositionRoot` при своей раскладке корень сборки не правится, без `gen.appDef` не правится `AppDef` — подсказка называет поле.
 2. **UC.** `gen uc <m>.<a> create` (или `create-*`) — рабочий: `<A>Ar.create`, `uow.register`, `emits: [created]`, выход `<a>Id`; остаётся перенести поля входа. Остальные — `load` агрегата по `<a>Id` с `NOT_FOUND`, `execute` с `TODO` для операции домена, `emits: []` ([use-case.md](./use-case.md) §2). Событие `created` должен кто-то публиковать (MAN-06): генератор напоминает, пока UC создания нет.
 3. **Вызов.** Любой UC — `call` раннера; отдельный e2e-тест `call` проекту не нужен: раннер покрыт тестами каркаса, сценарии — тестами Ar и UC. Своя команда в `runner-cli.ts` нужна только для удобного интерфейса (образец — [app.md](./app.md) §3). Видимость для транспорта задают `callers` и Policy, а не `contract.ts` (D-54): контракт — граница импортов между модулями.
 4. **Модуль пользователей** — резолвер `Caller` вместо заглушки (TODO в `app-caller-resolver.ts`, образец — [app.md](./app.md) §3); роли приложения — сузить `role` в типе пользователя (TODO в `app-user.ts` домена, D-53). Эти `TODO` в комментариях `arch:check --strict` не ловит: он проверяет только тексты Def.
@@ -93,8 +94,8 @@ APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e '
 
 ## 5. Кто что правит руками
 
-- **Каркас** пишется один раз: дальше `app.ts`, `arch-check.ts`, раннер и конфиги — код проекта, `init` их не обновляет. Маркеры `// gen:…` в них не удаляй — по ним генератор подключает модули.
-- **Генератор** создаёт заготовки и правит существующие файлы только по маркерам: паспорт и карту модуля, `index.ts`, `Deps`, корень сборки, `arch-check.ts`, `dependencies` пакета корня сборки.
+- **Каркас** пишется один раз: дальше `app.ts`, файл `AppDef`, `arch-check.ts`, раннер и конфиги — код проекта, `init` их не обновляет. Маркеры `// gen:…` в них не удаляй — по ним генератор подключает модули.
+- **Генератор** создаёт заготовки и правит существующие файлы только по маркерам: паспорт и карту модуля, `index.ts`, `Deps`, корень сборки, `modules` файла `AppDef`, `dependencies` пакета корня сборки.
 - **Автор** заполняет `TODO` заготовок (названия, схемы, поля state, операции Ar), контракт модуля для других модулей (D-45), `dependsOn`, `callers` и `policy` UC.
 - **`dmg-core sync`** обновляет скилы и роли агентов после обновления пакета; `biome.json` и `tsconfig.json` после обновления пакета сверяй с картой линтера сам.
 

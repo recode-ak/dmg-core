@@ -32,8 +32,9 @@ export class AppSources {
   }
 
   files(): ScaffoldFile[] {
-    const { domain, app, runner } = this.layout;
+    const { domain, app, runner, appDef } = this.layout;
     return [
+      { path: appDef.file, content: this.appDef() },
       { path: `${domain}/shared/app-user.ts`, content: this.appUser() },
       { path: `${app}/app.types.ts`, content: this.appTypes() },
       { path: `${app}/app.ts`, content: this.app() },
@@ -57,15 +58,16 @@ export class AppSources {
   /** Входы пакетов workspaces; в проекте из одного пакета их нет. */
   private entries(): ScaffoldFile[] {
     if (this.layout.workspaces === undefined) return [];
-    const { domain, app } = this.layout;
+    const { domain, app, appDef } = this.layout;
     return [
       {
         path: `${domain}/index.ts`,
         content: `/**
- * Вход пакета домена: общий домен приложения (D-53). Модули — подпутями
- * пакета: \`<пакет>/<m>/contract\` для другого кода, \`<пакет>/<m>\` — для
- * своего прикладного пакета.
+ * Вход пакета домена: \`AppDef\` приложения и общий домен (D-53). Модули —
+ * подпутями пакета: \`<пакет>/<m>/contract\` для другого кода,
+ * \`<пакет>/<m>\` — для своего прикладного пакета.
  */
+export { ${appDef.constant} } from './${appDef.name}.app';
 export type { AppUser } from './shared';
 `,
       },
@@ -106,6 +108,29 @@ export type { AppEnv, AppPorts, CallerResolver } from './app.types';
       return namedImport(items, from, types);
     });
     return sortImports([...statements, ...namespaces]);
+  }
+
+  /**
+   * `AppDef` приложения (D-93) — манифест состава; `gen module` вписывает
+   * модули по маркерам. `export` сразу за маркером импортов нужен biome:
+   * organizeImports принимает маркер, только если за ним идёт export.
+   */
+  private appDef(): string {
+    const { constant, name } = this.layout.appDef;
+    const { imports, modules } = WIRING_MARKERS;
+    return `import { AppDef } from 'dmg-core';
+${imports}
+
+/** Манифест приложения: полный состав модулей (MAN-15). */
+export const ${constant} = AppDef.define({
+  name: '${name}',
+  label: 'TODO: название приложения',
+  description: 'TODO: что делает приложение',
+  modules: [
+    ${modules}
+  ],
+});
+`;
   }
 
   private appUser(): string {
@@ -216,7 +241,7 @@ export class App {
     const context = App.context(env, ports);
     // Фабрики модулей — из входа прикладного пакета ${this.layout.moduleEntry}
     // с замыканием на репозитории. Вставляет \`dmg-core gen module\`
-    // (корень Def — и в scripts/arch-check.ts), репозитории — \`gen aggregate\`.
+    // (Def — и в состав \`AppDef\`, \`gen.appDef\`), репозитории — \`gen aggregate\`.
     const modules: ModuleFactory<AppUser>[] = [
       ${WIRING_MARKERS.modules}
     ];

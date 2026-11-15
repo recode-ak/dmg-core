@@ -31,6 +31,7 @@ const MONOREPO_FILES = [
   'domain/package.json',
   'domain/tsconfig.json',
   'domain/src/index.ts',
+  'domain/src/acme.app.ts',
   'domain/src/shared/index.ts',
   'domain/src/shared/app-user.ts',
   'app/package.json',
@@ -231,6 +232,7 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
       domainImport: '@acme/domain/{m}',
       package: '@acme/{m}',
       compositionRoot: 'app/src',
+      appDef: 'domain/src/acme.app.ts',
     };
 
     expect(data).toEqual({ ...config.defaults(), gen });
@@ -241,13 +243,45 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
     const src = file('scripts/arch-check.ts');
 
     expect(src).toContain('await GenLayout.read(');
-    expect(src).toContain(
-      "export const modules: ArchApp['modules'] = [\n  // gen:modules\n];",
-    );
-    expect(src).toContain("from 'dmg-core/gen';\n// gen:imports\n");
+    expect(src).toContain("import { AcmeAppDef } from '@acme/domain';");
+    expect(src).toContain('def: AcmeAppDef');
+    expect(src).not.toContain("ArchApp['modules']");
+    expect(src).not.toContain('gen:');
     expect(src).toContain("root: join(root, 'app/src')");
     expect(src).toContain("runners: [join(root, 'runners/cli/src')]");
-    expect(src).toContain(`name: '${NAME}'`);
+    expect(src).not.toContain('name:');
+  });
+
+  it('acme.app.ts — AppDef с маркерами подключения модулей и TODO в текстах', () => {
+    const src = file('domain/src/acme.app.ts');
+
+    expect(src).toContain(
+      "import { AppDef } from 'dmg-core';\n// gen:imports\n",
+    );
+    expect(src).toContain('export const AcmeAppDef = AppDef.define({');
+    expect(src).toContain("name: 'acme'");
+    expect(src).toContain("label: 'TODO: название приложения'");
+    expect(src).toContain('modules: [\n    // gen:modules\n  ]');
+  });
+
+  it('имя со scope: AppDef — school, файл domain/src/school.app.ts, gen.appDef', () => {
+    const name = '@acme/school';
+
+    expect(file('domain/src/school.app.ts', name)).toContain(
+      "export const SchoolAppDef = AppDef.define({\n  name: 'school',",
+    );
+    expect(json('dmg-core.json', name).gen.appDef).toBe(
+      'domain/src/school.app.ts',
+    );
+    expect(file('scripts/arch-check.ts', name)).toContain(
+      "import { SchoolAppDef } from '@acme/domain';",
+    );
+  });
+
+  it('domain/src/index.ts экспортирует AppDef приложения', () => {
+    expect(file('domain/src/index.ts')).toContain(
+      "export { AcmeAppDef } from './acme.app';",
+    );
   });
 
   it('app.ts — маркеры подключения модулей для gen module/aggregate', () => {

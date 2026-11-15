@@ -1,4 +1,5 @@
 import { GenLayout } from '../../gen/layout';
+import { toPascal } from '../../gen/naming';
 import { LintMap } from './lint-map';
 import type {
   ScaffoldLayoutData,
@@ -7,6 +8,9 @@ import type {
 
 /** Scope из имени пакета: `@acme/school` → `acme`. */
 const SCOPE = /^@([^/]+)\//;
+
+/** Имя пакета без scope: `@acme/school` → `school`. */
+const BARE = /^@[^/]+\//;
 
 /**
  * Раскладка профиля каркаса: каталоги домена, корня сборки и раннера,
@@ -17,16 +21,18 @@ const SCOPE = /^@([^/]+)\//;
 export class ScaffoldLayout {
   /** Раскладка профиля для проекта `name`; scope пакетов monorepo — из имени. */
   static of(profile: ScaffoldProfile, name: string): ScaffoldLayout {
+    const appName = name.replace(BARE, '');
     switch (profile) {
       case 'single':
-        return ScaffoldLayout.single();
+        return ScaffoldLayout.single(appName);
       case 'monorepo':
-        return ScaffoldLayout.monorepo(SCOPE.exec(name)?.[1] ?? name);
+        return ScaffoldLayout.monorepo(SCOPE.exec(name)?.[1] ?? name, appName);
     }
   }
 
   /** Один пакет: всё в `src/` (как учебный пример пакета). */
-  private static single(): ScaffoldLayout {
+  private static single(appName: string): ScaffoldLayout {
+    const file = `src/domain/${appName}.app.ts`;
     return new ScaffoldLayout({
       domain: 'src/domain',
       app: 'src/app',
@@ -35,6 +41,13 @@ export class ScaffoldLayout {
       gen: {
         ...GenLayout.defaults,
         compositionRoot: GenLayout.defaultCompositionRoot,
+        appDef: file,
+      },
+      appDef: {
+        name: appName,
+        constant: `${toPascal(appName)}AppDef`,
+        file,
+        scriptImport: `../src/domain/${appName}.app`,
       },
       imports: {
         appUser: '../domain/shared/app-user',
@@ -53,7 +66,8 @@ export class ScaffoldLayout {
    * прикладные пакеты `modules/*` (создаёт `gen module`), раннеры
    * `runners/*`. Домен и корень сборки импортируются по имени пакета.
    */
-  private static monorepo(scope: string): ScaffoldLayout {
+  private static monorepo(scope: string, appName: string): ScaffoldLayout {
+    const file = `domain/src/${appName}.app.ts`;
     const domain = `@${scope}/domain`;
     const app = `@${scope}/app`;
     return new ScaffoldLayout({
@@ -73,6 +87,13 @@ export class ScaffoldLayout {
         domainImport: `${domain}/{m}`,
         package: `@${scope}/{m}`,
         compositionRoot: 'app/src',
+        appDef: file,
+      },
+      appDef: {
+        name: appName,
+        constant: `${toPascal(appName)}AppDef`,
+        file,
+        scriptImport: domain,
       },
       imports: { appUser: `${domain}/shared`, app, appTypes: app },
       moduleEntry: `@${scope}/<m> (modules/<m>/src/index.ts)`,

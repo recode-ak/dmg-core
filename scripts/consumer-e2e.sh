@@ -126,7 +126,7 @@ run_logged() {
 # Имя проекта со scope (`@acme/school`) проверяет вывод scope пакетов
 # monorepo из имени — как в README.
 profile_e2e() {
-  local profile="$1" main="$2" name="$3"
+  local profile="$1" main="$2" name="$3" appdef="$4"
   local dir="$WORK/$profile"
   echo "e2e: профиль $profile ($name)"
   mkdir "$dir"
@@ -153,6 +153,15 @@ profile_e2e() {
   # Подключение модуля генератором — сразу в форме biome, без format.
   run_logged "$WORK/$profile-gen-lint.log" \
     "$profile — biome красный после gen (подключение модуля)" bunx biome check .
+  # Модуль вписан в манифест приложения (AppDef), а не в arch-check.ts.
+  if ! grep -q 'TodoModuleDef,' "$appdef"; then
+    echo "e2e: $profile — в $appdef нет TodoModuleDef, после gen module" >&2
+    exit 1
+  fi
+  if grep -q 'gen:modules' scripts/arch-check.ts; then
+    echo "e2e: $profile — в scripts/arch-check.ts остался маркер gen:modules" >&2
+    exit 1
+  fi
   # Незаполненные TODO заготовок: без флага — предупреждения (код 0),
   # с --strict — нарушения MAN-01 (код 1).
   local arch code
@@ -191,6 +200,6 @@ profile_e2e() {
     bun run check
 }
 
-profile_e2e single src/runner/main.ts acme
-profile_e2e monorepo runners/cli/src/main.ts @acme/school
+profile_e2e single src/runner/main.ts acme src/domain/acme.app.ts
+profile_e2e monorepo runners/cli/src/main.ts @acme/school domain/src/school.app.ts
 echo "e2e: ok"

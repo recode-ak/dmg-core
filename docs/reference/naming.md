@@ -47,6 +47,7 @@
   state.ts                 реэкспорт схем state для своего прикладного пакета (наружу модуля не выходит)
   shared/                  поля и VO модуля поверх F.*
 <domain>/shared/           поля и VO приложения, общие для модулей
+<domain>/<имя>.app.ts      AppDef приложения (D-93): `<Имя>AppDef`, полный состав модулей; путь — поле `gen.appDef`
 ```
 
 Подпути экспорта пакета домена: `<domain>/<m>/contract` — для другого кода; `<domain>/<m>/testing` — для тестового кода других (TST-07); `<domain>/<m>` — для своего прикладного пакета. Подпути state нет: схемы entity наружу не выходят, форма данных — из контракта (D-45). Вход модуля, который проверяет ARC-04, задаёт `ArchApp` (`entry: 'contract'`), вход фикстур — `testing` (по умолчанию `'testing'`).
@@ -76,6 +77,7 @@ infra/<aggregate>.json-repo.ts
 | Экспортируемые типы | рядом, `<file>.types.ts`; в файле класса — только приватные | `aggregate.types.ts`, `task-release.types.ts` |
 | Классы, типы | PascalCase + сокращение | `TaskAr`, `TaskReleaseDcs` |
 | Def | `<Имя><Вид>Def` | `TaskArDef`, `CompleteTaskUcDef` |
+| `AppDef` приложения | файл `<домен>/<имя>.app.ts`, константа `<Имя>AppDef`; имя — имя пакета проекта без scope | `school.app.ts`, `SchoolAppDef` |
 | Группы | `<Агрегат>Events`, `<Агрегат>Errors`, `<Агрегат>Rules` | `TaskEvents.completed` |
 | События (FQN) | `module.aggregate.event`, событие — прошедшее время | `todo.task.completed` |
 | Коды ошибок | UPPER_SNAKE с префиксом сущности, уникальны в приложении | `TASK_ALREADY_DONE` |
@@ -94,12 +96,12 @@ infra/<aggregate>.json-repo.ts
 
 | Команда | Что создаёт |
 |---|---|
-| `gen module <m>` | домен: `<m>.module.ts`, `contract.ts` (только паспорт: остальное в контракт добавляет автор, D-45), `index.ts`, тест; прикладной слой: `<m>.module.ts` (карта Def → класс, `Deps`, фабрика), вход `index.ts` для корня сборки и тест; с `gen.package` — пакет модуля (`package.json`, `tsconfig.json`). Подключает модуль к приложению: фабрика в корне сборки, `<M>ModuleDef` в `scripts/arch-check.ts`, с `gen.package` — зависимость в `package.json` пакета корня сборки. Фасада нет: он пишется руками по потребителю (D-42) |
+| `gen module <m>` | домен: `<m>.module.ts`, `contract.ts` (только паспорт: остальное в контракт добавляет автор, D-45), `index.ts`, тест; прикладной слой: `<m>.module.ts` (карта Def → класс, `Deps`, фабрика), вход `index.ts` для корня сборки и тест; с `gen.package` — пакет модуля (`package.json`, `tsconfig.json`). Подключает модуль к приложению: фабрика в корне сборки, `<M>ModuleDef` в `modules` файла `AppDef` (`gen.appDef`), с `gen.package` — зависимость в `package.json` пакета корня сборки. Фасада нет: он пишется руками по потребителю (D-42) |
 | `gen aggregate <m>.<a>` | домен: state, events, errors, Ar, Policy и тесты; прикладной слой: `<a>.repo.ts`, фейк `<a>.repo.fake.ts`, `infra/<a>.json-repo.ts` и тест; в корне сборки — `<a>Repo: new <A>JsonRepo(join(env.dataDir, '<m>.<a>.json'))` в фабрике модуля |
 | `gen uc\|er\|job <m>.<a> <имя>` | пара: контракт в домене и реализация в прикладном слое по тому же относительному пути (`<a>/<вид>/`), плюс тесты. UC `create`/`create-*` — рабочий UC создания, прочие — загрузка агрегата по id |
 | `gen dcs\|dqs <m> <имя>` | сервис в домене с тестом |
 
-Генератор правит существующие файлы только по маркерам: `// gen:exports` (`index.ts`), `// gen:defs:imports|aggregates|useCases|reactions|jobs` (паспорт и карта модуля), `// gen:deps` (`Deps` прикладного модуля); в корне сборки (`init` пишет их в каркас) — `// gen:imports` (конец блока импортов `app.ts` и `scripts/arch-check.ts`), `// gen:modules` (конец списка `modules` в них же), `// gen:repos:<m>` (внутри `create<M>Module({ ...deps, … })`); `dependencies` `package.json` пакета корня сборки правятся как JSON. Нет файла или маркера, конфликт имён импорта — команда печатает «Вставь вручную в <файл> перед <маркер>» с причиной и не падает. Повтор вставки не дублирует строку и импорт. Заготовки содержат `TODO` (названия, описания, схемы): их заполняет автор; тесты UC берут фейк порта `<a>.repo.fake.ts` (`gen uc` создаёт его, если агрегат сгенерирован без фейка), контрактный тест репозитория — настоящий JSON-репозиторий во временном каталоге. Импорты и переносы длинных строк — в форме biome: заготовки проходят `check` без правок. Подсказки печатаются после плана (например, MAN-06: «Событие created публикует UC создания»).
+Генератор правит существующие файлы только по маркерам: `// gen:exports` (`index.ts`), `// gen:defs:imports|aggregates|useCases|reactions|jobs` (паспорт и карта модуля), `// gen:deps` (`Deps` прикладного модуля); в корне сборки (`init` пишет их в каркас) — `// gen:imports` (конец блока импортов `app.ts` и файла `AppDef`), `// gen:modules` (конец списка модулей в них же), `// gen:repos:<m>` (внутри `create<M>Module({ ...deps, … })`); `dependencies` `package.json` пакета корня сборки правятся как JSON. Нет файла или маркера, конфликт имён импорта — команда печатает «Вставь вручную в <файл> перед <маркер>» с причиной и не падает. Повтор вставки не дублирует строку и импорт. Заготовки содержат `TODO` (названия, описания, схемы): их заполняет автор; тесты UC берут фейк порта `<a>.repo.fake.ts` (`gen uc` создаёт его, если агрегат сгенерирован без фейка), контрактный тест репозитория — настоящий JSON-репозиторий во временном каталоге. Импорты и переносы длинных строк — в форме biome: заготовки проходят `check` без правок. Подсказки печатаются после плана (например, MAN-06: «Событие created публикует UC создания»).
 
 `--adopt` — перевод существующего модуля на Def: `gen module` допускает каталог модуля без `<m>.module.ts`, `gen aggregate` — каталог агрегата без `<a>.state.ts`. Существующие `index.ts`, `contract.ts`, `package.json` и `tsconfig.json` не перезаписываются (печатается «Пропущен» с шаблоном, правки по маркерам идут в `index.ts`); пропуск — по имени файла. Остальные коллизии — ошибка.
 
@@ -110,7 +112,8 @@ infra/<aggregate>.json-repo.ts
 | `domain` | каталог модуля домена | `src/domain/{m}` |
 | `app` | каталог прикладного слоя модуля | `src/app/{m}` |
 | `domainImport` | спецификатор импорта домена из прикладного слоя (например, `@acme/domain/{m}`) | не задан — относительный путь к каталогу модуля домена (его `index.ts`; нужен `moduleResolution: bundler`) |
-| `compositionRoot` | каталог корня сборки (`app.ts`), без `{m}`; `scripts/arch-check.ts` — всегда в корне проекта | `src/app`, если `domain` и `app` по умолчанию; иначе не задан — корень сборки генератор не правит, печатает подсказку |
+| `compositionRoot` | каталог корня сборки (`app.ts`), без `{m}` | `src/app`, если `domain` и `app` по умолчанию; иначе не задан — корень сборки генератор не правит, печатает подсказку |
+| `appDef` | файл `AppDef` (`<домен>/<имя>.app.ts`), без `{m}`: `gen module` вписывает в него Def модуля | не задан — имя приложения генератору неизвестно; `init` пишет путь; без поля `gen module` печатает подсказку |
 | `package` | имя пакета workspaces прикладного слоя модуля (например, `@acme/{m}`): `gen module` создаёт пакет над каталогом `app`; требует `domainImport` и `app`, оканчивающийся на `/src` | не задан — пакета нет, прикладной слой внутри пакета проекта |
 
 ```json
@@ -123,9 +126,10 @@ infra/<aggregate>.json-repo.ts
 
 ```ts
 import { GenLayout } from 'dmg-core/gen';
+import { SchoolAppDef } from '../src/domain/school.app';
 
 const layout = await GenLayout.read(root); // секция gen dmg-core.json
-export const AppArch: ArchApp = { name: 'app', modules, layout: (m) => layout.module(m) };
+export const SchoolArch: ArchApp = { def: SchoolAppDef, entry: 'contract', layout: (m) => layout.module(m) };
 ```
 
 Каркас проекта (конфиги, `check`, корень сборки, раннер) создаёт `dmg-core init --profile single|monorepo`, секцию `gen` пишет он же. Без `gen.package` генератор пишет только исходники: пакет модуля и workspace — забота проекта.

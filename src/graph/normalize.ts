@@ -77,8 +77,8 @@ export type NormalizedDef =
 /**
  * Сериализуемое представление Def (D-48) — основа графа и хеша: ссылки →
  * имена, схемы → JSON Schema, порядок ключей фиксирован. Последняя
- * перегрузка (любой `Def`, и чужой вид) обобщённая: TS подбирает сперва по
- * подтипу, класс вида попадает в неё раньше `Any*Def` — форма та же.
+ * перегрузка (любой `Def` с `normalize(): F`, и чужой вид) обобщённая: форма
+ * `F` — из самого Def.
  */
 export function normalize(def: AnyErrorDef): NormalizedError;
 export function normalize(def: AnyEventDef): NormalizedEvent;
@@ -93,7 +93,9 @@ export function normalize(def: AnyJobDef): NormalizedJob;
 export function normalize(def: AnyModuleDef): NormalizedModule;
 export function normalize(def: AnyAppDef): NormalizedApp;
 export function normalize(def: AnyDef): NormalizedDef;
-export function normalize<D extends Def>(def: D): ReturnType<D['normalize']>;
+export function normalize<F extends NormalizedForm>(
+  def: Def & { normalize(): F },
+): F;
 export function normalize(def: AnyDef | Def): NormalizedDef | NormalizedForm {
   return def.normalize();
 }

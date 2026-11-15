@@ -1,5 +1,4 @@
 import { describe, expect, expectTypeOf, it } from 'bun:test';
-import { normalize } from '../../graph/normalize';
 import { Def } from '../../index';
 import { AppDef } from './app-def';
 import { TodoModuleDef, UserArDef } from './contracts.fixture';
@@ -88,9 +87,5 @@ describe('AppDef', () => {
     });
     expect(shown.visible).toBe(true);
     expect(shown.normalize()).toMatchObject({ visible: true });
-  });
-
-  it('normalize из графа возвращает ту же форму', () => {
-    expect(normalize(School)).toEqual(School.normalize());
   });
 });

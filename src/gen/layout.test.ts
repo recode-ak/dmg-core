@@ -64,10 +64,10 @@ test('module — обе стороны модуля для ArchApp.layout', () =
 
 test('describe — применяемая раскладка одной строкой', () => {
   expect(layout('@acme/domain/{m}').describe()).toBe(
-    'Раскладка: домен — packages/domain/src/{m}, прикладной слой — packages/{m}/src, импорт домена — @acme/domain/{m}, корень сборки — не задан (gen.compositionRoot)',
+    'Раскладка: домен — packages/domain/src/{m}, прикладной слой — packages/{m}/src, импорт домена — @acme/domain/{m}, корень сборки — не задан (gen.compositionRoot), манифест приложения — не задан (gen.appDef)',
   );
   expect(new GenLayout(GenLayout.defaults, '.').describe()).toBe(
-    'Раскладка: домен — src/domain/{m}, прикладной слой — src/app/{m}, импорт домена — относительный, корень сборки — src/app',
+    'Раскладка: домен — src/domain/{m}, прикладной слой — src/app/{m}, импорт домена — относительный, корень сборки — src/app, манифест приложения — не задан (gen.appDef)',
   );
 });
 
@@ -175,7 +175,7 @@ test('package — без gen.package пакета нет', () => {
 
 test('describe — с пакетом модуля', () => {
   expect(new GenLayout(MONOREPO, '.').describe()).toBe(
-    'Раскладка: домен — domain/src/{m}, прикладной слой — modules/{m}/src, импорт домена — @acme/domain/{m}, пакет модуля — @acme/{m}, корень сборки — не задан (gen.compositionRoot)',
+    'Раскладка: домен — domain/src/{m}, прикладной слой — modules/{m}/src, импорт домена — @acme/domain/{m}, пакет модуля — @acme/{m}, корень сборки — не задан (gen.compositionRoot), манифест приложения — не задан (gen.appDef)',
   );
 });
 
@@ -191,13 +191,13 @@ test('settingsFrom — gen.compositionRoot: каталог корня сборк
   );
 });
 
-test('корень сборки: app.ts, arch-check.ts и package.json его пакета', () => {
+test('корень сборки: app.ts и package.json его пакета; appDefFile без gen.appDef', () => {
   const mono = new GenLayout(
     { ...MONOREPO, compositionRoot: 'app/src' },
     '/repo',
   );
   expect(mono.compositionDir()).toBe('/repo/app/src');
-  expect(mono.archCheckFile()).toBe('/repo/scripts/arch-check.ts');
+  expect(mono.appDefFile()).toBe(undefined);
   expect(mono.compositionPackage()).toBe('/repo/app/package.json');
   const single = new GenLayout(
     { ...GenLayout.defaults, compositionRoot: 'src/app' },
@@ -223,6 +223,40 @@ test('describe — корень сборки, если задан', () => {
   expect(
     new GenLayout({ ...MONOREPO, compositionRoot: 'app/src' }, '.').describe(),
   ).toBe(
-    'Раскладка: домен — domain/src/{m}, прикладной слой — modules/{m}/src, импорт домена — @acme/domain/{m}, пакет модуля — @acme/{m}, корень сборки — app/src',
+    'Раскладка: домен — domain/src/{m}, прикладной слой — modules/{m}/src, импорт домена — @acme/domain/{m}, пакет модуля — @acme/{m}, корень сборки — app/src, манифест приложения — не задан (gen.appDef)',
+  );
+});
+
+test('settingsFrom — gen.appDef: путь файла AppDef без {m}', () => {
+  expect(
+    GenLayout.settingsFrom({ appDef: 'src/domain/acme.app.ts' }).appDef,
+  ).toBe('src/domain/acme.app.ts');
+  expect(() => GenLayout.settingsFrom({ appDef: 'src/{m}.app.ts' })).toThrow(
+    'dmg-core.json: gen.appDef — путь файла без {m}',
+  );
+  expect(() => GenLayout.settingsFrom({ appDef: 1 })).toThrow(
+    'dmg-core.json: gen.appDef — путь файла без {m}',
+  );
+});
+
+test('appDefFile — файл AppDef от корня проекта; не задан — неизвестен', () => {
+  const withApp = new GenLayout(
+    { ...MONOREPO, appDef: 'domain/src/school.app.ts' },
+    '/repo',
+  );
+  expect(withApp.appDefFile()).toBe('/repo/domain/src/school.app.ts');
+  expect(new GenLayout(GenLayout.defaults, '/repo').appDefFile()).toBe(
+    undefined,
+  );
+});
+
+test('describe — манифест приложения, если задан gen.appDef', () => {
+  expect(
+    new GenLayout(
+      { ...GenLayout.defaults, appDef: 'src/domain/acme.app.ts' },
+      '.',
+    ).describe(),
+  ).toBe(
+    'Раскладка: домен — src/domain/{m}, прикладной слой — src/app/{m}, импорт домена — относительный, корень сборки — src/app, манифест приложения — src/domain/acme.app.ts',
   );
 });

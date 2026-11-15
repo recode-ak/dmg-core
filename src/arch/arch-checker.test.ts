@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'bun:test';
+import { AppDef } from '../domain/contracts/app-def';
 import { ModuleDef } from '../domain/contracts/module-def';
 import { DefIndex } from '../graph/def-index';
 import { ExampleArch } from '../testing/example/example.arch';
+import { TodoModuleDef } from '../testing/example/todo';
+import { UsersModuleDef } from '../testing/example/users';
 import { ArchChecker } from './arch-checker';
 
 const broken = ModuleDef.define({
@@ -62,7 +65,15 @@ describe('ArchChecker', () => {
   });
 
   it('пустой домен — без нарушений', () => {
-    const empty = { name: 'empty', modules: [], layout: ExampleArch.layout };
+    const empty = {
+      def: AppDef.define({
+        name: 'empty',
+        label: 'Пустое',
+        description: 'Приложение без модулей.',
+        modules: [],
+      }),
+      layout: ExampleArch.layout,
+    };
     expect(ArchChecker.of(empty).check()).toEqual([]);
   });
 
@@ -101,6 +112,61 @@ describe('ArchChecker', () => {
       root('example-delegation.test.ts', 'users'),
       // раннер (ARC-08)
       'ARC-08: раннер runner/example-cli.ts импортирует todo мимо index.ts: #core/testing/example/todo/contract',
+    ]);
+  });
+
+  it('проверки AppDef входят в of(): пустой label приложения — нарушение MAN-01', () => {
+    const app = {
+      ...ExampleArch,
+      def: AppDef.define({
+        name: 'example',
+        label: '',
+        description: 'Учебное приложение.',
+        modules: [TodoModuleDef, UsersModuleDef],
+      }),
+    };
+    expect(
+      ArchChecker.of(app)
+        .check()
+        .map((v) => v.format()),
+    ).toEqual(['MAN-01: приложение example: пустой label']);
+  });
+
+  it('состав приложения: модуль вне AppDef — нарушение MAN-15 в of()', () => {
+    const app = {
+      ...ExampleArch,
+      def: AppDef.define({
+        name: 'example',
+        label: 'Пример',
+        description: 'Учебное приложение.',
+        modules: [TodoModuleDef],
+      }),
+    };
+    expect(
+      ArchChecker.of(app)
+        .check()
+        .map((v) => v.format()),
+    ).toEqual([
+      'MAN-15: приложение example: модуль users нужен модулю todo (dependsOn), но не входит в состав',
+    ]);
+  });
+
+  it('todos() приложения — TODO в AppDef среди предупреждений of()', () => {
+    const app = {
+      ...ExampleArch,
+      def: AppDef.define({
+        name: 'example',
+        label: 'TODO: название приложения',
+        description: 'Учебное приложение.',
+        modules: [TodoModuleDef, UsersModuleDef],
+      }),
+    };
+    expect(
+      ArchChecker.of(app)
+        .todos()
+        .map((v) => v.format()),
+    ).toEqual([
+      'MAN-01: приложение example: label не заполнен — «TODO: название приложения»',
     ]);
   });
 });

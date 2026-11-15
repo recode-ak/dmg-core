@@ -19,6 +19,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { type ArchApp, ArchChecker } from '../arch';
+import { AppDef } from '../domain/contracts/app-def';
 import { GenLayout } from './layout';
 import { runGen } from './main';
 
@@ -108,11 +109,15 @@ async function probeApp(): Promise<ArchApp> {
   const domain = await import(layout.domainDir(MODULE));
   const long = await import(layout.domainDir(LONG));
   return {
-    name: MODULE,
-    modules: [
-      domain.GenprobeModuleDef,
-      long.LearningProgressAnalyticsModuleDef,
-    ],
+    def: AppDef.define({
+      name: MODULE,
+      label: 'Проба',
+      description: 'Приложение пробных модулей.',
+      modules: [
+        domain.GenprobeModuleDef,
+        long.LearningProgressAnalyticsModuleDef,
+      ],
+    }),
     layout: (m) => ({ domain: layout.domainDir(m), app: layout.appDir(m) }),
   };
 }

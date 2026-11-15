@@ -6,7 +6,12 @@ import { planAppModule } from './app-module';
 
 const root = '/p';
 const plan = (
-  gen: { domainImport?: string; package?: string; compositionRoot?: string } = {
+  gen: {
+    domainImport?: string;
+    package?: string;
+    compositionRoot?: string;
+    appDef?: string;
+  } = {
     domainImport: '@acme/domain/{m}',
   },
 ) =>
@@ -41,6 +46,7 @@ const MONO = {
   domainImport: '@acme/domain/{m}',
   package: '@acme/{m}',
   compositionRoot: 'app/src',
+  appDef: '/d/acme.app.ts',
 };
 
 test('подключение к app.ts: импорты Def и фабрики, элемент с маркером репозиториев', () => {
@@ -73,20 +79,18 @@ test('подключение к app.ts: импорты Def и фабрики, э
   ]);
 });
 
-test('подключение к arch-check.ts: импорт и корень Def', () => {
-  const edits = plan(MONO).edits.filter(
-    (e) => e.path === 'scripts/arch-check.ts',
-  );
+test('подключение к AppDef: относительный импорт Def и элемент состава', () => {
+  const edits = plan(MONO).edits.filter((e) => e.path === '/d/acme.app.ts');
   expect(edits).toEqual([
     {
-      path: 'scripts/arch-check.ts',
+      path: '/d/acme.app.ts',
       marker: '// gen:imports',
-      line: "import { StreamModuleDef } from '@acme/domain/stream/contract';",
+      line: "import { StreamModuleDef } from './stream/contract';",
     },
     {
-      path: 'scripts/arch-check.ts',
+      path: '/d/acme.app.ts',
       marker: '// gen:modules',
-      line: '  StreamModuleDef,',
+      line: '    StreamModuleDef,',
     },
   ]);
 });
@@ -107,7 +111,13 @@ test('с gen.package — зависимость пакета корня сбор
 
 test('без gen.package (single): относительные импорты, зависимостей нет', () => {
   const p = planAppModule(
-    parseArgs(['module', 'stream'], new GenLayout(GenLayout.defaults, '/r')),
+    parseArgs(
+      ['module', 'stream'],
+      new GenLayout(
+        { ...GenLayout.defaults, appDef: 'src/domain/acme.app.ts' },
+        '/r',
+      ),
+    ),
   );
   expect(p.dependencies ?? []).toEqual([]);
   expect(p.notes ?? []).toEqual([]);
@@ -123,9 +133,9 @@ test('без gen.package (single): относительные импорты, з
       line: "import { createStreamModule } from './stream';",
     },
     {
-      path: '/r/scripts/arch-check.ts',
+      path: '/r/src/domain/acme.app.ts',
       marker: '// gen:imports',
-      line: "import { StreamModuleDef } from '../src/domain/stream/contract';",
+      line: "import { StreamModuleDef } from './stream/contract';",
     },
   ]);
 });
@@ -156,7 +166,9 @@ test('своя раскладка без gen.compositionRoot — правок н
   );
   expect(text).toContain("'@acme/stream'");
   expect(text).toContain("'@acme/domain/stream/contract'");
-  expect(text).toContain('scripts/arch-check.ts');
+  expect(text).toContain(
+    'манифест приложения (gen.appDef в dmg-core.json), modules: StreamModuleDef',
+  );
   expect(text).toContain('"@acme/stream": "workspace:*"');
   expect(text).not.toContain('src/app/app.ts');
 });

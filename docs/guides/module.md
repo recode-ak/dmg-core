@@ -30,6 +30,7 @@ covers:
 - [todo/contract.ts](../../src/testing/example/todo/contract.ts) и [users/contract.ts](../../src/testing/example/users/contract.ts): входы модулей с JSDoc на каждом экспорте; `users` отдаёт `GetUserUcDef` и тип ответа `UserActivity`, но не state.
 - [todo.module.ts (реализация)](../../src/testing/example/app/todo/todo.module.ts): `TodoDeps = ModuleDeps & { tasks }`, `todoMap … satisfies ModuleMap<…>`, `createTodoModule(deps)` → `ModuleFromDef`.
 - [example.arch.ts](../../src/testing/example/example.arch.ts): `ArchApp` учебного приложения — раскладка и `entry: 'contract'` для ARC-04.
+- [example.app.ts](../../src/testing/example/example.app.ts): `AppDef` — полный состав модулей приложения; `gen module` добавляет в него Def нового модуля.
 - Минимальный модуль-владелец: [users.module.ts](../../src/testing/example/users/users.module.ts) и [реализация](../../src/testing/example/app/users/users.module.ts).
 
 ## 4. Чеклист правил
