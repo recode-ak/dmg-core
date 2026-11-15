@@ -28,6 +28,7 @@ const MONOREPO_FILES = [
   'biome.json',
   'dmg-core.json',
   'scripts/arch-check.ts',
+  'scripts/acme.graph.ts',
   'domain/package.json',
   'domain/tsconfig.json',
   'domain/src/index.ts',
@@ -113,8 +114,10 @@ describe('ProjectScaffold monorepo: package.json', () => {
       private: true,
       type: 'module',
       workspaces: ['domain', 'app', 'modules/*', 'runners/*'],
+      version: '0.1.0',
       scripts: {
         'arch:check': 'bun scripts/arch-check.ts',
+        graph: 'dmg-core graph scripts/acme.graph.ts',
         check:
           'dmg-core sync --check && biome check . && tsc --noEmit && bun run arch:check && bun test',
         lint: 'biome check .',
@@ -250,6 +253,32 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
     expect(src).toContain("root: join(root, 'app/src')");
     expect(src).toContain("runners: [join(root, 'runners/cli/src')]");
     expect(src).not.toContain('name:');
+  });
+
+  it('.gitignore содержит graph.json', () => {
+    expect(file('.gitignore')).toBe('node_modules/\ndata/\ngraph.json\n');
+  });
+
+  it('acme.graph.ts — вход dmg-core graph: AppDef из @acme/domain', () => {
+    const src = file('scripts/acme.graph.ts');
+
+    expect(src).toContain("import type { GraphApp } from 'dmg-core/graph';");
+    expect(src).toContain("import { AcmeAppDef } from '@acme/domain';");
+    expect(src).toContain(
+      'export default { def: AcmeAppDef } satisfies GraphApp;',
+    );
+    expect(src).toContain('providers');
+  });
+
+  it('имя со scope: вход графа — scripts/school.graph.ts, скрипт graph', () => {
+    const name = '@acme/school';
+
+    expect(file('scripts/school.graph.ts', name)).toContain(
+      "import { SchoolAppDef } from '@acme/domain';",
+    );
+    expect(json('package.json', name).scripts.graph).toBe(
+      'dmg-core graph scripts/school.graph.ts',
+    );
   });
 
   it('acme.app.ts — AppDef с маркерами подключения модулей и TODO в текстах', () => {

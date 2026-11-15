@@ -29,6 +29,7 @@ const SINGLE_FILES = [
   'biome.json',
   'dmg-core.json',
   'scripts/arch-check.ts',
+  'scripts/acme.graph.ts',
   'src/domain/acme.app.ts',
   'src/domain/shared/app-user.ts',
   'src/app/app.ts',
@@ -124,9 +125,14 @@ describe('ProjectScaffold single: package.json', () => {
     });
   });
 
-  it('скрипты check, arch:check, lint, format', () => {
+  it('version 0.1.0 — по умолчанию, команде graph нужна версия приложения', () => {
+    expect(json('package.json').version).toBe('0.1.0');
+  });
+
+  it('скрипты check, arch:check, graph, lint, format', () => {
     expect(json('package.json').scripts).toEqual({
       'arch:check': 'bun scripts/arch-check.ts',
+      graph: 'dmg-core graph scripts/acme.graph.ts',
       check:
         'dmg-core sync --check && biome check . && tsc --noEmit && bun run arch:check && bun test',
       lint: 'biome check .',
@@ -152,8 +158,21 @@ describe('ProjectScaffold single: package.json', () => {
 });
 
 describe('ProjectScaffold single: прочие конфиги', () => {
-  it('.gitignore — зависимости и каталог данных', () => {
-    expect(file('.gitignore')).toBe('node_modules/\ndata/\n');
+  it('.gitignore — зависимости, каталог данных и graph.json (артефакт сборки)', () => {
+    expect(file('.gitignore')).toBe('node_modules/\ndata/\ngraph.json\n');
+  });
+
+  it('acme.graph.ts — вход dmg-core graph: GraphApp с AppDef, без поставщиков', () => {
+    const src = file('scripts/acme.graph.ts');
+
+    expect(src).toContain("import type { GraphApp } from 'dmg-core/graph';");
+    expect(src).toContain(
+      "import { AcmeAppDef } from '../src/domain/acme.app';",
+    );
+    expect(src).toContain(
+      'export default { def: AcmeAppDef } satisfies GraphApp;',
+    );
+    expect(src).toContain('providers');
   });
 
   it('tsconfig — как у пакета, include src и scripts', () => {

@@ -19,13 +19,17 @@ const DEPENDENCY_SECTIONS = [
  */
 const LOCAL_SPEC = /[:/]|\.(tgz|tar\.gz)$/;
 
+/** Ключи каркаса-умолчания: значение проекта сохраняется без конфликта. */
+const DEFAULTS = ['version'];
+
 const isObject = (value: unknown): value is JsonObject =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * Существующий `package.json` проекта: имя и слияние с каркасом. Поля
  * проекта сохраняются, недостающие добавляются, тот же ключ с другим
- * значением — конфликт; добавлять нечего — `merge` даёт undefined. Чистый:
+ * значением — конфликт (кроме `version`: версия проекта главнее умолчания
+ * каркаса); добавлять нечего — `merge` даёт undefined. Чистый:
  * файлы читает и пишет `ProjectInit`.
  * @see src/cli/scaffold/project-manifest.test.ts
  */
@@ -123,6 +127,7 @@ export class ProjectManifest {
     const result: JsonObject = structuredClone(this.data);
     const conflicts: string[] = [];
     for (const [key, value] of Object.entries(JSON.parse(scaffold))) {
+      if (DEFAULTS.includes(key) && key in result) continue;
       if (DEPENDENCY_SECTIONS.includes(key) && isObject(value)) {
         this.addDependencies(result, key, value, conflicts);
       } else {

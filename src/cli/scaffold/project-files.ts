@@ -12,13 +12,16 @@ import type { ScaffoldLayout } from './scaffold-layout';
 /** Зависимости проекта из `peerDependencies` пакета (кроме самого dmg-core). */
 const PEERS = ['valibot', '@valibot/to-json-schema'];
 
+/** Версия проекта по умолчанию: `dmg-core graph` берёт её из `package.json`. */
+const INITIAL_VERSION = '0.1.0';
+
 /** Инструменты `check` проекта из `devDependencies` пакета. */
 const TOOLS = ['@biomejs/biome', 'typescript', '@types/bun'];
 
 /**
  * Конфиги проекта от корня: `.gitignore`, `package.json` (у monorepo —
- * workspaces), `tsconfig.json`, `biome.json` (по карте линтера),
- * `dmg-core.json` и `scripts/arch-check.ts` (раскладка — `GenLayout`);
+ * workspaces), `tsconfig.json`, `biome.json`, `dmg-core.json`, скрипты
+ * `scripts/arch-check.ts` и `scripts/<имя>.graph.ts` (вход `dmg-core graph`);
  * у пакетов workspaces — свои `package.json` и `tsconfig.json`.
  */
 export class ProjectFiles {
@@ -41,7 +44,7 @@ export class ProjectFiles {
 
   private root(): ScaffoldFile[] {
     return [
-      { path: '.gitignore', content: 'node_modules/\ndata/\n' },
+      { path: '.gitignore', content: 'node_modules/\ndata/\ngraph.json\n' },
       { path: 'package.json', content: this.manifest(this.packageJson()) },
       { path: 'tsconfig.json', content: this.json(this.tsconfig()) },
       { path: 'biome.json', content: this.json(this.biome()) },
@@ -53,6 +56,7 @@ export class ProjectFiles {
         }),
       },
       { path: 'scripts/arch-check.ts', content: this.archCheck() },
+      { path: this.layout.appDef.graphFile, content: this.graphEntry() },
     ];
   }
 
@@ -114,11 +118,13 @@ export class ProjectFiles {
     const workspaces = this.layout.workspaces;
     return {
       name: this.name,
+      version: INITIAL_VERSION,
       private: true,
       type: 'module',
       ...(workspaces === undefined ? {} : { workspaces }),
       scripts: {
         'arch:check': 'bun scripts/arch-check.ts',
+        graph: `dmg-core graph ${this.layout.appDef.graphFile}`,
         check:
           'dmg-core sync --check && biome check . && tsc --noEmit && bun run arch:check && bun test',
         lint: 'biome check .',
@@ -242,6 +248,24 @@ const app: ArchApp = {
 process.exitCode = reportArchCheck([app], (line) => console.log(line), {
   strict: process.argv.includes('--strict'),
 });
+`;
+  }
+
+  /** Вход `dmg-core graph` (D-96): `AppDef` и поставщики сверх домена. */
+  private graphEntry(): string {
+    const { appDef } = this.layout;
+    // Порядок biome: пакет `dmg-core` раньше `@scope/domain`, путь `../` — позже.
+    const imports = sortImports([
+      "import type { GraphApp } from 'dmg-core/graph';",
+      `import { ${appDef.constant} } from '${appDef.scriptImport}';`,
+    ]);
+    return `/**
+ * Вход \`dmg-core graph\` (\`bun run graph\`): документ графа приложения
+ * \`graph.json\`. Поставщиков графа сверх домена добавляй в \`providers\`.
+ */
+${imports}
+
+export default { def: ${appDef.constant} } satisfies GraphApp;
 `;
   }
 

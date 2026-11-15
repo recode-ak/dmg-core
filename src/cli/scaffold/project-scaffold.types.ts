@@ -56,8 +56,10 @@ export type ScaffoldAppDef = {
   readonly constant: string;
   /** Файл от корня проекта (значение `gen.appDef`). */
   readonly file: string;
-  /** Спецификатор импорта константы из `scripts/arch-check.ts`. */
+  /** Спецификатор импорта константы из `scripts/*.ts`. */
   readonly scriptImport: string;
+  /** Файл-вход `dmg-core graph` от корня проекта: `scripts/<имя>.graph.ts`. */
+  readonly graphFile: string;
 };
 
 /** Данные раскладки профиля (`ScaffoldLayout`); пути — от корня проекта. */

@@ -32,15 +32,16 @@ bun install && bun run check
 
 | Файл | single | monorepo |
 |---|---|---|
-| `package.json` | скрипты `check`, `lint`, `format`, `arch:check`; версии из пакета | то же + `workspaces`, домен в `devDependencies` корня |
+| `package.json` | `version` `0.1.0` (есть в проекте — остаётся), скрипты `check`, `lint`, `format`, `arch:check`, `graph`; версии из пакета | то же + `workspaces`, домен в `devDependencies` корня |
 | `tsconfig.json`, `biome.json` | строгий TS; `overrides` по [карте линтера](../reference/rules.md#карта-линтера); `data/` biome не проверяет | то же; у каждого пакета свой `tsconfig.json` поверх корневого |
 | `dmg-core.json` | секция `gen`: `compositionRoot: src/app`, `appDef` | `gen` с `domainImport`, `package`, `compositionRoot: app/src`, `appDef` |
 | `scripts/arch-check.ts` | `ArchApp` с `def: <Имя>AppDef`, раскладка из `GenLayout`, `root` и `runners` — для ARC-07/08; маркеров генератора нет | то же; `AppDef` — из `@<scope>/domain` |
+| `scripts/<имя>.graph.ts` (D-96) | вход `dmg-core graph`: `export default { def: <Имя>AppDef } satisfies GraphApp`; `bun run graph` пишет `graph.json` — документ графа приложения (версия — из `version` в `package.json`); `graph.json` в `.gitignore`, не коммитится; поставщиков графа сверх домена добавляй в `providers` | то же; `AppDef` — из `@<scope>/domain` |
 | `AppDef` (D-93) | `src/domain/<имя>.app.ts` — `<Имя>AppDef` (имя пакета без scope) с маркерами `gen:imports`, `gen:modules`, `TODO` в `label` и `description`; путь — `gen.appDef` | `domain/src/<имя>.app.ts`, экспорт из `domain/src/index.ts` |
 | домен | `src/domain/shared/app-user.ts` — тип пользователя | `domain/` — пакет с `exports` `./*/contract`, `./*/testing`, `./*` |
 | корень сборки | `src/app/app.ts`, резолвер `Caller`, тест | `app/` — пакет `@<scope>/app` |
 | раннер | `src/runner/`: окружение, CLI, `main.ts`, тесты | `runners/cli/` |
-| `.gitignore`; агенты (`init` выполняет `dmg-core sync`) | `.gitignore`; скилы и роли (`.claude/`), ссылка на `llms.txt` в `AGENTS.md` | то же |
+| `.gitignore`; агенты (`init` выполняет `dmg-core sync`) | `.gitignore` (`node_modules/`, `data/`, `graph.json`); скилы и роли (`.claude/`), ссылка на `llms.txt` в `AGENTS.md` | то же |
 
 Раннер сразу работает (`<раннер>` — `src/runner` | `runners/cli/src`):
 

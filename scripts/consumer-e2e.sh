@@ -198,6 +198,39 @@ profile_e2e() {
   fi
   run_logged "$WORK/$profile-check.log" "$profile — bun run check красный" \
     bun run check
+  graph_e2e "$profile" "$name"
+}
+
+# Документ графа из каркаса: bun run graph детерминирован, узлы и рёбра
+# с поставщиком, шапка dmg-core с видами, у UC — props.exposed (D-96).
+graph_e2e() {
+  local profile="$1" name="$2" first second
+  run_logged "$WORK/$profile-graph.log" "$profile — bun run graph красный" \
+    bun run graph
+  first="$(sha256sum graph.json)"
+  run_logged "$WORK/$profile-graph2.log" \
+    "$profile — второй bun run graph красный" bun run graph
+  second="$(sha256sum graph.json)"
+  if [ "$first" != "$second" ]; then
+    echo "e2e: $profile — graph.json различается между прогонами" >&2
+    exit 1
+  fi
+  if [ "$(jq -r '.nodes[0].kind' graph.json)" != app ]; then
+    echo "e2e: $profile — первый узел graph.json не вида app: $(jq -c '.nodes[0]' graph.json)" >&2
+    exit 1
+  fi
+  if [ "$(jq '[.nodes[], .edges[]] | map(select(.provider == null)) | length' graph.json)" != 0 ]; then
+    echo "e2e: $profile — в graph.json есть узлы или рёбра без provider" >&2
+    exit 1
+  fi
+  if ! jq -e '[.providers[]? | select(.name == "dmg-core") | has("nodeKinds") and has("edgeKinds")] | any' graph.json >/dev/null; then
+    echo "e2e: $profile — в шапке graph.json у поставщика dmg-core нет nodeKinds и edgeKinds" >&2
+    exit 1
+  fi
+  if ! jq -e '[.nodes[] | select(.kind == "useCase")] | length > 0 and all(.props.exposed != null)' graph.json >/dev/null; then
+    echo "e2e: $profile — у узлов useCase нет props.exposed" >&2
+    exit 1
+  fi
 }
 
 profile_e2e single src/runner/main.ts acme src/domain/acme.app.ts

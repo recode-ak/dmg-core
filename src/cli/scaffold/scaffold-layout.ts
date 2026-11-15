@@ -48,6 +48,7 @@ export class ScaffoldLayout {
         constant: `${toPascal(appName)}AppDef`,
         file,
         scriptImport: `../src/domain/${appName}.app`,
+        graphFile: `scripts/${appName}.graph.ts`,
       },
       imports: {
         appUser: '../domain/shared/app-user',
@@ -94,6 +95,7 @@ export class ScaffoldLayout {
         constant: `${toPascal(appName)}AppDef`,
         file,
         scriptImport: domain,
+        graphFile: `scripts/${appName}.graph.ts`,
       },
       imports: { appUser: `${domain}/shared`, app, appTypes: app },
       moduleEntry: `@${scope}/<m> (modules/<m>/src/index.ts)`,

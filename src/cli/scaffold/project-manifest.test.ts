@@ -56,6 +56,13 @@ describe('ProjectManifest: слияние', () => {
     expect(Object.keys(result)[0]).toBe('name');
   });
 
+  it('version каркаса — значение по умолчанию: версия проекта сохраняется, не конфликт', () => {
+    const scaffold = { ...SCAFFOLD, version: '0.1.0' };
+
+    expect(merge({ version: '2.3.4' }, scaffold).version).toBe('2.3.4');
+    expect(merge({ name: 'acme' }, scaffold).version).toBe('0.1.0');
+  });
+
   it('совпадающие значения — не конфликт; добавлять нечего — undefined', () => {
     const compact = ProjectManifest.parse(JSON.stringify(SCAFFOLD));
     expect(compact.merge(text(SCAFFOLD))).toBeUndefined();
