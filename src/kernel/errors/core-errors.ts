@@ -30,6 +30,20 @@ export const CoreErrors = ErrorDef.define('', {
       ),
     }),
   },
+  DELEGATION_DENIED: {
+    kind: 'unauthorized',
+    label: 'Делегирование не принято',
+    description:
+      'Заявка на работу за другого не прошла проверку: запись не найдена или пара не совпала, срок истёк, делегирование отозвано или не подключено в приложении.',
+    payload: v.object({
+      reason: v.pipe(
+        v.picklist(['invalid', 'expired', 'revoked', 'disabled']),
+        v.description(
+          'Недействительна, истекла, отозвана или делегирование не подключено',
+        ),
+      ),
+    }),
+  },
   INPUT_VALIDATION: {
     kind: 'validation',
     label: 'Некорректные данные',

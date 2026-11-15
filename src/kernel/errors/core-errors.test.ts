@@ -6,6 +6,7 @@ describe('CoreErrors', () => {
     const pairs = Object.values(CoreErrors).map((d) => [d.code, d.kind]);
     expect(pairs).toEqual([
       ['UNAUTHORIZED', 'unauthorized'],
+      ['DELEGATION_DENIED', 'unauthorized'],
       ['INPUT_VALIDATION', 'validation'],
       ['ACCESS_DENIED', 'access'],
       ['OUTPUT_VALIDATION', 'internal'],

@@ -20,7 +20,7 @@
 | kind | Смысл | Примеры |
 |---|---|---|
 | `validation` | вход не прошёл схему | `INPUT_VALIDATION` |
-| `unauthorized` | `kind` вызывающего не входит в `callers` UC | `UNAUTHORIZED` |
+| `unauthorized` | `kind` вызывающего не входит в `callers` UC; заявка на делегирование не принята | `UNAUTHORIZED`, `DELEGATION_DENIED` |
 | `access` | политика отказала (+ правило и `denyMessage`) | `ACCESS_DENIED` |
 | `not_found` | сущности или операции нет | `TASK_NOT_FOUND`, `OPERATION_NOT_FOUND` |
 | `conflict` | состояние не допускает операцию | `TASK_ALREADY_DONE` |
@@ -36,6 +36,7 @@
 | Код | kind | Когда | payload |
 |---|---|---|---|
 | `UNAUTHORIZED` | `unauthorized` | вид вызывающего не в `callers` или операция недоступна заместителю (`personal`, `readOnly`, D-89) | `{ callerKind, reason? }` |
+| `DELEGATION_DENIED` | `unauthorized` | заявка на делегирование не прошла `DelegationCheck`: нет записи или чужая пара, отозвана, истекла, порт не подключён (D-89) | `{ reason: 'invalid' \| 'revoked' \| 'expired' \| 'disabled' }` |
 | `INPUT_VALIDATION` | `validation` | вход не прошёл схему UC | замечания схемы |
 | `ACCESS_DENIED` | `access` | Policy отказала | `{ rule, denyMessage }` |
 | `OUTPUT_VALIDATION` | `internal` | выход UC не прошёл схему | замечания схемы |

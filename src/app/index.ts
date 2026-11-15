@@ -21,6 +21,15 @@ export {
   type ModuleDeps,
   systemClock,
 } from './context';
+export type {
+  DelegationClaim,
+  DelegationRecord,
+  DelegationStore,
+} from './delegation/delegation.types';
+export {
+  DelegationCheck,
+  type DelegationDenied,
+} from './delegation/delegation-check';
 export type { EventBus } from './events/event-bus';
 export type {
   EnvelopeOf,
