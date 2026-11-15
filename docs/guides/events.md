@@ -2,6 +2,7 @@
 covers:
   - src/domain/events/**
   - src/app/events/outbox.ts
+verified: c2cf28c
 ---
 
 # Events — гайд

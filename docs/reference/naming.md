@@ -126,10 +126,12 @@ infra/<aggregate>.json-repo.ts
 
 ```ts
 import { GenLayout } from 'dmg-core/gen';
-import { SchoolAppDef } from '../src/domain/school.app';
+import SchoolGraph from './school.graph'; // вход dmg-core graph: { def: SchoolAppDef }
 
 const layout = await GenLayout.read(root); // секция gen dmg-core.json
-export const SchoolArch: ArchApp = { def: SchoolAppDef, entry: 'contract', layout: (m) => layout.module(m) };
+export const SchoolArch: ArchApp = { ...SchoolGraph, entry: 'contract', layout: (m) => layout.module(m) };
 ```
+
+Состав приложения и поставщики графа `ArchApp` берёт из входа графа (D-97): один список поставщиков для `dmg-core graph` и `arch:check`.
 
 Каркас проекта (конфиги, `check`, корень сборки, раннер) создаёт `dmg-core init --profile single|monorepo`, секцию `gen` пишет он же. Без `gen.package` генератор пишет только исходники: пакет модуля и workspace — забота проекта.

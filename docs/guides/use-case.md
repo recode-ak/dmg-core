@@ -5,6 +5,7 @@ covers:
   - src/app/use-case/**
   - src/app/operation/**
   - src/gen/kinds/operation.ts
+verified: c2cf28c
 ---
 
 # Use case — гайд

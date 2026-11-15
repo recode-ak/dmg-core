@@ -2,7 +2,7 @@
 
 **Назначение:** как написать артефакт DMG по образцу — учебному модулю пакета ([src/testing/example](../../src/testing/example/example.arch.ts): `todo` — задачи, `users` — пользователи). Один файл на вид, формат — [_template.md](./_template.md). Ссылки и ID правил во всей документации пакета проверяет `scripts/docs-check.test.ts` (в `check` пакета).
 
-Раскладка примера: домен — `example/<m>/`, прикладной слой — `example/app/<m>/`, корень сборки — `example/app/example-app.ts`, раннер — `example/runner/`, `AppDef` — `example.app.ts`, `ArchApp` — `example.arch.ts`. В проекте корни задаёт секция `gen` `dmg-core.json` ([naming.md](../reference/naming.md) §5). Заготовки создаёт генератор `dmg-core gen <вид> …` (раздел «Команда» каждого гайда).
+Раскладка примера: домен — `example/<m>/`, прикладной слой — `example/app/<m>/`, корень сборки — `example/app/example-app.ts`, раннер — `example/runner/`, `AppDef` — `example.app.ts`, вход графа (`dmg-core graph`) — `example.graph.ts`, `ArchApp` — `example.arch.ts`; расширение графа и проверок — `example/screen/`. В проекте корни задаёт секция `gen` `dmg-core.json` ([naming.md](../reference/naming.md) §5). Заготовки создаёт генератор `dmg-core gen <вид> …` (раздел «Команда» каждого гайда).
 
 ---
 
@@ -22,5 +22,6 @@
 | app и раннер (корень сборки, D-50) | [app.md](./app.md) | `app/example-app.ts`, `runner/example-cli.ts` |
 | проект: профили `init`, рост, подключение модулей | [project.md](./project.md) | каркас `dmg-core init --profile` |
 | делегирование: заявка, порт, резолвер (D-89) | [delegation.md](./delegation.md) | `app/example-caller-resolver.ts`, `app/example-delegation-store.ts` |
+| расширение графа и проверок: свой вид Def, поставщик, правило, подписка | [graph-extension.md](./graph-extension.md) | `screen/screen-provider.ts`, `screen/screen.test.ts` |
 
-Без отдельного гайда: тесты — [testing.md](../reference/testing.md); поля `F.*` и `shared/` — [manifests.md](../reference/manifests.md) §3; структура и имена — [naming.md](../reference/naming.md).
+Без отдельного гайда: тесты — [testing.md](../reference/testing.md); поля `F.*` и `shared/` — [manifests.md](../reference/manifests.md) §3; формат графа — [graph.md](../reference/graph.md); структура и имена — [naming.md](../reference/naming.md).

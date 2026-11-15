@@ -1,6 +1,6 @@
 # DMG — Domain Manifest Graph
 
-**Назначение:** вход в документацию платформы `dmg-core`: суть подхода и карта документов. Образец во всех документах — учебный модуль пакета [src/testing/example](../src/testing/example/example.arch.ts) (модули `todo` и `users`).
+**Назначение:** вход в документацию платформы `dmg-core`: суть подхода и карта документов. Образец во всех документах — учебный модуль пакета [src/testing/example](../src/testing/example/example.arch.ts) (модули `todo` и `users`); образец расширения графа и проверок — [example/screen](../src/testing/example/screen/screen.graph.ts).
 
 ---
 
@@ -27,6 +27,7 @@
 | Создать файл / объект | [naming.md](./reference/naming.md) → [rules.md](./reference/rules.md) |
 | Написать артефакт по образцу | [guides/](./guides/index.md) |
 | Подключить делегирование | [guides/delegation.md](./guides/delegation.md) |
+| Расширить граф и проверки (пакет-поставщик) | [guides/graph-extension.md](./guides/graph-extension.md) → [reference/graph.md](./reference/graph.md) |
 | Объявить контракт | [manifests.md](./reference/manifests.md), [errors-result.md](./reference/errors-result.md) |
 | Работать агентом | скил `dmg-architecture` ([SKILL.md](../skills/dmg-architecture/SKILL.md)), роли [agents/](../agents/README.md), процесс [process.md](./process.md) |
 
@@ -45,7 +46,8 @@
 - [layers.md](./reference/layers.md) — оси, импорты, доменный API, доступ к entity, прикладной слой, адаптеры
 - [domain-modeling.md](./reference/domain-modeling.md) — модуль-владелец, антипаттерны, границы модулей, агрегат
 - [naming.md](./reference/naming.md) — сокращения, файловая структура, имена, генератор
-- [manifests.md](./reference/manifests.md) — Def-классы (`XxxDef.define`), описания, схемы, граф L0/L1/L2, проверки
+- [manifests.md](./reference/manifests.md) — Def-классы (`XxxDef.define`), описания, схемы, граф, проверки
+- [graph.md](./reference/graph.md) — граф приложения: документ graph.json, ядро, поставщик домена (дерево id, виды, рёбра, внешние id), команда dmg-core graph
 - [errors-result.md](./reference/errors-result.md) — `Result`, модель ошибки, базовые ошибки ядра, гарантии исполнения UC
 - [caller.md](./reference/caller.md) — кто вызывает: `guest`, `user`, `delegate`, `system`; след `Trace`
 - [transport.md](./reference/transport.md) — HTTP (JSON-команда), отсев повторов, MCP, in-proc
@@ -79,3 +81,4 @@
 | способ сделать артефакт | `guides/` |
 | поток или жизненный цикл | `concepts/` |
 | контракт или компромисс | `decisions.md` — новый `D-NN` или уточнение |
+| формат графа (документ, виды и id домена, команда graph) | `reference/graph.md` |

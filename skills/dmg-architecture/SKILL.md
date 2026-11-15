@@ -14,6 +14,7 @@ description: ЗАГРУЖАТЬ ПЕРВЫМ при создании или ре
 3. Контракт (Def) — `reference/manifests.md`; ошибки и `Result` — `reference/errors-result.md`; кто вызывает — `reference/caller.md`; заместитель (делегирование между людьми) — `guides/delegation.md`.
 4. UC/ER/Job — только техническая оркестрация (API-01): никаких доменных решений.
 5. Чужой модуль — только через его `contract.ts` и только по `dependsOn` (ARC-04).
+6. Пакет-расширение (UI, адаптер): свой вид Def, поставщик графа, правило `arch:check`, подписка на события (`EventSubscriber`), текст отказа (`ErrorText`) — `guides/graph-extension.md`; формат графа — `reference/graph.md`.
 
 ## 2. Как назвать и где положить
 
@@ -21,11 +22,11 @@ description: ЗАГРУЖАТЬ ПЕРВЫМ при создании или ре
 
 ## 3. Как написать артефакт вида
 
-Гайд `docs/guides/<вид>.md` (индекс — `guides/index.md`): когда применять, команда генератора, образец в учебном модуле, чеклист ID, типичные ловушки, как тестировать. Виды: state, aggregate, events, errors, policy, repo (с DCS/DQS), facade, use-case, event-reaction, module, job, app (корень сборки и раннер), project (профили и рост проекта).
+Гайд `docs/guides/<вид>.md` (индекс — `guides/index.md`): когда применять, команда генератора, образец в учебном модуле, чеклист ID, типичные ловушки, как тестировать. Виды: state, aggregate, events, errors, policy, repo (с DCS/DQS), facade, use-case, event-reaction, module, job, app (корень сборки и раннер), project (профили и рост проекта), delegation (делегирование между людьми), graph-extension (расширение графа и проверок).
 
 ## 4. Проверь перед завершением
 
-- Пройди применимые ID из `reference/rules.md` (ARC, DOM, MAN, ERR, API, CODE, TST).
+- Пройди применимые ID из `reference/rules.md` (ARC, DOM, MAN, ERR, API, CODE, TST). Правила своего поставщика графа — со своим префиксом, не из префиксов пакета (ARC-13).
 - `check` проекта зелёный: lint (правила biome пакета; какие на какие каталоги — «Карта линтера» в `rules.md`), типы, тесты, `ArchChecker` (`dmg-core/arch`).
 - Тесты — `reference/testing.md`; TDD: тест до кода.
 

@@ -3,7 +3,7 @@ import type { ViolationHandler } from './declared-set.types';
 export type { ViolationHandler } from './declared-set.types';
 
 /**
- * Объявленное множество (D-28, D-93, MAN-13): сверка элемента с тем, что заявил
+ * Объявленное множество (D-93): сверка элемента с тем, что заявил
  * контракт, по идентичности (`Set`), и общий исход нарушения — обработчик
  * или `Error`. Без списка (`undefined`) объявлено всё.
  */

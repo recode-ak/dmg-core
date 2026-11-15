@@ -2,6 +2,7 @@
 covers:
   - src/domain/contracts/job-def*.ts
   - src/app/job/**
+verified: c2cf28c
 ---
 
 # Job — гайд

@@ -1,6 +1,6 @@
 # Ошибки и Result
 
-**Назначение:** правила отказов — `Result`, модель ошибки, базовые ошибки ядра, гарантии исполнения UC. `Result` (`ok`/`err`), `ErrorDef`, `CoreErrors` и UoW — в `dmg-core`. Представление ошибок в транспорте — [transport.md](./transport.md). Решения — D-13, D-15, D-36, D-49 ([decisions.md](../decisions.md)).
+**Назначение:** правила отказов — `Result`, модель ошибки, базовые ошибки ядра, гарантии исполнения UC. `Result` (`ok`/`err`), `ErrorDef`, `CoreErrors` и UoW — в `dmg-core`. Представление ошибок в транспорте — [transport.md](./transport.md). Решения — D-13, D-15, D-36, D-49, D-99 ([decisions.md](../decisions.md)).
 
 ---
 
@@ -30,6 +30,16 @@
 - Агрегат объявляет ошибки группой `ErrorDef.define`; UC и фасад **ссылаются** на них, результат Ar возвращается как есть.
 - Ошибки зависимостей — по ссылке через контракт фасада; перевод — только при смене смысла.
 - **Сериализация:** в ответе транспорта только `code`, `kind`, `payload` (`ErrorDef.serialize`); тексты клиент восстанавливает по Def (`ErrorDef.restore`, `UseCaseDef.restoreResult`). Код или payload вне контракта UC восстанавливаются как `SERVER_INTERNAL`, о расхождении сообщает клиент транспорта (`moduleApi`).
+
+**Текст отказа по умолчанию** — `ErrorText.of(error)` (корень `dmg-core`, D-99): только из значения ошибки, без Def и графа; `summary` — главная строка, `fields` — `{ path, message }`, `toString()` — `summary` либо `summary:` и по строке `- <path>: <message>` (пустой `path` — `- <message>`). Адаптер вправе дать свой текст; сама ошибка текстов UI не знает (ERR-05).
+
+| `kind` | `summary` | `fields` |
+|---|---|---|
+| `validation` | `label` | `issues` payload (`path`, `message`), если payload проходит схему `Issues`; иначе `[]` |
+| `access` | непустой `denyMessage` payload, иначе `label`; `rule` в текст не идёт | `[]` |
+| `unauthorized`, `not_found`, `conflict`, `internal` | `label`; payload не раскрывается | `[]` |
+
+Пустой `label` или вид вне `ERROR_KINDS` — `summary` из `SERVER_INTERNAL` (`Внутренняя ошибка`), без полей; `code` в текст не идёт.
 
 **Базовые ошибки ядра** (`CoreErrors`) подмешиваются в каждый UC:
 

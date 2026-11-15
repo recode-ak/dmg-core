@@ -2,6 +2,7 @@
 covers:
   - src/domain/aggregate/**
   - src/gen/kinds/aggregate.ts
+verified: c2cf28c
 ---
 
 # Aggregate — гайд

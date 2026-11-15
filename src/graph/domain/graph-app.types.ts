@@ -3,7 +3,7 @@ import type { GraphProvider } from '../graph-provider';
 
 /**
  * Вход сборки графа приложения (D-95): манифест и поставщики сверх домена.
- * Имя поля `def` — как у `ArchApp.def`.
+ * `ArchApp` расширяет этот тип: конфиг проверок собирается из входа графа.
  */
 export type GraphApp = {
   readonly def: AnyAppDef;

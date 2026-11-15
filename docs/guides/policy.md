@@ -1,6 +1,7 @@
 ---
 covers:
   - src/domain/policy/**
+verified: c2cf28c
 ---
 
 # Policy — гайд

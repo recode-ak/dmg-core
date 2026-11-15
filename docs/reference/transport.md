@@ -68,8 +68,8 @@
 Цель по D-18, в пакете не реализовано: генератора MCP нет.
 
 - UC → **tool**: `name` (`<module>.<uc>`), `description` из Def, `inputSchema` из JSON Schema; аннотации: query → `readOnlyHint`, command → `destructiveHint` по необходимости.
-- Граф → **resources**: карта модулей (L0), страницы модулей (L1) и агрегатов (L2), каталоги событий и ошибок.
-- `Err` → результат tool с `isError` и текстом из `label`/`denyMessage`.
+- Граф → **resources**: документ графа приложения ([graph.md](./graph.md)) и его срезы — карта модулей, страницы модулей и агрегатов, каталоги событий и ошибок.
+- `Err` → результат tool с `isError`; текст — по умолчанию `ErrorText` ([errors-result.md](./errors-result.md) §2).
 - Caller: только query, dev-окружение, явно заданный `user` (D-18).
 
 ## 4. In-proc

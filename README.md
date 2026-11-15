@@ -1,6 +1,6 @@
 # dmg-core
 
-Платформа DMG (Domain Manifest Graph) для TypeScript и Bun. Каждая доменная сущность объявляется один раз манифестом (`XxxDef.define`), а из него выводятся типы, базовые классы, проверки архитектуры, граф модулей и транспорт. Домен чистый и синхронный, модули связаны только по `dependsOn`, поэтому каждый можно вынести в отдельный сервис.
+Платформа DMG (Domain Manifest Graph) для TypeScript и Bun. Каждая доменная сущность объявляется один раз манифестом (`XxxDef.define`), а из него выводятся типы, базовые классы, проверки архитектуры, граф приложения и транспорт. Домен чистый и синхронный, модули связаны только по `dependsOn`, поэтому каждый можно вынести в отдельный сервис.
 
 Документация на русском. Образец всех артефактов — учебный модуль [`src/testing/example`](src/testing/example/example.arch.ts) (модули `todo` и `users`).
 
@@ -45,13 +45,14 @@ bunx dmg-core init --profile monorepo    # пакеты @acme/domain, @acme/app,
 bun install && bun run check
 ```
 
-Дальше — модули генератором; он же подключает их к приложению (корень сборки, `arch-check.ts`, зависимость пакета модуля):
+Дальше — модули генератором; он же подключает их к приложению (корень сборки, файл `AppDef`, зависимость пакета модуля):
 
 ```sh
 bunx dmg-core gen module todo --write
 bunx dmg-core gen aggregate todo.task --write
 bunx dmg-core gen uc todo.task create --write     # рабочий UC создания
 bun install && bun run check                      # зелёный без ручных правок
+bun run graph                                     # graph.json — документ графа приложения
 APP_DATA_DIR=data bun src/runner/main.ts call todo.create --user <uuid>        # single
 APP_DATA_DIR=data bun runners/cli/src/main.ts call todo.create --user <uuid>   # monorepo
 ```
@@ -71,7 +72,7 @@ bunx dmg-core init
 
 1. **Модуль.** `bunx dmg-core gen module todo --write` создаёт паспорт модуля в домене (`src/domain/todo/`) и прикладной слой (`src/app/todo/`). Без `--write` команда только печатает план. Каталоги и импорт домена задаёт секция `gen` в `dmg-core.json` ([naming.md](docs/reference/naming.md) §5).
 2. **Агрегат и операции.** `gen aggregate todo.task` добавляет state, события, ошибки, Ar, Policy и репозиторий. `gen uc todo.task complete-task` создаёт пару «контракт в домене ↔ реализация в прикладном слое», `er` и `job` работают так же, а `dcs` / `dqs` создают доменные сервисы. В заготовках остаются `TODO` — по ним видно, что заполнить. Как именно, подскажет гайд вида ([индекс](docs/guides/index.md)) и тот же артефакт в учебном модуле.
-3. **Проверка архитектуры.** Опиши приложение для `ArchChecker` — модули и их раскладку, как в [`example.arch.ts`](src/testing/example/example.arch.ts), — и вызови отчёт из `check` проекта:
+3. **Проверка архитектуры.** Опиши приложение для `ArchChecker`: состав — `AppDef` из входа графа (`{ def, providers? }`, как [`example.graph.ts`](src/testing/example/example.graph.ts)), к нему — раскладка модулей (`ArchApp = { ...ExampleGraph, entry, layout, root, runners }`, как [`example.arch.ts`](src/testing/example/example.arch.ts)), — и вызови отчёт из `check` проекта:
 
    ```ts
    import { reportArchCheck } from 'dmg-core/arch';
@@ -94,21 +95,21 @@ bunx dmg-core init
 
 | Импорт | Что |
 |---|---|
-| `dmg-core` | ядро и Def-классы (`XxxDef.define`) — единственное, что импортирует домен |
-| `dmg-core/app` | прикладной слой: UC/ER/Job по Def, модуль, UoW, фасады, репозитории |
-| `dmg-core/graph` | ядро графа, поставщик домена и граф приложения, нормализация Def, `DefIndex` |
-| `dmg-core/arch` | `ArchChecker`, `Violation`, `reportArchCheck` |
+| `dmg-core` | ядро и Def-классы (`XxxDef.define`), база `Def` для своего вида, текст отказа `ErrorText` — единственное, что импортирует домен |
+| `dmg-core/app` | прикладной слой: UC/ER/Job по Def, модуль, UoW, фасады, репозитории; подписка внешнего слоя `EventSubscriber`, сверка `DeclaredSet` |
+| `dmg-core/graph` | ядро графа, поставщик домена и граф приложения, нормализация Def, `DefIndex` ([граф приложения](docs/reference/graph.md)) |
+| `dmg-core/arch` | `ArchChecker` (с правилами поставщиков графа), `Violation`, `reportArchCheck` |
 | `dmg-core/gen` | `GenLayout`: раскладка проекта из `dmg-core.json` — один источник для `gen` и `ArchApp.layout` |
-| `dmg-core/testing` | хелперы тестов и учебный модуль (`ExampleArch`) |
-| `dmg-core/cli` | `DmgCoreCli`: `init`, `sync`, `gen` как API (CLI — `bunx dmg-core`) |
+| `dmg-core/testing` | хелперы тестов и учебное приложение (`ExampleAppDef`, `ExampleGraph`, `ExampleArch`); образец расширения графа — подпуть `dmg-core/testing/example/screen/*` |
+| `dmg-core/cli` | `DmgCoreCli`: `init`, `sync`, `gen` как API; команды CLI `bunx dmg-core` — `init`, `sync`, `gen`, `oplog`, `graph` |
 
 ## Документация
 
 - [Вход](docs/index.md): суть DMG, карта документов
 - [Слои](docs/reference/layers.md), [моделирование домена](docs/reference/domain-modeling.md), [структура, имена и генератор](docs/reference/naming.md)
-- [Манифесты](docs/reference/manifests.md), [ошибки и Result](docs/reference/errors-result.md), [Caller и Trace](docs/reference/caller.md), [транспорт](docs/reference/transport.md)
+- [Манифесты](docs/reference/manifests.md), [граф приложения](docs/reference/graph.md), [ошибки и Result](docs/reference/errors-result.md), [Caller и Trace](docs/reference/caller.md), [транспорт](docs/reference/transport.md)
 - [Каталог правил](docs/reference/rules.md), [решения](docs/decisions.md), [тестирование](docs/reference/testing.md), [стиль TypeScript](docs/reference/typescript.md)
-- [Гайды по видам артефактов](docs/guides/index.md), [проект: профили и рост](docs/guides/project.md)
+- [Гайды по видам артефактов](docs/guides/index.md), [проект: профили и рост](docs/guides/project.md), [расширение графа и проверок](docs/guides/graph-extension.md)
 - Для агентов: [`llms.txt`](llms.txt), скил [`dmg-architecture`](skills/dmg-architecture/SKILL.md), [роли](agents/README.md)
 
 ## Лицензия
