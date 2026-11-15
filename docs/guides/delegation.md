@@ -32,7 +32,7 @@ covers:
 - [example-delegation-store.ts](../../src/testing/example/app/example-delegation-store.ts) — порт в памяти: записи из конструктора, только чтение.
 - [example-caller-resolver.ts](../../src/testing/example/app/example-caller-resolver.ts) — резолвер с заявкой: пустые поля → личность от транспорта совпадает с заместителем → `DelegationCheck.verify` → оба пользователя активны → `DelegateCaller` с `readOnly` из записи; иначе `DELEGATION_DENIED`, исключение порта — дефект (ERR-01).
 - [example-cli.ts](../../src/testing/example/runner/example-cli.ts) — опции `--on-behalf <uuid> --delegation <id>` при `--user`; отказ резолвера — JSON отказа и код «отклонено».
-- `DelegationCheck` (`dmg-core/app`) — порядок причин: `disabled` → `invalid` (нет записи или чужая пара — одна причина) → `revoked` → `expired`.
+- `DelegationCheck` (`dmg-core/app`) — причины отказа и их порядок: [reference/caller.md](../reference/caller.md) §4.
 - Каркас `dmg-core init`: заглушка резолвера на заявку отвечает `disabled` — порта нет ([project.md](./project.md)).
 
 ## 4. Какие UC пометить `personal`
