@@ -90,7 +90,7 @@ describe('ModuleDef', () => {
     expect(Users.operations()).toEqual([GetUserUcDef]);
   });
 
-  it('localId(def) — id агрегата или операции в графе: `module.name`', () => {
+  it('localId(def) — id агрегата или операции в сообщениях проверок: `module.name`', () => {
     expect(Todo.localId(TaskArDef)).toBe('todo.task');
     expect(Todo.localId(CompleteTaskUcDef)).toBe('todo.completeTask');
   });

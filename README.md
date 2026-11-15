@@ -96,7 +96,7 @@ bunx dmg-core init
 |---|---|
 | `dmg-core` | ядро и Def-классы (`XxxDef.define`) — единственное, что импортирует домен |
 | `dmg-core/app` | прикладной слой: UC/ER/Job по Def, модуль, UoW, фасады, репозитории |
-| `dmg-core/graph` | нормализация Def, `DefIndex` и граф модулей |
+| `dmg-core/graph` | ядро графа, поставщик домена и граф приложения, нормализация Def, `DefIndex` |
 | `dmg-core/arch` | `ArchChecker`, `Violation`, `reportArchCheck` |
 | `dmg-core/gen` | `GenLayout`: раскладка проекта из `dmg-core.json` — один источник для `gen` и `ArchApp.layout` |
 | `dmg-core/testing` | хелперы тестов и учебный модуль (`ExampleArch`) |

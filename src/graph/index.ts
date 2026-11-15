@@ -1,22 +1,14 @@
 // dmg-core/graph — ядро графа (D-92): узлы и рёбра от поставщиков, подъём,
 // монтирование, документ формата 1; о слоях и домене ядро не знает. Рядом —
-// нормализация Def и граф домена L0/L1/L2 (документация, MCP, проверки
-// архитектуры).
+// поставщик домена и граф приложения (D-95, `./domain`), нормализация Def и
+// индекс Def для проверок архитектуры.
 
 export { type AnyOperationDef, DefIndex } from './def-index';
-export {
-  type AggregateNode,
-  buildGraph,
-  type DomainGraph,
-  type DomainRuleNode,
-  type ErrorNode,
-  type EventNode,
-  type JobNode,
-  type ModuleLink,
-  type ModuleNode,
-  type ReactionNode,
-  type UseCaseNode,
-} from './domain-graph';
+export { AppGraph } from './domain/app-graph';
+export { DomainIds } from './domain/domain-ids';
+export { DOMAIN_KINDS, DOMAIN_PROVIDER } from './domain/domain-kinds';
+export { DomainProvider } from './domain/domain-provider';
+export type { GraphApp } from './domain/graph-app.types';
 export { Graph } from './graph';
 export type {
   GraphAppInfo,

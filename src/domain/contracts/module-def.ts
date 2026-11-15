@@ -44,7 +44,7 @@ export class ModuleDef<const S extends ModuleSpec = ModuleSpec> extends Def<
     return [...this.useCases, ...this.reactions, ...this.jobs];
   }
 
-  /** Id агрегата или операции модуля в графе: `module.name`. */
+  /** Id агрегата или операции модуля в сообщениях проверок: `module.name`. */
   localId(def: AnyAggregateDef | AnyOperationDef): string {
     return `${this.name}.${def.name}`;
   }

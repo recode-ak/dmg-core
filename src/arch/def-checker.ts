@@ -1,5 +1,6 @@
 import type { JsonSchema } from '@valibot/to-json-schema';
 import type * as v from 'valibot';
+import type { AnyAggregateDef } from '../domain/aggregate/aggregate-def';
 import type { AnyModuleDef } from '../domain/contracts/module-def';
 import { UseCaseDef } from '../domain/contracts/use-case-def';
 import type { AnyEventDef } from '../domain/events/event-def';
@@ -11,6 +12,9 @@ import { toJsonSchema } from '../kernel/schema/json-schema';
 import { TODO_TEXT } from './todo-text';
 import { Violation } from './violation';
 
+/** Def в пространстве имён графа (MAN-16): имя-сегмент и заголовок для сообщения. */
+type NamedDef = { readonly name: string; readonly title: string };
+
 /** Def с описаниями и схемами — в виде, общем для MAN-01/02/03. */
 type DescribedDef = {
   /** Вид и id для сообщения: `UC alpha.addNote`. */
@@ -21,7 +25,7 @@ type DescribedDef = {
 };
 
 /**
- * Контрактные проверки по Def (без файлов): MAN-01/02/03/05/06/08/12/13,
+ * Контрактные проверки по Def (без файлов): MAN-01/02/03/05/06/08/12/13/16,
  * ARC-04 (ссылки ⊆ `dependsOn`), ARC-05 (DAG), ERR-02, ERR-04, DOM-16.
  */
 export class DefChecker {
@@ -41,6 +45,7 @@ export class DefChecker {
       ...this.checkCalls(),
       ...this.checkQueryCalls(),
       ...this.checkOwnAggregates(),
+      ...this.checkGraphNames(),
     ];
   }
 
@@ -473,6 +478,73 @@ export class DefChecker {
     return out;
   }
 
+  /**
+   * MAN-16: имена одного пространства графа уникальны (D-95) — иначе два
+   * узла получили бы один `id`. В модуле — агрегаты и операции; в агрегате —
+   * события (короткое имя), ошибки (код) и доменные правила его ошибок.
+   */
+  private checkGraphNames(): Violation[] {
+    const rules = this.rulesByAggregate();
+    return this.index.modules.flatMap((m) => [
+      ...this.nameClashes(`в модуле ${m.name}`, [
+        ...m.aggregates.map((a) =>
+          this.named(a.name, `агрегат ${m.localId(a)}`),
+        ),
+        ...m.operations().map((op) => this.named(op.name, op.title(m))),
+      ]),
+      ...m.aggregates.flatMap((a) =>
+        this.nameClashes(`в агрегате ${m.localId(a)}`, [
+          ...Object.values(a.events).map((e) =>
+            this.named(this.index.eventLocalName(e), `событие ${e.name}`),
+          ),
+          ...Object.values(a.errors).map((e) =>
+            this.named(e.code, `ошибка ${e.code}`),
+          ),
+          ...(rules.get(a) ?? []).map((r) =>
+            this.named(r.name, `правило ${this.index.ruleId(r).id}`),
+          ),
+        ]),
+      ),
+    ]);
+  }
+
+  private named(name: string, title: string): NamedDef {
+    return { name, title };
+  }
+
+  /** Правила UC приложения по агрегату-владельцу их ошибки, по одному на Def. */
+  private rulesByAggregate(): Map<AnyAggregateDef, AnyDomainRule[]> {
+    const referenced = this.index.modules.flatMap((m) =>
+      m.useCases.flatMap((uc): readonly AnyDomainRule[] => uc.rules),
+    );
+    const out = new Map<AnyAggregateDef, AnyDomainRule[]>();
+    for (const rule of new Set(referenced)) {
+      const owner = this.index.aggregateOf(rule.error);
+      if (!owner) continue;
+      out.set(owner, [...(out.get(owner) ?? []), rule]);
+    }
+    return out;
+  }
+
+  private nameClashes(where: string, defs: readonly NamedDef[]): Violation[] {
+    const out: Violation[] = [];
+    const first = new Map<string, string>();
+    for (const { name, title } of defs) {
+      const known = first.get(name);
+      if (known === undefined) {
+        first.set(name, title);
+        continue;
+      }
+      out.push(
+        new Violation(
+          'MAN-16',
+          `${known} и ${title}: одно имя «${name}» ${where}`,
+        ),
+      );
+    }
+    return out;
+  }
+
   private isCoreError(e: AnyErrorDef): boolean {
     return Object.values<AnyErrorDef>(CoreErrors).includes(e);
   }
@@ -489,7 +561,7 @@ export class DefChecker {
    * Все Def приложения с описаниями: модули, агрегаты, UC, ER, Job, события и ошибки агрегатов, доменные правила UC. Ошибки и
    * события, на которые только ссылаются, проверяются у владельца; правило,
    * на которое ссылаются несколько UC, — один раз; заголовок правила — по
-   * владельцу его ошибки (`DefIndex.ruleId`), как в графе.
+   * владельцу его ошибки (`DefIndex.ruleId`).
    */
   private described(): DescribedDef[] {
     const out: DescribedDef[] = [];

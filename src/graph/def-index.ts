@@ -59,16 +59,25 @@ export class DefIndex {
     return this.aggregateOwner.get(def);
   }
 
-  /** Id агрегата или операции в графе: `module.name`; вне индекса — `?.name`. */
-  id(def: AnyAggregateDef | AnyOperationDef): string {
-    return this.moduleOf(def)?.localId(def) ?? `?.${def.name}`;
+  /**
+   * Имя события внутри агрегата-владельца: остаток FQN после `<m>.<a>.`
+   * (MAN-08). FQN не по правилу или событие вне индекса — полное имя.
+   */
+  eventLocalName(def: AnyEventDef): string {
+    const aggregate = this.aggregateOf(def);
+    const owner = aggregate && this.moduleOf(aggregate);
+    if (!aggregate || !owner) return def.name;
+    const prefix = `${owner.localId(aggregate)}.`;
+    const rest = def.name.slice(prefix.length);
+    const byRule = def.name.startsWith(prefix) && rest !== '';
+    return byRule && !rest.includes('.') ? rest : def.name;
   }
 
   /**
-   * Id доменного правила (D-40): `module.aggregate.name` по агрегату-владельцу
-   * его ошибки (DOM-16), а не по модулю ссылающегося UC. Правила с одним
-   * `name` у разных агрегатов модуля различаются. Ошибка вне модулей
-   * индекса — `?.?.name`.
+   * Id доменного правила в сообщениях проверок (D-40): `module.aggregate.name`
+   * по агрегату-владельцу его ошибки (DOM-16), а не по модулю ссылающегося UC.
+   * Правила с одним `name` у разных агрегатов модуля различаются. Ошибка вне
+   * модулей индекса — `?.?.name`; `id` узла графа даёт `DomainIds`.
    */
   ruleId(rule: AnyDomainRule): {
     readonly id: string;

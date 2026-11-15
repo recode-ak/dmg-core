@@ -13,7 +13,10 @@ import {
 } from '../domain/contracts/use-case-def';
 import { type AnyEventDef, EventDef } from '../domain/events/event-def';
 import { allowAll } from '../domain/policy/rule';
-import { DomainRuleDef } from '../domain/rules/domain-rule-def';
+import {
+  type AnyDomainRule,
+  DomainRuleDef,
+} from '../domain/rules/domain-rule-def';
 import { DefIndex } from '../graph/def-index';
 import { ErrorDef } from '../kernel/errors/error-def';
 import { BaseEntityFields, F } from '../kernel/fields/fields';
@@ -741,6 +744,104 @@ describe('DefChecker', () => {
       expect(report(m).filter((l) => l.startsWith('MAN-01'))).toEqual([
         'MAN-01: правило beta.item.itemExists: пустой label',
       ]);
+    });
+  });
+
+  describe('MAN-16 — имена одного пространства графа уникальны (D-95)', () => {
+    const man16 = (...roots: AnyModuleDef[]) =>
+      report(...roots).filter((l) => l.startsWith('MAN-16'));
+
+    const ClashEvents = EventDef.define('clash.thing', {
+      checked: {
+        label: 'Проверено',
+        description: 'Вещь проверена.',
+        payload: v.object({}),
+      },
+    });
+    const ClashErrors = ErrorDef.define('THING', {
+      DUPLICATE: {
+        kind: 'conflict',
+        label: 'Дубль',
+        description: 'Такая вещь уже есть.',
+      },
+    });
+    const ClashArDef = AggregateDef.define({
+      name: 'thing',
+      label: 'Вещь',
+      description: 'Агрегат для коллизий имён.',
+      state: v.object({ ...BaseEntityFields }),
+      events: ClashEvents,
+      errors: ClashErrors,
+    });
+    const uc = (name: string, over: { rules?: AnyDomainRule[] } = {}) =>
+      UseCaseDef.define({
+        name,
+        label: name,
+        description: `UC ${name}.`,
+        type: 'command',
+        aggregate: ClashArDef,
+        callers: ['user'],
+        policy: allowAll,
+        input: v.object({}),
+        output: v.object({}),
+        errors: over.rules ? [ClashErrors.DUPLICATE] : [],
+        ...(over.rules ? { rules: over.rules } : {}),
+      });
+    const er = (name: string) =>
+      EventReactionDef.define({
+        name,
+        label: name,
+        description: `ER ${name}.`,
+        on: [ClashEvents.checked],
+        touches: [ClashArDef],
+      });
+    const clash = (over: {
+      aggregates?: (typeof ClashArDef)[];
+      useCases?: AnyUseCaseDef[];
+      reactions?: ReturnType<typeof er>[];
+    }) =>
+      ModuleDef.define({
+        name: 'clash',
+        label: 'Коллизии',
+        description: 'Модуль с совпадающими именами.',
+        dependsOn: [],
+        aggregates: over.aggregates ?? [ClashArDef],
+        useCases: over.useCases ?? [],
+        reactions: over.reactions ?? [],
+        jobs: [],
+      });
+
+    it('агрегат и UC с одним именем в модуле', () => {
+      expect(man16(clash({ useCases: [uc('thing')] }))).toEqual([
+        'MAN-16: агрегат clash.thing и UC clash.thing: одно имя «thing» в модуле clash',
+      ]);
+    });
+
+    it('UC и ER с одним именем в модуле', () => {
+      expect(
+        man16(clash({ useCases: [uc('sync')], reactions: [er('sync')] })),
+      ).toEqual([
+        'MAN-16: UC clash.sync и ER clash.sync: одно имя «sync» в модуле clash',
+      ]);
+    });
+
+    it('событие и правило одного агрегата — одно имя в агрегате', () => {
+      const checked = DomainRuleDef.define({
+        name: 'checked',
+        label: 'Проверено',
+        description: 'Правило с именем события.',
+        error: ClashErrors.DUPLICATE,
+        check: (_: unknown) => ok(),
+      });
+      expect(
+        man16(clash({ useCases: [uc('doIt', { rules: [checked] })] })),
+      ).toEqual([
+        'MAN-16: событие clash.thing.checked и правило clash.thing.checked: одно имя «checked» в агрегате clash.thing',
+      ]);
+    });
+
+    it('имена из разных пространств не пересекаются: событие и UC', () => {
+      expect(man16(clash({ useCases: [uc('checked')] }))).toEqual([]);
     });
   });
 });

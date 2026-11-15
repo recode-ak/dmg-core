@@ -70,14 +70,6 @@ describe('DefIndex', () => {
     expect(index.aggregateOf(Stray.LOST)).toBeUndefined();
   });
 
-  it('id — `module.name` по владельцу; `?.name` вне индекса', () => {
-    expect(index.id(TaskArDef)).toBe('todo.task');
-    expect(index.id(GetUserUcDef)).toBe('users.getUser');
-    const users = DefIndex.from([UsersModuleDef]);
-    expect(users.id(CompleteTaskUcDef)).toBe('?.completeTask');
-    expect(users.id(TaskArDef)).toBe('?.task');
-  });
-
   it('ruleId — по агрегату-владельцу ошибки правила (D-40)', () => {
     expect(index.ruleId(NotDone)).toEqual({
       id: 'todo.task.notDone',
