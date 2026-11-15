@@ -40,7 +40,8 @@ TARBALL="$(ls "$WORK"/dmg-core-*.tgz)"
 FILES="$(tar -tzf "$TARBALL")"
 for need in LICENSE llms.txt README.md docs/index.md docs/reference/rules.md \
   skills/dmg-architecture/SKILL.md agents/README.md \
-  biome-plugins/dom-14-no-clock.grit src/index.ts src/cli/main.ts; do
+  biome-plugins/dom-14-no-clock.grit src/index.ts src/cli/main.ts \
+  src/testing/example/screen/screen.graph.ts; do
   if ! grep -qx "package/$need" <<<"$FILES"; then
     echo "e2e: в tarball нет $need" >&2
     exit 1
@@ -65,8 +66,12 @@ bun add "$TARBALL" valibot @valibot/to-json-schema >/dev/null
 cat >smoke.ts <<'TS'
 import { ArchChecker } from 'dmg-core/arch';
 import { ExampleArch } from 'dmg-core/testing';
+import { ScreenArch } from 'dmg-core/testing/example/screen/screen.arch';
 
-const violations = ArchChecker.of(ExampleArch).check();
+const violations = [
+  ...ArchChecker.of(ExampleArch).check(),
+  ...ArchChecker.of(ScreenArch).check(),
+];
 if (violations.length > 0) {
   console.error(violations);
   process.exit(1);
