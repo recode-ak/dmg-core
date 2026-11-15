@@ -30,19 +30,20 @@ export class TaskJsonRepo
   }
 
   async findActiveByOwner(ownerId: string): Promise<TaskAr[]> {
-    return this.where((r) => r.ownerId === ownerId && r.status !== 'archived');
+    const owned = await this.where((r) => r.ownerId === ownerId);
+    return owned.filter((task) => task.isActive());
   }
 
   async findActiveByParticipant(userId: string): Promise<TaskAr[]> {
-    return this.where(
-      (r) =>
-        (r.ownerId === userId || r.assignment?.assigneeId === userId) &&
-        r.status !== 'archived',
+    const involved = await this.where(
+      (r) => r.ownerId === userId || r.assignment?.assigneeId === userId,
     );
+    return involved.filter((task) => task.isActive());
   }
 
   async findDone(): Promise<TaskAr[]> {
-    return this.where((r) => r.status === 'done');
+    const all = await this.where(() => true);
+    return all.filter((task) => task.isDone());
   }
 
   protected async stored(uuid: string): Promise<StoredRecord | undefined> {
@@ -55,6 +56,10 @@ export class TaskJsonRepo
     await Bun.write(this.filePath, JSON.stringify(next, undefined, 2));
   }
 
+  /**
+   * Кандидаты по ключам записи (владелец, исполнитель); признак — вопросом
+   * Ar у вызывающего, а не условием по `status` (D-87).
+   */
   private async where(match: (row: TaskState) => boolean): Promise<TaskAr[]> {
     return (await this.rows()).filter(match).map(TaskAr.restore);
   }

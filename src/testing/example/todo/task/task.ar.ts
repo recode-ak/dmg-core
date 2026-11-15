@@ -92,6 +92,14 @@ export class TaskAr extends Aggregate<typeof TaskArDef> {
     return this.state.status === 'archived';
   }
 
+  /**
+   * Активна ли задача — не в архиве. Единственное определение «активной»:
+   * выборки `find*Active*` репозитория отбирают по нему, а не своим условием.
+   */
+  isActive(): boolean {
+    return !this.isArchived();
+  }
+
   isAssignedTo(userId: string): boolean {
     return this.state.assignment?.assigneeId === userId;
   }

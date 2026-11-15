@@ -224,4 +224,10 @@ describe('вопросы', () => {
     expect(TaskAr.restore(stored('done')).isOpen()).toBe(false);
     expect(TaskAr.restore(stored('archived')).isOpen()).toBe(false);
   });
+
+  it('isActive: открытая и выполненная — да, архивная — нет', () => {
+    expect(TaskAr.restore(stored('open')).isActive()).toBe(true);
+    expect(TaskAr.restore(stored('done')).isActive()).toBe(true);
+    expect(TaskAr.restore(stored('archived')).isActive()).toBe(false);
+  });
 });
