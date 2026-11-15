@@ -1,7 +1,7 @@
 ---
 covers:
   - src/kernel/errors/**
-verified: d20edbc
+verified: 64af7d9
 ---
 
 # Errors — гайд
