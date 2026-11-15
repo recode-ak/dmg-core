@@ -66,12 +66,19 @@ export {
   type CallsOf,
   OperationFromDef,
 } from './operation/operation-from-def';
+export type { FieldChange } from './oplog/field-diff';
 export {
   DEFAULT_OPLOG_MAX_BYTES,
+  DEFAULT_OPLOG_VALUE_MAX_BYTES,
   JsonlOperationLog,
   type TruncatedValue,
 } from './oplog/jsonl-operation-log';
-export type { OperationLog, OperationRecord } from './oplog/operation-record';
+export type {
+  OperationLog,
+  OperationRecord,
+  RedactedChange,
+  ValueDigest,
+} from './oplog/operation-record';
 export { type OperationCall, OperationRun } from './oplog/operation-run';
 export {
   type ReactionEnvelopeOf,

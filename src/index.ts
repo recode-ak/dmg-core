@@ -144,4 +144,5 @@ export type {
   SerializedResult,
 } from './kernel/result/serialized-result.types';
 export { toJsonSchema } from './kernel/schema/json-schema';
+export { SensitiveMask } from './kernel/schema/sensitive-mask';
 export type { Timestamp } from './kernel/time/timestamp';

@@ -33,7 +33,7 @@ export type TaskStatus = v.InferOutput<typeof TaskStatus>;
 export const TaskState = v.object({
   ...BaseEntityFields,
   ownerId: F.uuid('владельца'),
-  title: F.string('Название задачи'),
+  title: F.sensitive(F.string('Название задачи')),
   status: TaskStatus,
   completedAt: v.optional(F.timestamp('выполнения')),
   assignment: v.optional(TaskAssignmentVo),

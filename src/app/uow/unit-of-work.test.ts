@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
+import * as v from 'valibot';
+import { AggregateDef } from '#core/domain/aggregate/aggregate-def';
+import { BaseEntityFields, F } from '#core/kernel/fields/fields';
 import { Trace } from '#core/kernel/trace/trace';
 import {
   TaskAr,
@@ -17,7 +20,7 @@ import {
   VersionConflict,
   VersionedRepository,
 } from './repository';
-import { UnitOfWork } from './unit-of-work';
+import { type AggregateWrite, UnitOfWork } from './unit-of-work';
 
 const AT = Date.UTC(2026, 9, 18, 12, 0);
 const A = 'a1b2c3d4-0000-4000-8000-00000000000a';
@@ -354,8 +357,20 @@ describe('UnitOfWork — writes для лога операций (D-73)', () => 
     uow.register(loaded, slowRepo(log));
     expectOk(await uow.commit());
     expect(uow.writes).toEqual([
-      { aggregate: 'task', uuid: A, from: null, to: created.version },
-      { aggregate: 'task', uuid: B, from: 2, to: 3 },
+      {
+        aggregate: 'task',
+        uuid: A,
+        from: null,
+        to: created.version,
+        changes: expect.any(Array),
+      },
+      {
+        aggregate: 'task',
+        uuid: B,
+        from: 2,
+        to: 3,
+        changes: expect.any(Array),
+      },
     ]);
   });
 
@@ -375,6 +390,155 @@ describe('UnitOfWork — writes для лога операций (D-73)', () => 
   test('без регистраций — пусто', async () => {
     expectOk(await uow.commit());
     expect(uow.writes).toEqual([]);
+  });
+});
+
+describe('UnitOfWork — патч записи в writes (D-85)', () => {
+  /** Изменения записи в порядке пути: порядок обхода — не контракт. */
+  const sorted = (write: AggregateWrite | undefined) =>
+    [...(write?.changes ?? [])].sort((a, b) => a.path.localeCompare(b.path));
+
+  test('загруженный и изменённый — изменённые поля: было и стало', async () => {
+    const loaded = TaskAr.restore({ ...task(B).snapshot(), version: 2 });
+    expectOk(loaded.complete(AT));
+    uow.register(loaded, slowRepo(log));
+    expectOk(await uow.commit());
+    expect(sorted(uow.writes[0])).toEqual([
+      { path: 'completedAt', from: undefined, to: AT },
+      { path: 'status', from: 'open', to: 'done' },
+    ]);
+  });
+
+  test('созданный — поля верхнего уровня, помеченное title — redacted', async () => {
+    uow.register(task(A), slowRepo(log));
+    expectOk(await uow.commit());
+    expect(sorted(uow.writes[0])).toEqual([
+      { path: 'ownerId', from: undefined, to: OWNER },
+      { path: 'status', from: undefined, to: 'open' },
+      { path: 'title', redacted: true },
+    ]);
+    expect(JSON.stringify(uow.writes)).not.toContain('Задача');
+  });
+
+  test('повторный commit после записи — патч от записанного состояния', async () => {
+    const created = task(A);
+    uow.register(created, slowRepo(log));
+    expectOk(await uow.commit());
+    expectOk(created.complete(AT));
+    const next = new UnitOfWork({
+      module: TodoModuleDef,
+      outbox: new InProcOutbox(new LoggingBus(published, log)),
+      trace: TRACE,
+      clock: () => AT,
+    });
+    next.register(created, slowRepo(log));
+    expectOk(await next.commit());
+    expect(sorted(next.writes[0])).toEqual([
+      { path: 'completedAt', from: undefined, to: AT },
+      { path: 'status', from: 'open', to: 'done' },
+    ]);
+  });
+
+  test('агрегат без baseline и current — запись без changes', async () => {
+    const plain = {
+      uuid: A,
+      version: 1,
+      storedVersion: 0,
+      pullEvents: () => [],
+      markStored: () => {},
+    };
+    uow.register(plain, { aggregate: TaskArDef, save: async () => {} });
+    expectOk(await uow.commit());
+    expect(uow.writes).toEqual([
+      { aggregate: 'task', uuid: A, from: 0, to: 1 },
+    ]);
+    expect(uow.writes[0]).not.toHaveProperty('changes');
+  });
+
+  test('сбой расчёта патча — commit проходит, changes нет, warn', async () => {
+    const warns: string[] = [];
+    const tolerant = new UnitOfWork({
+      module: TodoModuleDef,
+      outbox: new InProcOutbox(new LoggingBus(published, log)),
+      trace: TRACE,
+      clock: () => AT,
+      warn: (message) => warns.push(message),
+    });
+    const broken = {
+      uuid: A,
+      version: 1,
+      storedVersion: 0,
+      pullEvents: () => [],
+      markStored: () => {},
+      baseline: task(A).snapshot(),
+      get current(): never {
+        throw new Error('state недоступен');
+      },
+    };
+    tolerant.register(broken, { aggregate: TaskArDef, save: async () => {} });
+    expectOk(await tolerant.commit());
+    expect(tolerant.writes).toEqual([
+      { aggregate: 'task', uuid: A, from: 0, to: 1 },
+    ]);
+    expect(tolerant.writes[0]).not.toHaveProperty('changes');
+    expect(warns).toHaveLength(1);
+  });
+
+  test('state-variant — помеченное поле ветки redacted', async () => {
+    const NoteArDef = AggregateDef.define({
+      name: 'note',
+      label: 'Заметка',
+      description: 'Агрегат со state-variant.',
+      state: v.variant('kind', [
+        v.object({
+          ...BaseEntityFields,
+          kind: v.literal('secret'),
+          secret: F.sensitive(F.string('Секрет')),
+        }),
+        v.object({ ...BaseEntityFields, kind: v.literal('plain') }),
+      ]),
+      events: {},
+      errors: {},
+    });
+    const notes = new UnitOfWork({
+      module: { name: 'notes', aggregates: [NoteArDef] },
+      outbox: new InProcOutbox(new LoggingBus(published, log)),
+      trace: TRACE,
+      clock: () => AT,
+    });
+    const head = { uuid: A, createdAt: AT, updatedAt: AT };
+    const note = {
+      uuid: A,
+      version: 2,
+      storedVersion: 1,
+      pullEvents: () => [],
+      markStored: () => {},
+      baseline: { ...head, version: 1, kind: 'secret', secret: 'старый' },
+      current: { ...head, version: 2, kind: 'secret', secret: 'НОВЫЙ' },
+    };
+    notes.register(note, { aggregate: NoteArDef, save: async () => {} });
+    expectOk(await notes.commit());
+    expect(notes.writes[0]?.changes).toEqual([
+      { path: 'secret', redacted: true },
+    ]);
+  });
+
+  test('ошибка save — патча и записи нет', async () => {
+    const loaded = TaskAr.restore(task(B).snapshot());
+    expectOk(loaded.complete(AT));
+    uow.register(loaded, slowRepo(log, true));
+    await expect(uow.commit()).rejects.toThrow('диск недоступен');
+    expect(uow.writes).toEqual([]);
+  });
+
+  test('запись без changes принимается типом', () => {
+    const write: AggregateWrite = {
+      aggregate: 'task',
+      uuid: A,
+      from: null,
+      to: 0,
+    };
+    expect(write).not.toHaveProperty('changes');
   });
 });
 

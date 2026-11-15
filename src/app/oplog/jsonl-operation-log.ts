@@ -1,9 +1,18 @@
+import { createHash } from 'node:crypto';
 import { appendFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { OperationLog, OperationRecord } from './operation-record';
+import type { AggregateWrite } from '../uow/unit-of-work';
+import type {
+  OperationLog,
+  OperationRecord,
+  ValueDigest,
+} from './operation-record';
 
 /** Порог размера `input`, `output` и `payload` ошибки записи по умолчанию — ≈8 КБ. */
 export const DEFAULT_OPLOG_MAX_BYTES = 8 * 1024;
+
+/** Порог размера `from`/`to` изменения в патче записи по умолчанию — 1 КБ. */
+export const DEFAULT_OPLOG_VALUE_MAX_BYTES = 1024;
 
 /** Обрезанное значение: размер исходного JSON и его начало. */
 export type TruncatedValue = {
@@ -41,23 +50,51 @@ class SizeLimit {
 }
 
 /**
+ * Порог значения в патче записи: JSON длиннее `maxBytes` (UTF-8)
+ * заменяется дайджестом — размер и начало sha256, без содержимого.
+ */
+class ValueLimit {
+  private readonly encoder = new TextEncoder();
+
+  constructor(private readonly maxBytes: number) {}
+
+  apply(value: unknown): unknown {
+    if (value === undefined) return value;
+    const json = JSON.stringify(value);
+    const size = this.encoder.encode(json).length;
+    if (size <= this.maxBytes) return value;
+    const hash = createHash('sha256').update(json).digest('hex').slice(0, 12);
+    const digest: ValueDigest = { digest: true, size, hash };
+    return digest;
+  }
+}
+
+/**
  * Лог операций в JSONL: файл на день (`YYYY-MM-DD.jsonl`, UTC по `at`),
  * строка на запись. Каталог создаётся при первой записи; записи идут
  * по очереди — строки параллельных операций не перемешиваются.
  * `input`, `output` и `payload` ошибки больше порога обрезаются с пометкой
- * (`TruncatedValue`); `events` и `writes` — короткие ссылки, без порога.
+ * (`TruncatedValue`); `events` и `writes` — короткие ссылки, без порога,
+ * кроме `from`/`to` изменений патча: больше `valueMaxBytes` — `ValueDigest`.
  * @see src/app/oplog/jsonl-operation-log.test.ts
  */
 export class JsonlOperationLog implements OperationLog {
   private readonly limit: SizeLimit;
+  private readonly valueLimit: ValueLimit;
   private queue: Promise<void> = Promise.resolve();
   private ready: Promise<unknown> | undefined;
 
   constructor(
     private readonly dir: string,
-    options: { readonly maxBytes?: number } = {},
+    options: {
+      readonly maxBytes?: number;
+      readonly valueMaxBytes?: number;
+    } = {},
   ) {
     this.limit = new SizeLimit(options.maxBytes ?? DEFAULT_OPLOG_MAX_BYTES);
+    this.valueLimit = new ValueLimit(
+      options.valueMaxBytes ?? DEFAULT_OPLOG_VALUE_MAX_BYTES,
+    );
   }
 
   append(record: OperationRecord): Promise<void> {
@@ -81,7 +118,23 @@ export class JsonlOperationLog implements OperationLog {
       ...record,
       input: this.limit.apply(record.input),
       result: this.limitedResult(record.result),
+      writes: record.writes.map((write) => this.limitedWrite(write)),
     };
+  }
+
+  /** `redacted` значений не несёт — остаётся как есть. */
+  private limitedWrite(write: AggregateWrite): AggregateWrite {
+    if (write.changes === undefined) return write;
+    const changes = write.changes.map((change) =>
+      'redacted' in change
+        ? change
+        : {
+            ...change,
+            from: this.valueLimit.apply(change.from),
+            to: this.valueLimit.apply(change.to),
+          },
+    );
+    return { ...write, changes };
   }
 
   private limitedResult(

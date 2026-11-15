@@ -13,7 +13,10 @@ export const TaskEvents = EventDef.define('todo.task', {
   created: {
     label: 'Задача создана',
     description: 'Пользователь добавил задачу в свой список.',
-    payload: v.object({ ...ref, title: F.string('Название задачи') }),
+    payload: v.object({
+      ...ref,
+      title: F.sensitive(F.string('Название задачи')),
+    }),
   },
   completed: {
     label: 'Задача выполнена',

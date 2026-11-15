@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CoreErrors } from '#core/kernel/errors/core-errors';
 import { JsonlOperationLog, type TruncatedValue } from './jsonl-operation-log';
-import type { OperationRecord } from './operation-record';
+import type { OperationRecord, ValueDigest } from './operation-record';
 
 const DAY_1 = Date.UTC(2026, 9, 21, 23, 59);
 const DAY_2 = Date.UTC(2026, 9, 22, 0, 1);
@@ -154,5 +155,111 @@ describe('JsonlOperationLog', () => {
     const [small, big] = lines('2026-10-21') as OperationRecord[];
     expect(small?.input).toEqual({ text: 'a'.repeat(8000) });
     expect(big?.input).toMatchObject({ truncated: true });
+  });
+});
+
+describe('JsonlOperationLog — патч записи: дайджест крупных значений (D-85)', () => {
+  /** Запись с одним изменённым полем. */
+  const patched = (from: unknown, to: unknown): OperationRecord =>
+    record({
+      writes: [
+        {
+          aggregate: 'task',
+          uuid: 't-1',
+          from: 0,
+          to: 1,
+          changes: [{ path: 'body', from, to }],
+        },
+      ],
+    });
+
+  /** Изменения первой записи агрегата из первой строки файла дня. */
+  function writtenChanges(): unknown[] {
+    const [written] = lines('2026-10-21') as OperationRecord[];
+    return [...(written?.writes[0]?.changes ?? [])];
+  }
+
+  const digestOf = (value: unknown): ValueDigest => {
+    const json = JSON.stringify(value);
+    return {
+      digest: true,
+      size: new TextEncoder().encode(json).length,
+      hash: createHash('sha256').update(json).digest('hex').slice(0, 12),
+    };
+  };
+
+  test('значение больше порога — дайджест: размер и начало sha256', async () => {
+    const log = new JsonlOperationLog(dir, { valueMaxBytes: 50 });
+    const big = { text: 'я'.repeat(100) };
+    await log.append(patched('мало', big));
+    expect(writtenChanges()).toEqual([
+      { path: 'body', from: 'мало', to: digestOf(big) },
+    ]);
+  });
+
+  test('одинаковые значения — одинаковый hash', async () => {
+    const log = new JsonlOperationLog(dir, { valueMaxBytes: 50 });
+    const big = 'a'.repeat(200);
+    await log.append(patched(big, big));
+    const [change] = writtenChanges() as {
+      from: ValueDigest;
+      to: ValueDigest;
+    }[];
+    expect(change?.from).toEqual(digestOf(big));
+    expect(change?.to.hash).toBe(change?.from.hash ?? '');
+  });
+
+  test('порог по умолчанию — 1 КБ', async () => {
+    const log = new JsonlOperationLog(dir);
+    const small = 'a'.repeat(1000);
+    const big = 'a'.repeat(1100);
+    await log.append(patched(small, big));
+    expect(writtenChanges()).toEqual([
+      { path: 'body', from: small, to: digestOf(big) },
+    ]);
+  });
+
+  test('порог настраивается отдельно от maxBytes', async () => {
+    const log = new JsonlOperationLog(dir, {
+      maxBytes: 10,
+      valueMaxBytes: 5000,
+    });
+    const value = 'a'.repeat(2000);
+    await log.append(patched(null, value));
+    expect(writtenChanges()).toEqual([{ path: 'body', from: null, to: value }]);
+  });
+
+  test('redacted — как есть, не дайджест', async () => {
+    const log = new JsonlOperationLog(dir, { valueMaxBytes: 1 });
+    await log.append(
+      record({
+        writes: [
+          {
+            aggregate: 'task',
+            uuid: 't-1',
+            from: 0,
+            to: 1,
+            changes: [{ path: 'title', redacted: true }],
+          },
+        ],
+      }),
+    );
+    expect(writtenChanges()).toEqual([{ path: 'title', redacted: true }]);
+  });
+
+  test('from: undefined у созданного — поля нет в строке', async () => {
+    const log = new JsonlOperationLog(dir, { valueMaxBytes: 50 });
+    await log.append(patched(undefined, 'новое'));
+    expect(writtenChanges()).toEqual([{ path: 'body', to: 'новое' }]);
+    expect(writtenChanges()[0]).not.toHaveProperty('from');
+  });
+
+  test('запись без changes — как есть', async () => {
+    const log = new JsonlOperationLog(dir, { valueMaxBytes: 1 });
+    await log.append(record());
+    const [written] = lines('2026-10-21') as OperationRecord[];
+    expect(written?.writes).toEqual([
+      { aggregate: 'task', uuid: 't-1', from: 0, to: 1 },
+    ]);
   });
 });

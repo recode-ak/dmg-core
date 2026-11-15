@@ -19,6 +19,7 @@ import {
   UserCaller,
 } from '#core/kernel/caller/caller';
 import { ErrorDef } from '#core/kernel/errors/error-def';
+import { F } from '#core/kernel/fields/fields';
 import { ok, type Result } from '#core/kernel/result/result';
 import {
   CompleteTaskUcDef,
@@ -862,10 +863,22 @@ describe('UseCaseFromDef — лог операций (D-43, Р6)', () => {
         input: { taskId: TASK },
         result: { ok: true, output: {} },
         events: ctx.published.map(({ name, eventId }) => ({ name, eventId })),
-        writes: [{ aggregate: 'task', uuid: TASK, from: 0, to: 1 }],
+        writes: [
+          {
+            aggregate: 'task',
+            uuid: TASK,
+            from: 0,
+            to: 1,
+            changes: expect.arrayContaining([
+              { path: 'status', from: 'open', to: 'done' },
+              { path: 'completedAt', from: undefined, to: T1 },
+            ]),
+          },
+        ],
         durationMs: expect.any(Number),
       },
     ]);
+    expect(ctx.oplog.records[0]?.writes[0]?.changes).toHaveLength(2);
     expect(ctx.oplog.records[0]?.events).toHaveLength(1);
     expect(ctx.oplog.records[0]?.durationMs).toBeGreaterThanOrEqual(0);
   });
@@ -1020,5 +1033,49 @@ describe('UseCaseFromDef — лог операций (D-43, Р6)', () => {
         message: 'Не удалось записать лог операции',
       },
     ]);
+  });
+});
+
+describe('UseCaseFromDef — помеченные поля в логе операций (D-85)', () => {
+  const SECRET = 'пароль-42';
+
+  const LockUcDef = UseCaseDef.define({
+    name: 'lockTask',
+    label: 'Закрыть задачу паролем',
+    description: 'UC с помеченными полями входа и выхода.',
+    type: 'command',
+    aggregate: TaskArDef,
+    callers: ['user'],
+    policy: allowAll,
+    input: v.object({
+      taskId: v.string(),
+      password: F.sensitive(F.string('Пароль')),
+    }),
+    output: v.object({ echo: F.sensitive(F.string('Эхо')) }),
+    errors: [TaskErrors.NOT_FOUND],
+  });
+
+  class LockTask extends UseCaseFromDef<typeof LockUcDef, Deps, Loaded> {
+    constructor() {
+      super(LockUcDef, { app: ctx.app, facades, tasks }, moduleOf(LockUcDef));
+    }
+    protected load(i: { taskId: string }) {
+      return loadTask(tasks, i);
+    }
+    protected async execute(input: { password: string }) {
+      return ok({ echo: input.password });
+    }
+  }
+
+  test('вход и выход: помеченные поля [redacted], значения нет в записи', async () => {
+    const lock = new LockTask();
+    const out = expectOk(
+      await lock.handle({ taskId: TASK, password: SECRET }, user(OWNER), REQ),
+    );
+    expect(out).toEqual({ echo: SECRET });
+    const [rec] = ctx.oplog.records;
+    expect(rec?.input).toEqual({ taskId: TASK, password: '[redacted]' });
+    expect(rec?.result).toEqual({ ok: true, output: { echo: '[redacted]' } });
+    expect(JSON.stringify(rec)).not.toContain(SECRET);
   });
 });

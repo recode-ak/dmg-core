@@ -1,12 +1,20 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import type { AnyModuleDef } from '#core/domain/contracts/module-def';
+import * as v from 'valibot';
+import { EventReactionDef } from '#core/domain/contracts/event-reaction-def';
+import {
+  type AnyModuleDef,
+  ModuleDef,
+} from '#core/domain/contracts/module-def';
+import { EventDef } from '#core/domain/events/event-def';
 import { SystemCaller } from '#core/kernel/caller/caller';
 import type { DomainError } from '#core/kernel/errors/error';
+import { F } from '#core/kernel/fields/fields';
 import { ok, type Result } from '#core/kernel/result/result';
 import type { Cause, Trace } from '#core/kernel/trace/trace';
 import {
   ReleaseRemovedUserTasksErDef,
   TaskAr,
+  TaskArDef,
   TaskEvents,
   TodoModuleDef,
 } from '#core/testing/example/todo/index';
@@ -389,5 +397,68 @@ describe('ReactionFromDef — сбой inbox (ERR-07)', () => {
     });
     expectErr(await er.handle(removed()), 'SERVER_INTERNAL');
     expect(released).toBe(false);
+  });
+});
+
+describe('ReactionFromDef — помеченные поля в логе операций (D-85)', () => {
+  const SECRET = 'пароль-42';
+
+  const NoteEvents = EventDef.define('notes.note', {
+    posted: {
+      label: 'Заметка опубликована',
+      description: 'Событие с помеченным полем payload.',
+      payload: v.object({
+        noteId: v.string(),
+        text: F.sensitive(F.string('Текст')),
+      }),
+    },
+  });
+
+  const ReadNoteErDef = EventReactionDef.define({
+    name: 'readNote',
+    label: 'Прочитать заметку',
+    description: 'ER на событие с помеченным полем.',
+    on: [NoteEvents.posted],
+    touches: [TaskArDef],
+  });
+
+  class ReadNote extends ReactionFromDef<typeof ReadNoteErDef, Deps> {
+    constructor() {
+      super(
+        ReadNoteErDef,
+        { app: ctx.app, facades, tasks },
+        ModuleDef.define({
+          name: 'todo',
+          label: 'Задачи',
+          description: 'Модуль-владелец ER теста.',
+          dependsOn: [],
+          aggregates: [TaskArDef],
+          useCases: [],
+          reactions: [ReadNoteErDef],
+          jobs: [],
+        }),
+      );
+    }
+    protected async react() {
+      return ok();
+    }
+  }
+
+  test('вход — конверт: payload помеченного поля [redacted], значения нет в записи', async () => {
+    const envelope = {
+      ...NoteEvents.posted.make({ noteId: 'n-1', text: SECRET }),
+      eventId: 'e-note',
+      occurredAt: T0,
+      aggregateId: 'n-1',
+      cause: { kind: 'request' as const, requestId: 'r-1' },
+      correlationId: 'c-1',
+    };
+    expectOk(await new ReadNote().handle(envelope));
+    const [rec] = ctx.oplog.records;
+    expect(rec?.input).toEqual({
+      ...envelope,
+      payload: { noteId: 'n-1', text: '[redacted]' },
+    });
+    expect(JSON.stringify(rec)).not.toContain(SECRET);
   });
 });

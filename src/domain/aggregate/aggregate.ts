@@ -42,7 +42,8 @@ type Apply<D extends AnyAggregateDef, R> = (
  * бывает. `V` — форма состояния наружу (`view()`), по умолчанию — state.
  */
 export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
-  private current: StateOf<D>;
+  private live: StateOf<D>;
+  private base: StateOf<D> | undefined;
   private pending: EventsOf<D>[];
   private stored: number | undefined;
 
@@ -75,13 +76,15 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
     state: StateOf<D>,
     events: readonly EventsOf<D>[] = [],
   ) {
-    this.current = this.validate(state);
+    this.live = this.validate(state);
     this.pending = [...events];
-    this.stored = isNewEntity(state) ? undefined : this.current.version;
+    const created = isNewEntity(state);
+    this.stored = created ? undefined : this.live.version;
+    this.base = created ? undefined : this.live;
   }
 
   get uuid(): string {
-    return this.current.uuid;
+    return this.live.uuid;
   }
 
   /** Имя Def агрегата — для ошибок о записи (`VERSION_CONFLICT`, D-57). */
@@ -91,7 +94,7 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
 
   /** Текущая версия: растёт с каждой мутацией (D-36). */
   get version(): number {
-    return this.current.version;
+    return this.live.version;
   }
 
   /**
@@ -106,7 +109,25 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
 
   /** Отметить запись: вызывает UoW после успешного `repo.save`. */
   markStored(): void {
-    this.stored = this.current.version;
+    this.stored = this.live.version;
+    this.base = this.live;
+  }
+
+  /**
+   * Состояние на момент загрузки или последней записи — база патча в логе
+   * операций (D-85); `undefined` — создан и не записан. Ссылка, не копия:
+   * только для UoW и лога, не мутировать.
+   */
+  get baseline(): Readonly<StateOf<D>> | undefined {
+    return this.base;
+  }
+
+  /**
+   * Текущее состояние — вторая сторона патча. Ссылка, не копия:
+   * мутация строит новый объект, база не меняется; только для UoW и лога.
+   */
+  get current(): Readonly<StateOf<D>> {
+    return this.live;
   }
 
   /**
@@ -114,7 +135,7 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
    * D-44). Наружу состояние отдаёт `view()`.
    */
   snapshot(): StateOf<D> {
-    return structuredClone(this.current);
+    return structuredClone(this.live);
   }
 
   /**
@@ -135,7 +156,7 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
 
   /** Текущее состояние — для методов-вопросов наследника. */
   protected get state(): Readonly<StateOf<D>> {
-    return this.current;
+    return this.live;
   }
 
   /**
@@ -164,7 +185,7 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
     if (declared === undefined) {
       throw new Error(`Агрегат ${this.def.name}: переход ${op} не объявлен`);
     }
-    const from = statusOf(this.current);
+    const from = statusOf(this.live);
     if (from !== undefined && declared.from.includes(from)) {
       return this.mutate(at, apply, declared.to);
     }
@@ -184,7 +205,7 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
     apply: Apply<D, R>,
     to: string | undefined,
   ): R {
-    const draft = structuredClone(this.current);
+    const draft = structuredClone(this.live);
     const before = statusOf(draft);
     if (to !== undefined) Reflect.set(draft, 'status', to);
     const emitted: EventsOf<D>[] = [];
@@ -193,10 +214,10 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
     });
     if (!res.ok) return res;
     this.checkStatus(to ?? before, statusOf(draft));
-    this.current = this.validate({
+    this.live = this.validate({
       ...draft,
       updatedAt: at,
-      version: this.current.version + 1,
+      version: this.live.version + 1,
     });
     this.pending.push(...emitted);
     return res;

@@ -58,6 +58,15 @@ function expectedVersion(label: string) {
 }
 
 /**
+ * Пометка персональных данных (D-85): разбор и тип выхода — как у `schema`,
+ * в лог операций значение не попадает (`SensitiveMask`). Метка — в схеме,
+ * поэтому переживает `v.pick` и перенос поля в другую схему.
+ */
+function sensitive<S extends v.GenericSchema>(schema: S) {
+  return v.pipe(schema, v.metadata({ sensitive: true }));
+}
+
+/**
  * Базовые поля схем (DOM-11): описание ставится из метки.
  * `uuid`, `timestamp` и `expectedVersion` принимают метку в родительном
  * падеже: `F.uuid('задачи')`.
@@ -70,6 +79,7 @@ export const F = {
   boolean,
   picklist,
   expectedVersion,
+  sensitive,
 };
 
 /**

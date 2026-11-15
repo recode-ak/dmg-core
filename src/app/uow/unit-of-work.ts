@@ -1,3 +1,4 @@
+import type * as v from 'valibot';
 import type { AnyAggregateDef } from '#core/domain/aggregate/aggregate-def';
 import type { AnyModuleDef } from '#core/domain/contracts/module-def';
 import type { AnyEventDef, DomainEvent } from '#core/domain/events/event-def';
@@ -8,13 +9,20 @@ import type { Trace } from '#core/kernel/trace/trace';
 import type { Clock } from '../context';
 import type { EventEnvelope, PublishedEvent } from '../events/event-envelope';
 import type { Outbox } from '../events/outbox';
+import { type FieldChange, FieldDiff } from '../oplog/field-diff';
+import type { RedactedChange } from '../oplog/operation-record';
 import { type Repository, VersionConflict } from './repository';
 
-/** Что UoW нужно от агрегата: идентификатор, версии, события, отметка записи. */
+/**
+ * Что UoW нужно от агрегата: идентификатор, версии, события, отметка записи.
+ * `baseline` и `current` — для патча в логе (D-85); без `current` патча нет.
+ */
 export type Committable = {
   readonly uuid: string;
   readonly version: number;
   readonly storedVersion: number | undefined;
+  readonly baseline?: object | undefined;
+  readonly current?: object;
   pullEvents(): readonly DomainEvent[];
   markStored(): void;
 };
@@ -28,6 +36,8 @@ export type AggregateWrite = {
   readonly uuid: string;
   readonly from: number | null;
   readonly to: number;
+  /** Изменённые поля; нет — агрегат без state или сбой расчёта. */
+  readonly changes?: readonly (FieldChange | RedactedChange)[];
 };
 
 /** Ошибка фиксации: запись изменили параллельно. */
@@ -46,11 +56,15 @@ export type UnitOfWorkContext = {
   readonly touches?: readonly AnyAggregateDef[];
   /** Что делать с расхождением с контрактом; по умолчанию — `throw`. */
   readonly onViolation?: (message: string) => void;
+  /** Куда сообщить о сбое расчёта патча записи; без поля — молча. */
+  readonly warn?: (message: string) => void;
 };
 
 type Entry = {
   readonly ar: Committable;
   readonly aggregate: string;
+  /** Схема state — по ней патч скрывает помеченные поля. */
+  readonly state: v.GenericSchema;
   readonly save: () => Promise<void>;
 };
 
@@ -73,6 +87,7 @@ export class UnitOfWork {
     this.entries.push({
       ar,
       aggregate: repo.aggregate.name,
+      state: repo.aggregate.state,
       save: () => repo.save(ar),
     });
   }
@@ -91,11 +106,20 @@ export class UnitOfWork {
     for (const envelope of batches.flat()) this.assertDeclared(envelope);
     let written = 0;
     try {
-      for (const { ar, aggregate, save } of this.entries) {
+      for (const entry of this.entries) {
+        const { ar, aggregate } = entry;
         const from = ar.storedVersion ?? null;
-        await save();
+        await entry.save();
+        // Патч — до markStored: он переносит baseline на current.
+        const changes = this.changesOf(entry);
         ar.markStored();
-        this.written.push({ aggregate, uuid: ar.uuid, from, to: ar.version });
+        this.written.push({
+          aggregate,
+          uuid: ar.uuid,
+          from,
+          to: ar.version,
+          ...(changes === undefined ? {} : { changes }),
+        });
         written++;
       }
     } catch (error) {
@@ -124,6 +148,23 @@ export class UnitOfWork {
   /** Записанные агрегаты (в том числе до сбоя фиксации), D-73. */
   get writes(): readonly AggregateWrite[] {
     return [...this.written];
+  }
+
+  private changesOf({
+    ar,
+    aggregate,
+    state,
+  }: Entry): AggregateWrite['changes'] {
+    try {
+      const { current } = ar;
+      if (current === undefined) return undefined;
+      return new FieldDiff(state).between(ar.baseline, current);
+    } catch (error) {
+      this.ctx.warn?.(
+        `UoW: патч записи ${aggregate} ${ar.uuid} не рассчитан — ${messageOf(error)}`,
+      );
+      return undefined;
+    }
   }
 
   private async send(envelopes: readonly EventEnvelope[]): Promise<void> {

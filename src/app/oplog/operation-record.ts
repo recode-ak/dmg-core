@@ -6,6 +6,22 @@ import type { PublishedEvent } from '../events/event-envelope';
 import type { AggregateWrite } from '../uow/unit-of-work';
 
 /**
+ * Крупное значение патча в JSONL (D-85): размер JSON в байтах UTF-8 и
+ * первые 12 hex sha256 — одинаковые значения видны по совпадению `hash`.
+ */
+export type ValueDigest = {
+  readonly digest: true;
+  readonly size: number;
+  readonly hash: string;
+};
+
+/** Изменённое помеченное поле: без значений и хеша. */
+export type RedactedChange = {
+  readonly path: string;
+  readonly redacted: true;
+};
+
+/**
  * Запись лога операций (D-43, Р6; D-73): один вызов UC, одна реакция ER или
  * один прогон Job — кто, по какой причине, с каким входом, чем закончился,
  * какие агрегаты записал и какие события опубликовал. Аудит «кто породил

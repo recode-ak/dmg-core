@@ -157,21 +157,32 @@ describe('ExampleApp: сборка', () => {
       ),
     );
 
-    const records = readFileSync(join(dir, 'oplog', '2026-10-01.jsonl'), 'utf8')
+    const lines = readFileSync(join(dir, 'oplog', '2026-10-01.jsonl'), 'utf8')
       .trim()
       .split('\n')
-      .map((line) => JSON.parse(line))
-      .filter((record) => record.op === 'createTask');
+      .filter((line) => JSON.parse(line).op === 'createTask');
+    const records = lines.map((line) => JSON.parse(line));
 
+    // Название задачи помечено F.sensitive: ни во входе, ни в патче (D-85).
     expect(records).toEqual([
       expect.objectContaining({
         module: 'todo',
         kind: 'useCase',
         caller: { kind: 'user', subjectId: OWNER },
-        input: { title: 'Хлеб' },
+        input: { title: '[redacted]' },
         result: { ok: true, output: { taskId } },
+        writes: [
+          expect.objectContaining({
+            aggregate: 'task',
+            uuid: taskId,
+            changes: expect.arrayContaining([
+              { path: 'title', redacted: true },
+            ]),
+          }),
+        ],
       }),
     ]);
+    expect(lines.join('\n')).not.toContain('Хлеб');
   });
 });
 

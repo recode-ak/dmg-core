@@ -5,6 +5,7 @@ import type { Timestamp } from '#core/kernel/time/timestamp';
 import type { Trace } from '#core/kernel/trace/trace';
 import type { UnitOfWork } from '../uow/unit-of-work';
 import type { OperationRecord } from './operation-record';
+import type { RecordMask } from './record-mask';
 
 /** Кто и с чем вызвал операцию — постоянная часть записи лога. */
 export type OperationCall = {
@@ -31,6 +32,7 @@ export class OperationRun {
     private readonly at: Timestamp,
     private readonly call: OperationCall,
     private readonly output: OutputMode = 'full',
+    private readonly mask?: RecordMask,
   ) {}
 
   /** UoW вызова — её события попадут в запись. */
@@ -39,10 +41,14 @@ export class OperationRun {
     return uow;
   }
 
-  /** Запись по итогу вызова; `undefined` в выходе — `null` (JSON). */
+  /**
+   * Запись по итогу вызова; `undefined` в выходе — `null` (JSON). Маска —
+   * единственное место маскирования записи; сводка query считается
+   * по немаскированному выходу.
+   */
   record(result: Result<unknown, DomainError>): OperationRecord {
     const { ref, at, call } = this;
-    return {
+    const record: OperationRecord = {
       at,
       module: ref.module,
       op: ref.name,
@@ -57,6 +63,7 @@ export class OperationRun {
       writes: this.uows.flatMap((uow) => uow.writes),
       durationMs: Math.round((performance.now() - this.started) * 10) / 10,
     };
+    return this.mask === undefined ? record : this.mask.apply(record);
   }
 
   private success(value: unknown): OperationRecord['result'] {

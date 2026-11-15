@@ -27,6 +27,7 @@ import {
   OperationRun,
   type OutputMode,
 } from '../oplog/operation-run';
+import { RecordMask } from '../oplog/record-mask';
 import { UnitOfWork } from '../uow/unit-of-work';
 
 export type { AnyOperationDef };
@@ -106,6 +107,7 @@ export abstract class OperationFromDef<
               app.logger.warn(def.name, message),
           }
         : {}),
+      warn: (message: string) => app.logger.warn(def.name, message),
     });
   }
 
@@ -139,7 +141,11 @@ export abstract class OperationFromDef<
     body: (run: OperationRun) => Promise<Result<T, E>>,
     output: OutputMode = 'full',
   ): Promise<Result<T, E>> {
-    const run = new OperationRun(this.ref, this.now(), call, output);
+    const { logger } = this.resolve.app;
+    const mask = RecordMask.of(this.def, (message) =>
+      logger.warn(this.def.name, message),
+    );
+    const run = new OperationRun(this.ref, this.now(), call, output, mask);
     const result = await body(run);
     await this.append(run.record(result));
     return result;
