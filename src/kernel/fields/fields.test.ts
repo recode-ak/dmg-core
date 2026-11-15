@@ -16,20 +16,34 @@ describe('F.timestamp', () => {
     expect(v.parse(field, 1_700_000_000_000)).toBe(1_700_000_000_000);
   });
 
-  it('читает legacy ISO без зоны как UTC', () => {
-    expect(v.parse(field, '2026-10-19T10:00')).toBe(
-      Date.UTC(2026, 9, 19, 10, 0),
-    );
+  it('принимает ноль', () => {
+    expect(v.parse(field, 0)).toBe(0);
   });
 
-  it('читает полный ISO с зоной', () => {
-    expect(v.parse(field, '2026-10-19T10:00:00.000Z')).toBe(
-      Date.UTC(2026, 9, 19, 10, 0),
-    );
+  it('отвергает ISO без зоны', () => {
+    expect(v.safeParse(field, '2026-10-19T10:00').success).toBe(false);
   });
 
-  it('отклоняет мусор', () => {
+  it('отвергает ISO с зоной', () => {
+    expect(v.safeParse(field, '2026-10-19T10:00:00.000Z').success).toBe(false);
+  });
+
+  it('отвергает произвольную строку', () => {
     expect(v.safeParse(field, 'вчера').success).toBe(false);
+  });
+
+  it('отвергает числовую строку', () => {
+    expect(v.safeParse(field, '1700000000000').success).toBe(false);
+  });
+
+  it.each([
+    ['NaN', Number.NaN],
+    ['Infinity', Number.POSITIVE_INFINITY],
+    ['-Infinity', Number.NEGATIVE_INFINITY],
+    ['отрицательное', -1],
+    ['дробное', 1.5],
+  ])('отвергает %s', (_name, value) => {
+    expect(v.safeParse(field, value).success).toBe(false);
   });
 
   it('описание из метки', () => {
@@ -98,7 +112,7 @@ describe('BaseEntityFields', () => {
     const entity = v.object({ ...BaseEntityFields });
     const parsed = v.parse(entity, {
       uuid: UUID,
-      createdAt: '2026-10-19T10:00',
+      createdAt: Date.UTC(2026, 9, 19, 10, 0),
       updatedAt: 5,
     });
     expect(parsed).toEqual({
@@ -112,7 +126,7 @@ describe('BaseEntityFields', () => {
 
 describe('withEntityDefaults', () => {
   const entity = withEntityDefaults(v.object({ ...BaseEntityFields }));
-  const legacy = { uuid: UUID, createdAt: '2026-10-19T10:00' };
+  const legacy = { uuid: UUID, createdAt: Date.UTC(2026, 9, 19, 10, 0) };
 
   it('запись без updatedAt читается как updatedAt = createdAt', () => {
     expect(v.parse(entity, legacy).updatedAt).toBe(

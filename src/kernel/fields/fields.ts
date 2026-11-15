@@ -1,25 +1,12 @@
 import * as v from 'valibot';
-import type { Timestamp } from '../time/timestamp';
 
-const ZONE = /([zZ]|[+-]\d{2}:?\d{2})$/;
-
-// Legacy-даты (`YYYY-MM-DDTHH:mm`) хранились в UTC без зоны.
-function parseIso(value: string): Timestamp {
-  return Date.parse(ZONE.test(value) ? value : `${value}Z`);
-}
-
+/** Момент времени (D-16): целые миллисекунды Unix, не меньше нуля. */
 function timestamp(label: string) {
   return v.pipe(
-    v.union([
-      v.pipe(v.number(), v.integer()),
-      v.pipe(v.string(), v.isoDateTime()),
-      v.pipe(v.string(), v.isoTimestamp()),
-    ]),
+    v.number(),
+    v.integer(),
+    v.minValue(0),
     v.description(`Время ${label}`),
-    v.transform(
-      (value): Timestamp =>
-        typeof value === 'number' ? value : parseIso(value),
-    ),
   );
 }
 
