@@ -89,7 +89,7 @@
 | MAN-08 | FQN события = `module.aggregate.event` своего модуля и агрегата | test |
 | MAN-09 | Свойства Def не дублируются в реализации; обратные связи не пишутся вручную | type + review |
 | MAN-10 | Контракт и реализация — пара с одинаковым путём; ER/Job в папке основного агрегата | test + review |
-| MAN-11 | Def UC объявляет `callers`; домен и Policy работают с субъектом (`caller.subject()`), а не с `kind`; Policy вызывается всегда (D-43) | type + review |
+| MAN-11 | Def UC объявляет `callers` (`guest`, `user`, `system`: заместитель проходит как `user`, сужения — `personal` и `readOnly`, D-89); домен и Policy работают с субъектом (`caller.subject()`), а не с `kind`; Policy вызывается всегда (D-43) | type + review |
 | MAN-12 | Переход в Def агрегата объявляет отказ (`rejects`) для каждого статуса вне `from` ошибкой из группы этого агрегата; статус Ar меняет только `transition` | type + test |
 | MAN-13 | Один UoW — один модуль: `aggregate` UC, `touches` ER и `scans` Job — агрегаты своего модуля; чужой модуль меняется только через его фасад или событие (D-28) | test |
 | MAN-14 | query UC вызывает только query UC (`calls`): иначе запись идёт мимо признака «только чтение» заместителя (D-89) | test |

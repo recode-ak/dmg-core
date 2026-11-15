@@ -21,5 +21,6 @@
 | job | [job.md](./job.md) | `archive-done-tasks.job.ts` |
 | app и раннер (корень сборки, D-50) | [app.md](./app.md) | `app/example-app.ts`, `runner/example-cli.ts` |
 | проект: профили `init`, рост, подключение модулей | [project.md](./project.md) | каркас `dmg-core init --profile` |
+| делегирование: заявка, порт, резолвер (D-89) | [delegation.md](./delegation.md) | `app/example-caller-resolver.ts`, `app/example-delegation-store.ts` |
 
 Без отдельного гайда: тесты — [testing.md](../reference/testing.md); поля `F.*` и `shared/` — [manifests.md](../reference/manifests.md) §3; структура и имена — [naming.md](../reference/naming.md).

@@ -25,7 +25,7 @@
   ```
 - Команда — простые данные: `uc` — `name` Def UC, имени модуля в ней нет. Клиент собирает её из Def: `ucDef.command(input)` → `Command<D>`.
 - `meta` — расширение без смены протокола: `requestId`.
-- Caller и `Trace` в команду не входят: их передаёт транспорт (заголовки, токен).
+- Caller и `Trace` в команду не входят: их передаёт транспорт (заголовки, токен); заявка делегирования (`DelegationClaim`) — тоже, резолвер приложения проверяет её на каждом запросе (D-89).
 - **Модуль адресует URL:** `apiApp` выбирает `apiModule` по `<module>`, тот исполняет `dispatch(command, caller, trace)` и находит UC по имени. Неизвестный модуль или UC → `Err` `OPERATION_NOT_FOUND` (`not_found`, payload `{ module, uc }`).
 - `OPTIONS /api/<module>` — контракт модуля: UC с JSON Schema входа и выхода, ошибки, описание политики, `label`/`description`.
 

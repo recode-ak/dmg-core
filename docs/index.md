@@ -26,6 +26,7 @@
 | Понять устройство | [concepts/](./concepts/index.md): [домен](./concepts/domain.md) → [слои](./concepts/layers.md) → [путь вызова UC](./concepts/uc-path.md) |
 | Создать файл / объект | [naming.md](./reference/naming.md) → [rules.md](./reference/rules.md) |
 | Написать артефакт по образцу | [guides/](./guides/index.md) |
+| Подключить делегирование | [guides/delegation.md](./guides/delegation.md) |
 | Объявить контракт | [manifests.md](./reference/manifests.md), [errors-result.md](./reference/errors-result.md) |
 | Работать агентом | скил `dmg-architecture` ([SKILL.md](../skills/dmg-architecture/SKILL.md)), роли [agents/](../agents/README.md), процесс [process.md](./process.md) |
 

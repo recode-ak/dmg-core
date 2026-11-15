@@ -16,9 +16,9 @@
 
 - [Манифесты](docs/reference/manifests.md): Def-классы (`XxxDef.define`), обязательные описания, схемы, граф L0/L1/L2
 - [Ошибки и Result](docs/reference/errors-result.md): модель ошибки, `kind`, исполнение UC, UoW
-- [Caller и Trace](docs/reference/caller.md): кто вызывает, субъект, след вызова
+- [Caller и Trace](docs/reference/caller.md): кто вызывает, субъект, след вызова, допуск заместителя (`callers` без `delegate`, `personal`, `readOnly`)
 - [Транспорт](docs/reference/transport.md): HTTP (JSON-команда, `meta.requestId`, ожидаемая версия — поле входа `expectedVersion`), MCP, in-proc
-- [Лог операций](docs/reference/oplog.md): запись `OperationRecord`, патч `writes[].changes`, персональные данные — `F.sensitive` и маскирование всей записи, `retainDays`, чтение — `dmg-core oplog`, `OperationLogReader`
+- [Лог операций](docs/reference/oplog.md): запись `OperationRecord`, патч `writes[].changes`, персональные данные — `F.sensitive` и маскирование всей записи, `retainDays`, чтение — `dmg-core oplog` (`--actor` — действия заместителя), `OperationLogReader`
 
 ## Правила и качество
 
@@ -31,7 +31,7 @@
 
 - [Индекс гайдов](docs/guides/index.md)
 - [State](docs/guides/state.md), [Aggregate](docs/guides/aggregate.md), [Events](docs/guides/events.md), [Errors](docs/guides/errors.md), [Policy](docs/guides/policy.md)
-- [Repo, DCS, DQS](docs/guides/repo.md), [Facade](docs/guides/facade.md), [Use case](docs/guides/use-case.md), [Event reaction](docs/guides/event-reaction.md), [Module](docs/guides/module.md), [Job](docs/guides/job.md), [App и раннер](docs/guides/app.md), [Проект](docs/guides/project.md)
+- [Repo, DCS, DQS](docs/guides/repo.md), [Facade](docs/guides/facade.md), [Use case](docs/guides/use-case.md), [Event reaction](docs/guides/event-reaction.md), [Module](docs/guides/module.md), [Job](docs/guides/job.md), [App и раннер](docs/guides/app.md), [Проект](docs/guides/project.md), [Делегирование](docs/guides/delegation.md)
 
 ## Агенты
 

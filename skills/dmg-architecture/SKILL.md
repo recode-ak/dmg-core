@@ -11,7 +11,7 @@ description: ЗАГРУЖАТЬ ПЕРВЫМ при создании или ре
 
 1. Модуль-владелец и объект — `reference/domain-modeling.md` §1 (Ar / Policy / доменное правило / DCS / DQS / делегирование).
 2. Ось и пакет, разрешённые импорты, доступ к entity — `reference/layers.md`.
-3. Контракт (Def) — `reference/manifests.md`; ошибки и `Result` — `reference/errors-result.md`; кто вызывает — `reference/caller.md`.
+3. Контракт (Def) — `reference/manifests.md`; ошибки и `Result` — `reference/errors-result.md`; кто вызывает — `reference/caller.md`; заместитель (делегирование между людьми) — `guides/delegation.md`.
 4. UC/ER/Job — только техническая оркестрация (API-01): никаких доменных решений.
 5. Чужой модуль — только через его `contract.ts` и только по `dependsOn` (ARC-04).
 
