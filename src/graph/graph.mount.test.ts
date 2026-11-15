@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'bun:test';
 import {
   contributor,
+  graphError,
   graphErrorCode,
   hostGraph,
   hostProvider,
+  rivalKinds,
+  rivalProvider,
   ToyKinds,
   ToyProvider,
   toyContribution,
   toyEdge,
   toyGraph,
+  toyInfo,
   toyNode,
   toyProvider,
+  visibleNode,
 } from './graph.fixture';
 import { GraphBuilder } from './graph-builder';
 
@@ -104,8 +109,8 @@ describe('Graph.mount', () => {
     );
     expect(graph.node('chain/branches/shop')?.provider).toBe('toy');
     expect(graph.providers).toEqual([
-      { name: 'extra', version: '0.1.0' },
-      { name: 'toy', version: '1.0.0' },
+      { name: 'extra', version: '0.1.0', nodeKinds: [], edgeKinds: [] },
+      toyInfo(),
     ]);
   });
 
@@ -114,8 +119,8 @@ describe('Graph.mount', () => {
       .add(new ToyProvider('toy', '2.0.0', ToyKinds, toyContribution()))
       .build();
     expect(hostGraph().mount(child, UNDER).providers).toEqual([
-      { name: 'toy', version: '1.0.0' },
-      { name: 'toy', version: '2.0.0' },
+      toyInfo('1.0.0'),
+      toyInfo('2.0.0'),
     ]);
   });
 
@@ -136,6 +141,24 @@ describe('Graph.mount', () => {
         .some((e) => e.from === 'chain/branches/shop' && e.to === 'chain'),
     ).toBe(true);
     expect(graph.externals()).not.toContain('chain');
+  });
+
+  it('visible узлов child сохраняется при монтировании', () => {
+    const child = new GraphBuilder()
+      .add(
+        new ToyProvider('toy', '1.0.0', ToyKinds, {
+          nodes: [
+            visibleNode('shop', 'shop', true),
+            toyNode('dept', 'shop/hidden'),
+          ],
+          edges: [],
+        }),
+      )
+      .build();
+    const graph = hostGraph().mount(child, UNDER);
+    expect(graph.node('chain/branches/shop')?.visible).toBe(true);
+    expect(graph.node('chain/branches/shop/hidden')?.visible).toBe(false);
+    expect(graph.node('chain')?.visible).toBe(false);
   });
 
   it('монтирование под несуществующий узел — unknown-mount', () => {
@@ -187,5 +210,79 @@ describe('Graph.mount', () => {
     const graph = host.mount(child, UNDER).mount(child, 'chain/outlets');
     expect(graph.node('chain/branches/shop/food')).toBeDefined();
     expect(graph.node('chain/outlets/shop/food')).toBeDefined();
+  });
+});
+
+describe('Graph.mount: сверка видов поставщиков', () => {
+  const kindsWith = (nodeKind: string, edgeKind: string) =>
+    new GraphBuilder()
+      .add(rivalProvider('rival', '1.0.0', rivalKinds(nodeKind, edgeKind)))
+      .build();
+
+  it('одноимённый вид узла у поставщиков с разными name — kind-conflict', () => {
+    const child = kindsWith('dept', 'rival-edge');
+    expect(graphErrorCode(() => hostGraph().mount(child, UNDER))).toBe(
+      'kind-conflict',
+    );
+  });
+
+  it('одноимённый вид ребра у поставщиков с разными name — kind-conflict', () => {
+    const child = kindsWith('rival-node', 'uses');
+    expect(graphErrorCode(() => hostGraph().mount(child, UNDER))).toBe(
+      'kind-conflict',
+    );
+  });
+
+  it('ошибка конфликта называет вид и обоих поставщиков', () => {
+    const error = graphError(() =>
+      hostGraph().mount(kindsWith('dept', 'rival-edge'), UNDER),
+    );
+    expect(error.message).toContain('dept');
+    expect(error.message).toContain('toy');
+    expect(error.message).toContain('rival');
+  });
+
+  it('разные виды у разных name — не конфликт', () => {
+    const child = kindsWith('rival-node', 'rival-edge');
+    const graph = hostGraph().mount(child, UNDER);
+    expect(graph.providers.map((p) => p.name)).toEqual(['rival', 'toy']);
+  });
+
+  it('одинаковые (name, version) и равные списки видов — одна запись', () => {
+    const graph = hostGraph().mount(toyGraph(), UNDER);
+    expect(graph.providers).toEqual([toyInfo()]);
+  });
+
+  it('одинаковые (name, version), но другой текст вида узла — kind-conflict', () => {
+    const child = new GraphBuilder().add(rivalProvider('toy')).build();
+    expect(graphErrorCode(() => hostGraph().mount(child, UNDER))).toBe(
+      'kind-conflict',
+    );
+  });
+
+  it('одинаковые (name, version), но другой состав видов ребра — kind-conflict', () => {
+    const child = new GraphBuilder()
+      .add(
+        new ToyProvider(
+          'toy',
+          '1.0.0',
+          { nodes: ToyKinds.nodes, edges: ToyKinds.edges.slice(0, 1) },
+          { nodes: [], edges: [] },
+        ),
+      )
+      .build();
+    expect(graphErrorCode(() => hostGraph().mount(child, UNDER))).toBe(
+      'kind-conflict',
+    );
+  });
+
+  it('один name, разные version — две записи, не конфликт, даже при других видах', () => {
+    const child = new GraphBuilder().add(rivalProvider('toy', '2.0.0')).build();
+    const graph = hostGraph().mount(child, UNDER);
+    expect(graph.providers.map((p) => `${p.name}@${p.version}`)).toEqual([
+      'toy@1.0.0',
+      'toy@2.0.0',
+    ]);
+    expect(graph.providers[1]?.nodeKinds.map((k) => k.kind)).toEqual(['dept']);
   });
 });

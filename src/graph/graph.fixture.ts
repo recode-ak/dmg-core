@@ -7,7 +7,7 @@ import { GraphBuilder } from './graph-builder';
 import { GraphError } from './graph-error';
 import type { GraphErrorCode } from './graph-error.types';
 import type { GraphContribution, GraphProvider } from './graph-provider';
-import type { GraphKinds } from './kind-registry.types';
+import type { GraphKindInfo, GraphKinds } from './kind-registry.types';
 
 export class ToyProvider implements GraphProvider {
   constructor(
@@ -48,6 +48,26 @@ export const ToyKinds: GraphKinds = {
   ],
 };
 
+/** Описания видов `ToyKinds` в записи поставщика: по `kind`, без схем. */
+export const ToyNodeKindInfos: readonly GraphKindInfo[] = [
+  { kind: 'dept', label: 'Отдел', description: 'Группа товаров.' },
+  { kind: 'item', label: 'Товар', description: 'Позиция с ценой.' },
+  { kind: 'shop', label: 'Магазин', description: 'Корень набора.' },
+];
+
+export const ToyEdgeKindInfos: readonly GraphKindInfo[] = [
+  { kind: 'ships', label: 'Поставляет', description: 'Связь со сроком.' },
+  { kind: 'uses', label: 'Использует', description: 'Связь без свойств.' },
+];
+
+/** Запись `toy@1.0.0` в `graph.providers` и в шапке документа. */
+export const toyInfo = (version = '1.0.0') => ({
+  name: 'toy',
+  version,
+  nodeKinds: ToyNodeKindInfos,
+  edgeKinds: ToyEdgeKindInfos,
+});
+
 export const NoKinds: GraphKinds = { nodes: [], edges: [] };
 export const NoContribution: GraphContribution = { nodes: [], edges: [] };
 
@@ -63,6 +83,16 @@ export function toyNode(
     description: `Описание ${id}.`,
     ...(props ? { props } : {}),
   };
+}
+
+/** Узел с явным `visible` (по умолчанию в `toyNode` поля нет). */
+export function visibleNode(
+  kind: string,
+  id: string,
+  visible: boolean,
+  props?: Record<string, unknown>,
+): GraphNodeInput {
+  return { ...toyNode(kind, id, props), visible };
 }
 
 export function toyEdge(
@@ -107,6 +137,29 @@ export const toyProvider = (): ToyProvider =>
 /** Поставщик только с видами `toy`, без вклада. */
 export const toyKindsOnly = (name = 'toy'): ToyProvider =>
   new ToyProvider(name, '1.0.0', ToyKinds, NoContribution);
+
+/**
+ * Соперник `toy` по видам: свои виды `dept` (узел) и `uses` (ребро) с другими
+ * текстами. Под другим именем — конфликт с `toy`; под тем же именем и версией
+ * — тоже, пока списки видов различаются.
+ */
+export const rivalKinds = (
+  nodeKind = 'dept',
+  edgeKind = 'uses',
+): GraphKinds => ({
+  nodes: [
+    { kind: nodeKind, label: 'Чужой отдел', description: 'Другой смысл.' },
+  ],
+  edges: [
+    { kind: edgeKind, label: 'Чужая связь', description: 'Другой смысл.' },
+  ],
+});
+
+export const rivalProvider = (
+  name = 'rival',
+  version = '1.0.0',
+  kinds: GraphKinds = rivalKinds(),
+): ToyProvider => new ToyProvider(name, version, kinds, NoContribution);
 
 /** Поставщик без видов: вклад чужих видов. */
 export const contributor = (

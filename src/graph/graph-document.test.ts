@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'bun:test';
 import {
   contributor,
+  ToyKinds,
+  ToyProvider,
   toyContribution,
   toyGraph,
+  toyInfo,
   toyKindsOnly,
+  toyNode,
+  visibleNode,
 } from './graph.fixture';
 import { GraphBuilder } from './graph-builder';
 import { GRAPH_FORMAT, GraphDocument } from './graph-document';
@@ -16,7 +21,7 @@ describe('GraphDocument', () => {
     const json = document().toJSON();
     expect(json.format).toBe(GRAPH_FORMAT);
     expect(json.app).toEqual(APP);
-    expect(json.providers).toEqual([{ name: 'toy', version: '1.0.0' }]);
+    expect(json.providers).toEqual([toyInfo()]);
     expect(json.externals).toEqual(['vendor/catalog/blade']);
   });
 
@@ -31,6 +36,49 @@ describe('GraphDocument', () => {
     ]);
   });
 
+  it('провайдер в шапке: ключи записи и вида, виды по kind', () => {
+    const [info] = document().toJSON().providers;
+    expect(Object.keys(info ?? {})).toEqual([
+      'name',
+      'version',
+      'nodeKinds',
+      'edgeKinds',
+    ]);
+    expect(info?.nodeKinds.map((k) => k.kind)).toEqual([
+      'dept',
+      'item',
+      'shop',
+    ]);
+    expect(info?.edgeKinds.map((k) => k.kind)).toEqual(['ships', 'uses']);
+    for (const kind of [
+      ...(info?.nodeKinds ?? []),
+      ...(info?.edgeKinds ?? []),
+    ]) {
+      expect(Object.keys(kind)).toEqual(['kind', 'label', 'description']);
+    }
+    expect(JSON.stringify(info)).not.toContain('price');
+  });
+
+  it('visible есть у каждого узла, включая false', () => {
+    const provider = new ToyProvider('toy', '1.0.0', ToyKinds, {
+      nodes: [toyNode('shop', 'shop'), visibleNode('dept', 'shop/open', true)],
+      edges: [],
+    });
+    const { nodes } = GraphDocument.of(
+      new GraphBuilder().add(provider).build(),
+      {
+        app: APP,
+      },
+    ).toJSON();
+    expect(nodes.map((n) => [n.id, n.visible])).toEqual([
+      ['shop', false],
+      ['shop/open', true],
+    ]);
+    for (const node of document().toJSON().nodes) {
+      expect(node.visible).toBe(false);
+    }
+  });
+
   it('узел: состав и порядок ключей, parent у корня отсутствует', () => {
     const { nodes } = document().toJSON();
     const child = nodes.find((n) => n.id === 'shop/food/bread');
@@ -39,6 +87,7 @@ describe('GraphDocument', () => {
       'kind',
       'label',
       'description',
+      'visible',
       'parent',
       'provider',
       'props',
@@ -49,6 +98,7 @@ describe('GraphDocument', () => {
       'kind',
       'label',
       'description',
+      'visible',
       'provider',
       'props',
     ]);

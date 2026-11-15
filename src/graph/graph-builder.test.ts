@@ -3,12 +3,15 @@ import {
   contributor,
   graphError,
   graphErrorCode,
+  ToyEdgeKindInfos,
   ToyKinds,
+  ToyNodeKindInfos,
   ToyProvider,
   toyEdge,
   toyKindsOnly,
   toyNode,
   toyProvider,
+  visibleNode,
 } from './graph.fixture';
 import { GraphBuilder } from './graph-builder';
 import { GraphError } from './graph-error';
@@ -32,10 +35,23 @@ describe('GraphBuilder: узлы, рёбра, свойства', () => {
       kind: 'item',
       label: 'Узел shop/food/bread',
       description: 'Описание shop/food/bread.',
+      visible: false,
       parent: 'shop/food',
       provider: 'toy',
       props: { price: 3 },
     });
+  });
+
+  it('visible: true из входа сохраняется, явный false тоже', () => {
+    const provider = withContribution([
+      toyNode('shop', 'shop'),
+      visibleNode('dept', 'shop/open', true),
+      visibleNode('dept', 'shop/closed', false),
+    ]);
+    const graph = build(provider);
+    expect(graph.node('shop/open')?.visible).toBe(true);
+    expect(graph.node('shop/closed')?.visible).toBe(false);
+    expect(graph.node('shop')?.visible).toBe(false);
   });
 
   it('ребро после сборки несёт kind, from, to и props', () => {
@@ -94,6 +110,20 @@ describe('GraphBuilder: узлы, рёбра, свойства', () => {
     expect(a.nodes()).toEqual(b.nodes());
     expect(a.edges()).toEqual(b.edges());
     expect(a.providers).toEqual(b.providers);
+    expect(a.providers).toEqual([
+      {
+        name: 'extra',
+        version: '1.0.0',
+        nodeKinds: [],
+        edgeKinds: [],
+      },
+      {
+        name: 'toy',
+        version: '1.0.0',
+        nodeKinds: ToyNodeKindInfos,
+        edgeKinds: ToyEdgeKindInfos,
+      },
+    ]);
   });
 });
 
@@ -156,8 +186,13 @@ describe('GraphBuilder: родитель, поставщик, повторы', (
       graph.edges().find((e) => e.from === 'shop/food/jam')?.provider,
     ).toBe('second');
     expect(graph.providers).toEqual([
-      { name: 'second', version: '2.0.0' },
-      { name: 'toy', version: '1.0.0' },
+      { name: 'second', version: '2.0.0', nodeKinds: [], edgeKinds: [] },
+      {
+        name: 'toy',
+        version: '1.0.0',
+        nodeKinds: ToyNodeKindInfos,
+        edgeKinds: ToyEdgeKindInfos,
+      },
     ]);
   });
 });
