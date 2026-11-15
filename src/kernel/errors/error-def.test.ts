@@ -67,6 +67,7 @@ describe('ErrorDef', () => {
       kind: 'not_found',
       label: 'Задача не найдена',
       description: 'Задачи с таким идентификатором нет.',
+      visible: false,
       payload: toJsonSchema(v.object({ todoId: v.string() })),
     });
     expect(TodoErrors.ALREADY_DONE.normalize().payload).toBeUndefined();

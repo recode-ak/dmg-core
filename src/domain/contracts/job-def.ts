@@ -46,6 +46,7 @@ export class JobDef<const S extends JobSpec = JobSpec> extends OperationDef<
     return {
       dmg: this.dmg,
       ...this.texts(),
+      visible: this.visible,
       schedule: this.schedule,
       scans: this.scans.map((a) => a.name),
       calls: this.calls.map((u) => u.name),

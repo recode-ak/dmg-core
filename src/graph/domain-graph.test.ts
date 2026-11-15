@@ -324,6 +324,7 @@ describe('buildGraph', () => {
           label: 'Открытых задач меньше предела',
           description:
             'Новая задача создаётся, только если у владельца меньше 3 открытых задач.',
+          visible: false,
           error: 'TASK_TOO_MANY_OPEN',
         },
         usedBy: ['todo.createTask'],

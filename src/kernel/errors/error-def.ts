@@ -32,7 +32,12 @@ export class ErrorDef<
   readonly payload: SchemaOf<S>;
 
   constructor(code: C, spec: S) {
-    super({ name: code, label: spec.label, description: spec.description });
+    super({
+      name: code,
+      label: spec.label,
+      description: spec.description,
+      visible: spec.visible,
+    });
     this.code = code;
     this.kind = spec.kind;
     // Схема из спеки как есть; тип `SchemaOf` — тот же выбор на уровне типов.
@@ -105,6 +110,7 @@ export class ErrorDef<
       kind: this.kind,
       label: this.label,
       description: this.description,
+      visible: this.visible,
       payload: this.payload && toJsonSchema(this.payload),
     };
   }

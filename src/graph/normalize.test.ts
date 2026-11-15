@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import * as v from 'valibot';
 import { AggregateDef } from '../domain/aggregate/aggregate-def';
+import { AppDef } from '../domain/contracts/app-def';
 import {
   ArchiveDoneErDef,
   CompleteTaskUcDef,
@@ -13,11 +14,16 @@ import {
   TaskPolicy,
   TodoModuleDef,
 } from '../domain/contracts/contracts.fixture';
+import { EventReactionDef } from '../domain/contracts/event-reaction-def';
 import { JobDef } from '../domain/contracts/job-def';
+import { ModuleDef } from '../domain/contracts/module-def';
 import { UseCaseDef } from '../domain/contracts/use-case-def';
+import { EventDef } from '../domain/events/event-def';
+import { PolicyDef } from '../domain/policy/policy-def';
 import { Rule } from '../domain/policy/rule';
 import { DomainRuleDef } from '../domain/rules/domain-rule-def';
 import { RulesDef } from '../domain/rules/rules-def';
+import { Def } from '../index';
 import { ErrorDef } from '../kernel/errors/error-def';
 import { BaseEntityFields, F } from '../kernel/fields/fields';
 import { ok } from '../kernel/result/result';
@@ -33,6 +39,7 @@ describe('normalize', () => {
       kind: 'not_found',
       label: 'Задача не найдена',
       description: 'Задачи с таким идентификатором нет.',
+      visible: false,
       payload: undefined,
     });
   });
@@ -43,6 +50,8 @@ describe('normalize', () => {
       name: 'todo.task.completed',
       label: 'Задача выполнена',
       description: 'Задача отмечена выполненной.',
+      visible: false,
+      exposed: false,
       payload: objectSchema,
     });
   });
@@ -53,6 +62,7 @@ describe('normalize', () => {
       name: 'task',
       label: 'Задача',
       description: 'Пункт списка дел.',
+      visible: false,
       state: objectSchema,
       statuses: undefined,
       transitions: undefined,
@@ -104,6 +114,7 @@ describe('normalize', () => {
       name: 'task',
       label: 'Права на задачи',
       description: 'Кто может менять задачи.',
+      visible: false,
       rules: { canComplete: expect.objectContaining({ name: 'isOwner' }) },
     });
   });
@@ -114,6 +125,8 @@ describe('normalize', () => {
       name: 'completeTask',
       label: 'Завершить задачу',
       description: 'Отмечает задачу выполненной.',
+      visible: false,
+      exposed: false,
       type: 'command',
       aggregate: 'task',
       callers: ['user'],
@@ -156,6 +169,7 @@ describe('normalize', () => {
       name: 'notDone',
       label: 'Задача не выполнена',
       description: 'Действие допустимо только над невыполненной задачей.',
+      visible: false,
       error: 'TASK_ALREADY_DONE',
     } as const;
     expect(normalize(notDone)).toEqual(normalized);
@@ -170,6 +184,7 @@ describe('normalize', () => {
       name: 'task',
       label: 'Правила задачи',
       description: 'Допустимость действий с задачей.',
+      visible: false,
       rules: { notDone: normalized },
     });
     const uc = UseCaseDef.define({ ...CompleteTaskUcDef, rules: [notDone] });
@@ -182,6 +197,7 @@ describe('normalize', () => {
       name: 'archiveDone',
       label: 'Архивировать выполненную',
       description: 'Переносит выполненную задачу в архив.',
+      visible: false,
       on: ['todo.task.completed', 'todo.task.created'],
       touches: ['task'],
       calls: [],
@@ -192,6 +208,7 @@ describe('normalize', () => {
       name: 'remind',
       label: 'Напоминание',
       description: 'Ежедневно напоминает о задачах.',
+      visible: false,
       schedule: { kind: 'dailyAt', hour: 6, minute: 0 },
       scans: ['task'],
       calls: [],
@@ -208,6 +225,7 @@ describe('normalize', () => {
       name: 'todo',
       label: 'Задачи',
       description: 'Список дел.',
+      visible: false,
       external: false,
       dependsOn: ['users'],
       aggregates: ['task'],
@@ -260,5 +278,90 @@ describe('normalize', () => {
         },
       },
     });
+  });
+
+  it.each([
+    [
+      'ошибка',
+      () =>
+        ErrorDef.define('V', {
+          A: { kind: 'conflict', label: 'Л', description: 'О.', visible: true },
+        }).A,
+    ],
+    [
+      'событие',
+      () =>
+        EventDef.define('v.e', {
+          done: {
+            label: 'Л',
+            description: 'О.',
+            visible: true,
+            payload: v.object({}),
+          },
+        }).done,
+    ],
+    ['агрегат', () => AggregateDef.define({ ...TaskArDef, visible: true })],
+    ['политика', () => PolicyDef.define({ ...TaskPolicy, visible: true })],
+    [
+      'доменное правило',
+      () =>
+        DomainRuleDef.define({
+          name: 'r',
+          label: 'Л',
+          description: 'О.',
+          visible: true,
+          error: TaskErrors.ALREADY_DONE,
+          check: (_: unknown) => ok(),
+        }),
+    ],
+    [
+      'правила',
+      () =>
+        RulesDef.define({
+          name: 'rs',
+          label: 'Л',
+          description: 'О.',
+          visible: true,
+          rules: {},
+        }),
+    ],
+    ['UC', () => UseCaseDef.define({ ...CompleteTaskUcDef, visible: true })],
+    [
+      'ER',
+      () => EventReactionDef.define({ ...ArchiveDoneErDef, visible: true }),
+    ],
+    ['Job', () => JobDef.define({ ...RemindJobDef, visible: true })],
+    ['модуль', () => ModuleDef.define({ ...TodoModuleDef, visible: true })],
+    [
+      'приложение',
+      () =>
+        AppDef.define({
+          name: 'app',
+          label: 'Л',
+          description: 'О.',
+          visible: true,
+          modules: [TodoModuleDef],
+        }),
+    ],
+  ] as const)(
+    'признак visible: true из спеки попадает в форму — %s',
+    (_kind, build) => {
+      expect(normalize(build())).toMatchObject({ visible: true });
+    },
+  );
+
+  it('чужой вид: normalize(Def) возвращает форму вида, Def — из корня пакета', () => {
+    class ScreenDef extends Def<'home'> {
+      readonly dmg = 'screen';
+      normalize(): { readonly dmg: 'screen'; readonly name: string } {
+        return { dmg: this.dmg, name: this.name };
+      }
+    }
+    const screen = new ScreenDef({
+      name: 'home',
+      label: 'Главная',
+      description: 'Экран.',
+    });
+    expect(normalize(screen)).toEqual({ dmg: 'screen', name: 'home' });
   });
 });

@@ -25,10 +25,18 @@ export class EventDef<
   const S extends EventSpec = EventSpec,
 > extends Def<N> {
   readonly dmg = 'event';
+  /** Публичный контракт модуля (D-94); по умолчанию нет. */
+  readonly exposed: boolean;
   readonly payload: S['payload'];
 
   constructor(name: N, spec: S) {
-    super({ name, label: spec.label, description: spec.description });
+    super({
+      name,
+      label: spec.label,
+      description: spec.description,
+      visible: spec.visible,
+    });
+    this.exposed = spec.exposed ?? false;
     this.payload = spec.payload;
   }
 
@@ -59,6 +67,8 @@ export class EventDef<
     return {
       dmg: this.dmg,
       ...this.texts(),
+      visible: this.visible,
+      exposed: this.exposed,
       payload: toJsonSchema(this.payload),
     };
   }

@@ -12,6 +12,8 @@ export type ErrorSpec = {
   readonly kind: ErrorKind;
   readonly label: string;
   readonly description: string;
+  /** Ошибка видна пользователю приложения (D-94); по умолчанию нет. */
+  readonly visible?: boolean;
   readonly payload?: PayloadSchema;
 };
 
@@ -39,6 +41,7 @@ export type NormalizedError = {
   readonly kind: ErrorKind;
   readonly label: string;
   readonly description: string;
+  readonly visible: boolean;
   readonly payload: JsonSchema | undefined;
 };
 

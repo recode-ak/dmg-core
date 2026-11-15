@@ -33,6 +33,15 @@ class BodyDef extends Def {
   }
 }
 
+/** Вид без своих полей: проверка признака базы. */
+class FlagDef extends Def {
+  readonly dmg = 'flag';
+
+  normalize(): { readonly dmg: 'flag' } {
+    return { dmg: this.dmg };
+  }
+}
+
 const note = NoteDef.define({
   name: 'draft',
   label: 'Черновик',
@@ -46,6 +55,32 @@ describe('Def', () => {
     expect(note.label).toBe('Черновик');
     expect(note.description).toBe('Заметка без адресата.');
     expectTypeOf(note.name).toEqualTypeOf<'draft'>();
+  });
+
+  it('visible: по умолчанию false, из спеки — true (D-94)', () => {
+    const texts = { name: 'f', label: 'Флаг', description: 'Признак.' };
+    expect(new FlagDef(texts).visible).toBe(false);
+    expect(new FlagDef({ ...texts, visible: true }).visible).toBe(true);
+    expect(new FlagDef({ ...texts, visible: false }).visible).toBe(false);
+  });
+
+  it('visible не входит в texts() и describe() (тексты MAN-01)', () => {
+    const flag = new FlagDef({
+      name: 'f',
+      label: 'Флаг',
+      description: 'Признак.',
+      visible: true,
+    });
+    expect(flag.texts()).toEqual({
+      name: 'f',
+      label: 'Флаг',
+      description: 'Признак.',
+    });
+    expect(flag.describe()).toEqual({
+      label: 'Флаг',
+      description: 'Признак.',
+      schemas: [],
+    });
   });
 
   it('texts() — имя, метка и описание для нормализованной формы', () => {

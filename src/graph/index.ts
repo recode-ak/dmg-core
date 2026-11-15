@@ -43,6 +43,7 @@ export type {
 export {
   type AnyDef,
   type NormalizedAggregate,
+  type NormalizedApp,
   type NormalizedDef,
   type NormalizedDomainRule,
   type NormalizedError,

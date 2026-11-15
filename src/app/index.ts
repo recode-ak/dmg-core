@@ -107,6 +107,7 @@ export {
   type ReplayClaim,
   type ReplayStore,
 } from './replay/replay-store';
+export { DeclaredSet, type ViolationHandler } from './uow/declared-set';
 export { Lock } from './uow/lock';
 export {
   type Repository,

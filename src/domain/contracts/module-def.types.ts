@@ -1,11 +1,11 @@
-import type { DefTexts } from '#core/kernel/def/def';
+import type { DefSpec, DefTexts } from '#core/kernel/def/def';
 import type { AnyAggregateDef } from '../aggregate/aggregate-def';
 import type { AnyEventReactionDef } from './event-reaction-def.types';
 import type { AnyJobDef } from './job-def.types';
 import type { ModuleDef } from './module-def';
 import type { AnyUseCaseDef } from './use-case-def.types';
 
-export type ModuleSpec = DefTexts & {
+export type ModuleSpec = DefSpec & {
   /**
    * Модуль реализован вне приложения (D-37): legacy-код или другой сервис;
    * здесь только его контракт — агрегаты с событиями и Def UC без
@@ -27,6 +27,7 @@ export type AnyModuleDef = { readonly [K in keyof ModuleDef]: ModuleDef[K] };
 /** Сериализуемая форма модуля. */
 export type NormalizedModule = DefTexts & {
   readonly dmg: 'module';
+  readonly visible: boolean;
   /** Реализован вне приложения — только контракт (D-37). */
   readonly external: boolean;
   readonly dependsOn: readonly string[];

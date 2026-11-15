@@ -15,17 +15,24 @@ export type DomainEvent<N extends string = string, P = unknown> = {
 export type EventSpec = {
   readonly label: string;
   readonly description: string;
+  /** Событие видно пользователю приложения (D-94); по умолчанию нет. */
+  readonly visible?: boolean;
+  /** Событие — публичный контракт модуля (D-94); по умолчанию нет. */
+  readonly exposed?: boolean;
   readonly payload: PayloadSchema;
 };
 
 /** Сериализуемая форма события. */
 export type NormalizedEvent = DefTexts & {
   readonly dmg: 'event';
+  readonly visible: boolean;
+  readonly exposed: boolean;
   readonly payload: JsonSchema;
 };
 
 /** Любой манифест события — для `on`/`emits` и проверок графа. */
 export type AnyEventDef = DefOf<'event', NormalizedEvent> & {
+  readonly exposed: boolean;
   readonly payload: PayloadSchema;
   make(payload: never): DomainEvent;
 };

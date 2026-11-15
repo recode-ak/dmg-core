@@ -70,6 +70,7 @@ describe('ModuleDef', () => {
       name: 'todo',
       label: 'Задачи',
       description: 'Список дел.',
+      visible: false,
       external: false,
       dependsOn: ['users'],
       aggregates: ['task'],

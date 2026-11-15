@@ -67,6 +67,7 @@ export class AggregateDef<
     return {
       dmg: this.dmg,
       ...this.texts(),
+      visible: this.visible,
       state: toJsonSchema(this.state),
       statuses: this.statuses,
       // Отказы переходов — коды ошибок вместо Def.

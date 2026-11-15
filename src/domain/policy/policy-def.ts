@@ -27,6 +27,7 @@ export class PolicyDef<const S extends PolicySpec = PolicySpec> extends Def<
     return {
       dmg: this.dmg,
       ...this.texts(),
+      visible: this.visible,
       rules: Object.fromEntries(
         Object.entries(this.rules).map(([q, r]) => [q, r.normalize()]),
       ),

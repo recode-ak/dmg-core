@@ -8,6 +8,15 @@ export type DefTexts<N extends string = string> = {
   readonly description: string;
 };
 
+/**
+ * Спека базы Def: тексты и признак видимости (D-94). Признак только
+ * записывается: логики на нём в пакете нет; по умолчанию `false`.
+ */
+export type DefSpec<N extends string = string> = DefTexts<N> & {
+  /** Def виден пользователю приложения (D-94). */
+  readonly visible?: boolean;
+};
+
 /** Именованные схемы Def — для проверок MAN-02/03 и JSON Schema. */
 export type DefSchemas = readonly (readonly [name: string, v.GenericSchema])[];
 

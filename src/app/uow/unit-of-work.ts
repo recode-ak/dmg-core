@@ -11,6 +11,7 @@ import type { EventEnvelope, PublishedEvent } from '../events/event-envelope';
 import type { Outbox } from '../events/outbox';
 import { type FieldChange, FieldDiff } from '../oplog/field-diff';
 import type { RedactedChange } from '../oplog/operation-record';
+import { DeclaredSet } from './declared-set';
 import { type Repository, VersionConflict } from './repository';
 
 /**
@@ -78,12 +79,33 @@ export class UnitOfWork {
   private readonly entries: Entry[] = [];
   private readonly sent: PublishedEvent[] = [];
   private readonly written: AggregateWrite[] = [];
+  /** Агрегаты своего модуля (MAN-13) — по ссылке. */
+  private readonly own: DeclaredSet<AnyAggregateDef>;
+  /** Заявленные `touches` — по ссылке; без поля — любые. */
+  private readonly touches: DeclaredSet<AnyAggregateDef>;
+  /** Имена заявленных `emits`; без поля — любые. */
+  private readonly emits: DeclaredSet<string>;
 
-  constructor(private readonly ctx: UnitOfWorkContext) {}
+  constructor(private readonly ctx: UnitOfWorkContext) {
+    const { module, touches, emits, onViolation } = ctx;
+    this.own = new DeclaredSet(module.aggregates, onViolation);
+    this.touches = new DeclaredSet(touches, onViolation);
+    this.emits = new DeclaredSet(
+      emits?.map((e) => e.name),
+      onViolation,
+    );
+  }
 
   register<A extends Committable>(ar: A, repo: Repository<A>): void {
-    this.assertOwnModule(repo.aggregate);
-    this.assertTouches(repo.aggregate);
+    const { aggregate } = repo;
+    this.own.assert(
+      aggregate,
+      `UoW: MAN-13: агрегат ${aggregate.name} не из модуля ${this.ctx.module.name}`,
+    );
+    this.touches.assert(
+      aggregate,
+      `UoW: агрегат ${aggregate.name} не заявлен в touches`,
+    );
     if (this.entries.some((e) => e.ar === ar)) return;
     this.entries.push({
       ar,
@@ -104,7 +126,9 @@ export class UnitOfWork {
     const batches = this.entries.map(({ ar }) =>
       ar.pullEvents().map((event) => this.envelope(event, ar.uuid)),
     );
-    for (const envelope of batches.flat()) this.assertDeclared(envelope);
+    for (const { name } of batches.flat()) {
+      this.emits.assert(name, `UoW: событие ${name} не заявлено в emits`);
+    }
     let written = 0;
     try {
       for (const entry of this.entries) {
@@ -183,34 +207,6 @@ export class UnitOfWork {
       aggregateId,
       ...this.ctx.trace.toEnvelope(),
     };
-  }
-
-  private assertOwnModule(aggregate: AnyAggregateDef): void {
-    const { module } = this.ctx;
-    if (module.aggregates.includes(aggregate)) return;
-    this.violate(
-      `UoW: MAN-13: агрегат ${aggregate.name} не из модуля ${module.name}`,
-    );
-  }
-
-  private assertTouches(aggregate: AnyAggregateDef): void {
-    const { touches } = this.ctx;
-    if (touches === undefined || touches.includes(aggregate)) return;
-    this.violate(`UoW: агрегат ${aggregate.name} не заявлен в touches`);
-  }
-
-  private assertDeclared(envelope: EventEnvelope): void {
-    const { emits } = this.ctx;
-    if (emits === undefined || emits.some((d) => d.name === envelope.name)) {
-      return;
-    }
-    this.violate(`UoW: событие ${envelope.name} не заявлено в emits`);
-  }
-
-  private violate(message: string): void {
-    const { onViolation } = this.ctx;
-    if (onViolation === undefined) throw new Error(message);
-    onViolation(message);
   }
 }
 

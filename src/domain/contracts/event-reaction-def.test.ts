@@ -89,6 +89,7 @@ describe('EventReactionDef', () => {
       dmg: 'eventReaction',
       name: 'syncUser',
       ...texts,
+      visible: false,
       on: ['todo.task.created'],
       touches: [],
       calls: ['getUser'],

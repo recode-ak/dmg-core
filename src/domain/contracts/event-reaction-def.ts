@@ -56,6 +56,7 @@ export class EventReactionDef<
     return {
       dmg: this.dmg,
       ...this.texts(),
+      visible: this.visible,
       on: this.on.map((e) => e.name),
       touches: this.touches.map((a) => a.name),
       calls: this.calls.map((u) => u.name),

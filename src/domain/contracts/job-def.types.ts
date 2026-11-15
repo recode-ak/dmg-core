@@ -43,6 +43,7 @@ export type AnyJobDef = { readonly [K in keyof JobDef]: JobDef[K] };
 /** Сериализуемая форма Job. */
 export type NormalizedJob = DefTexts & {
   readonly dmg: 'job';
+  readonly visible: boolean;
   readonly schedule: JobSchedule;
   readonly scans: readonly string[];
   /** Имена UC других модулей, которые задание вызывает (D-42). */

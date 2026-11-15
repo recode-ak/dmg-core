@@ -104,6 +104,7 @@ describe('AggregateDef', () => {
       name: 'note',
       label: 'Заметка',
       description: 'Заметка со статусом.',
+      visible: false,
       state: toJsonSchema(NoteArDef.state),
       statuses: { draft: { label: 'Черновик' }, closed: { label: 'Закрыта' } },
       transitions: {

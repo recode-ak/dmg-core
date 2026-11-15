@@ -1,10 +1,10 @@
-import type { DefTexts } from '#core/kernel/def/def';
+import type { DefSpec } from '#core/kernel/def/def';
 import type { AnyEventReactionDef } from './event-reaction-def.types';
 import type { AnyJobDef } from './job-def.types';
 import type { AnyUseCaseDef } from './use-case-def.types';
 
 /** Общее в спеке UC, ER и Job: тексты и межмодульные вызовы. */
-export type OperationSpec<N extends string = string> = DefTexts<N> & {
+export type OperationSpec<N extends string = string> = DefSpec<N> & {
   /**
    * UC других модулей (с `'system'` в `callers`), которые операция вызывает
    * через их фасады (D-42, MAN-05).

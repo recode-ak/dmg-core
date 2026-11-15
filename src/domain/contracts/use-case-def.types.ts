@@ -1,6 +1,6 @@
 import type * as v from 'valibot';
 import type { DeclaredCaller } from '#core/kernel/caller/caller';
-import type { DefTexts } from '#core/kernel/def/def';
+import type { DefSpec, DefTexts } from '#core/kernel/def/def';
 import type { CoreError } from '#core/kernel/errors/core-errors';
 import type { AnyErrorDef, ErrorOf } from '#core/kernel/errors/error-def';
 import type { JsonSchema } from '#core/kernel/schema/json-schema';
@@ -10,7 +10,7 @@ import type { AnyRule, NormalizedRule } from '../policy/rule';
 import type { AnyDomainRule } from '../rules/domain-rule-def';
 import type { UseCaseDef } from './use-case-def';
 
-type Common = DefTexts & {
+type Common = DefSpec & {
   readonly aggregate: AnyAggregateDef;
   /**
    * Допустимые вызывающие (MAN-11, D-89); остальные получают `UNAUTHORIZED`.
@@ -22,6 +22,8 @@ type Common = DefTexts & {
    * вложенном вызове за `SystemCaller`. Без поля — `false`.
    */
   readonly personal?: boolean;
+  /** UC — публичный контракт модуля (D-94). Без поля — `false`. */
+  readonly exposed?: boolean;
   /** Право на действие; без ограничений — явно `allowAll`. */
   readonly policy: AnyRule;
   /**
@@ -96,6 +98,8 @@ export type SystemCalls<S> = S extends {
 /** Сериализуемая форма UC. */
 export type NormalizedUseCase = DefTexts & {
   readonly dmg: 'useCase';
+  readonly visible: boolean;
+  readonly exposed: boolean;
   readonly type: 'command' | 'query';
   readonly aggregate: string;
   readonly callers: readonly DeclaredCaller[];

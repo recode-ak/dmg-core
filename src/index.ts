@@ -22,6 +22,11 @@ export {
   type Transition,
 } from './domain/aggregate/aggregate-def';
 export type { ReadonlyAr } from './domain/aggregate/readonly-ar';
+export {
+  type AnyAppDef,
+  AppDef,
+  type AppSpec,
+} from './domain/contracts/app-def';
 export type {
   Command,
   CommandMeta,
@@ -118,6 +123,15 @@ export {
   SystemCaller,
   UserCaller,
 } from './kernel/caller/caller';
+export {
+  Def,
+  type DefDescription,
+  type DefOf,
+  type DefSchemas,
+  type DefSpec,
+  type DefTexts,
+  type NormalizedForm,
+} from './kernel/def/def';
 export { type CoreError, CoreErrors } from './kernel/errors/core-errors';
 export {
   type DomainError,

@@ -1,6 +1,7 @@
 import type {
   DefDescription,
   DefSchemas,
+  DefSpec,
   DefTexts,
   NormalizedForm,
 } from './def.types';
@@ -9,6 +10,7 @@ export type {
   DefDescription,
   DefOf,
   DefSchemas,
+  DefSpec,
   DefTexts,
   NormalizedForm,
 } from './def.types';
@@ -24,11 +26,14 @@ export abstract class Def<N extends string = string> {
   readonly name: N;
   readonly label: string;
   readonly description: string;
+  /** Виден пользователю приложения (D-94); по умолчанию нет. */
+  readonly visible: boolean;
 
-  constructor(spec: DefTexts<N>) {
+  constructor(spec: DefSpec<N>) {
     this.name = spec.name;
     this.label = spec.label;
     this.description = spec.description;
+    this.visible = spec.visible ?? false;
   }
 
   /** Сериализуемая форма: ссылки → имена, схемы → JSON Schema. */

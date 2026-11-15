@@ -75,6 +75,7 @@ describe('JobDef', () => {
       dmg: 'job',
       name: 'sync',
       ...texts,
+      visible: false,
       schedule: { kind: 'interval', intervalMs: 60_000 },
       scans: [],
       calls: ['getUser'],

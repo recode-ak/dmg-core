@@ -2,6 +2,7 @@ import type {
   AnyAggregateDef,
   NormalizedAggregate,
 } from '../domain/aggregate/aggregate-def';
+import type { AnyAppDef, NormalizedApp } from '../domain/contracts/app-def';
 import type {
   AnyEventReactionDef,
   NormalizedEventReaction,
@@ -26,12 +27,14 @@ import type {
   NormalizedDomainRule,
 } from '../domain/rules/domain-rule-def';
 import type { AnyRulesDef, NormalizedRules } from '../domain/rules/rules-def';
+import type { Def, NormalizedForm } from '../kernel/def/def';
 import type { AnyErrorDef, NormalizedError } from '../kernel/errors/error-def';
 
 export type {
   NormalizedAggregate,
   NormalizedTransition,
 } from '../domain/aggregate/aggregate-def';
+export type { NormalizedApp } from '../domain/contracts/app-def';
 export type { NormalizedEventReaction } from '../domain/contracts/event-reaction-def';
 export type { NormalizedJob } from '../domain/contracts/job-def';
 export type { NormalizedModule } from '../domain/contracts/module-def';
@@ -54,7 +57,8 @@ export type AnyDef =
   | AnyUseCaseDef
   | AnyEventReactionDef
   | AnyJobDef
-  | AnyModuleDef;
+  | AnyModuleDef
+  | AnyAppDef;
 
 export type NormalizedDef =
   | NormalizedError
@@ -67,12 +71,14 @@ export type NormalizedDef =
   | NormalizedUseCase
   | NormalizedEventReaction
   | NormalizedJob
-  | NormalizedModule;
+  | NormalizedModule
+  | NormalizedApp;
 
 /**
- * Сериализуемое представление Def — основа графа, документации и хеша.
- * Ссылки → имена/FQN/коды, схемы → JSON Schema, функции отброшены.
- * Порядок ключей фиксирован: одинаковый Def даёт одинаковый JSON.
+ * Сериализуемое представление Def (D-48) — основа графа и хеша: ссылки →
+ * имена, схемы → JSON Schema, порядок ключей фиксирован. Последняя
+ * перегрузка (любой `Def`, и чужой вид) обобщённая: TS подбирает сперва по
+ * подтипу, класс вида попадает в неё раньше `Any*Def` — форма та же.
  */
 export function normalize(def: AnyErrorDef): NormalizedError;
 export function normalize(def: AnyEventDef): NormalizedEvent;
@@ -85,7 +91,9 @@ export function normalize(def: AnyUseCaseDef): NormalizedUseCase;
 export function normalize(def: AnyEventReactionDef): NormalizedEventReaction;
 export function normalize(def: AnyJobDef): NormalizedJob;
 export function normalize(def: AnyModuleDef): NormalizedModule;
+export function normalize(def: AnyAppDef): NormalizedApp;
 export function normalize(def: AnyDef): NormalizedDef;
-export function normalize(def: AnyDef): NormalizedDef {
+export function normalize<D extends Def>(def: D): ReturnType<D['normalize']>;
+export function normalize(def: AnyDef | Def): NormalizedDef | NormalizedForm {
   return def.normalize();
 }

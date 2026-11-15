@@ -41,6 +41,11 @@ export class DomainRuleDef<
   }
 
   normalize(): NormalizedDomainRule {
-    return { dmg: this.dmg, ...this.texts(), error: this.error.code };
+    return {
+      dmg: this.dmg,
+      ...this.texts(),
+      visible: this.visible,
+      error: this.error.code,
+    };
   }
 }

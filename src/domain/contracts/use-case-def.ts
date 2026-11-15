@@ -45,6 +45,8 @@ export class UseCaseDef<
   readonly aggregate: S['aggregate'];
   readonly callers: S['callers'];
   readonly personal: boolean;
+  /** Публичный контракт модуля (D-94); по умолчанию нет. */
+  readonly exposed: boolean;
   readonly policy: S['policy'];
   readonly rules: Declared<S, 'rules'>;
   readonly input: S['input'];
@@ -58,6 +60,7 @@ export class UseCaseDef<
     this.aggregate = spec.aggregate;
     this.callers = spec.callers;
     this.personal = spec.personal ?? false;
+    this.exposed = spec.exposed ?? false;
     this.policy = spec.policy;
     this.rules = (spec.rules ?? []) as Declared<S, 'rules'>;
     this.input = spec.input;
@@ -147,6 +150,8 @@ export class UseCaseDef<
     return {
       dmg: this.dmg,
       ...this.texts(),
+      visible: this.visible,
+      exposed: this.exposed,
       type: this.type,
       aggregate: this.aggregate.name,
       callers: this.callers,

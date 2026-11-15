@@ -1,9 +1,9 @@
-import type { DefOf, DefTexts } from '#core/kernel/def/def';
+import type { DefOf, DefSpec, DefTexts } from '#core/kernel/def/def';
 import type { AnyErrorDef, ErrorOf } from '#core/kernel/errors/error-def';
 import type { Result } from '#core/kernel/result/result';
 import type { DomainRuleDef } from './domain-rule-def';
 
-export type DomainRuleSpec<C, E extends AnyErrorDef> = DefTexts & {
+export type DomainRuleSpec<C, E extends AnyErrorDef> = DefSpec & {
   /** Ошибка отказа — `ErrorDef` группы агрегата. */
   readonly error: E;
   /** Проверка над `ReadonlyAr`/значениями; вернуть можно только `error`. */
@@ -13,6 +13,7 @@ export type DomainRuleSpec<C, E extends AnyErrorDef> = DefTexts & {
 /** Доменное правило (D-40): тексты и код ошибки отказа. */
 export type NormalizedDomainRule = DefTexts & {
   readonly dmg: 'domainRule';
+  readonly visible: boolean;
   readonly error: string;
 };
 

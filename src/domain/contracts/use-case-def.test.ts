@@ -94,6 +94,8 @@ describe('UseCaseDef', () => {
       name: 'completeTask',
       label: 'Завершить задачу',
       description: 'Отмечает задачу выполненной.',
+      visible: false,
+      exposed: false,
       type: 'command',
       aggregate: 'task',
       callers: ['user'],
@@ -106,6 +108,14 @@ describe('UseCaseDef', () => {
       calls: ['getUser'],
       emits: ['todo.task.completed'],
     });
+  });
+
+  it('exposed: по умолчанию false, объявлен — true в Def и форме (D-94)', () => {
+    expect(CompleteTask.exposed).toBe(false);
+    expect(CompleteTask.normalize()).toMatchObject({ exposed: false });
+    const exposed = UseCaseDef.define({ ...ListTasks, exposed: true });
+    expect(exposed.exposed).toBe(true);
+    expect(exposed.normalize()).toMatchObject({ exposed: true });
   });
 
   it('calls — только UC с system в callers (D-43)', () => {

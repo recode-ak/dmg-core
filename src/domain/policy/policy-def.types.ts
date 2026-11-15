@@ -1,13 +1,14 @@
-import type { DefOf, DefTexts } from '#core/kernel/def/def';
+import type { DefOf, DefSpec, DefTexts } from '#core/kernel/def/def';
 import type { AnyRule, NormalizedRule } from './rule.types';
 
-export type PolicySpec = DefTexts & {
+export type PolicySpec = DefSpec & {
   /** Вопросы «можно ли?» (DOM-10): ключ — имя, значение — правило. */
   readonly rules: { readonly [question: string]: AnyRule };
 };
 
 export type NormalizedPolicy = DefTexts & {
   readonly dmg: 'policy';
+  readonly visible: boolean;
   readonly rules: { readonly [question: string]: NormalizedRule };
 };
 

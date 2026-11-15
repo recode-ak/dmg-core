@@ -36,8 +36,24 @@ describe('EventDef', () => {
       name: 'todo.task.completed',
       label: 'Задача завершена',
       description: 'Задача отмечена выполненной.',
+      visible: false,
+      exposed: false,
       payload: toJsonSchema(v.object({ taskId: v.string() })),
     });
+  });
+
+  it('exposed: по умолчанию false, объявлен — true в Def и форме (D-94)', () => {
+    expect(TaskEvents.completed.exposed).toBe(false);
+    const Open = EventDef.define('todo.open', {
+      shared: {
+        label: 'Событие наружу',
+        description: 'Событие, которое видят другие приложения.',
+        exposed: true,
+        payload: v.object({}),
+      },
+    });
+    expect(Open.shared.exposed).toBe(true);
+    expect(Open.shared.normalize()).toMatchObject({ exposed: true });
   });
 
   it('describe() — схема payload', () => {

@@ -27,6 +27,7 @@ export class RulesDef<const S extends RulesSpec = RulesSpec> extends Def<
     return {
       dmg: this.dmg,
       ...this.texts(),
+      visible: this.visible,
       rules: Object.fromEntries(
         Object.entries(this.rules).map(([k, r]) => [k, r.normalize()]),
       ),

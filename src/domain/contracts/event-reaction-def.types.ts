@@ -25,6 +25,7 @@ export type ReactionEventOf<D extends AnyEventReactionDef> = EventOf<
 /** Сериализуемая форма ER. */
 export type NormalizedEventReaction = DefTexts & {
   readonly dmg: 'eventReaction';
+  readonly visible: boolean;
   readonly on: readonly string[];
   readonly touches: readonly string[];
   /** Имена UC других модулей, которые реакция вызывает (D-42). */

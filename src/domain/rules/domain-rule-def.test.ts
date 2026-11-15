@@ -73,6 +73,7 @@ describe('DomainRuleDef', () => {
       name: 'hasRoom',
       label: 'На полке есть место',
       description: 'Книгу можно поставить, только если полка не заполнена.',
+      visible: false,
       error: 'SHELF_FULL',
     });
   });
@@ -96,6 +97,7 @@ describe('RulesDef', () => {
       name: 'shelf',
       label: 'Правила полки',
       description: 'Допустимость действий с полкой при её состоянии.',
+      visible: false,
       rules: { hasRoom: hasRoom.normalize() },
     });
   });

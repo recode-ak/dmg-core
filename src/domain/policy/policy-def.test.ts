@@ -43,6 +43,7 @@ describe('PolicyDef', () => {
       name: 'task',
       label: 'Права на задачи',
       description: 'Кто может менять задачи.',
+      visible: false,
       rules: {
         canComplete: isOwner.normalize(),
         canRemove: TaskPolicy.rules.canRemove.normalize(),

@@ -53,6 +53,7 @@ export class ModuleDef<const S extends ModuleSpec = ModuleSpec> extends Def<
     return {
       dmg: this.dmg,
       ...this.texts(),
+      visible: this.visible,
       external: this.external,
       dependsOn: this.dependsOn.map((m) => m.name),
       aggregates: this.aggregates.map((a) => a.name),

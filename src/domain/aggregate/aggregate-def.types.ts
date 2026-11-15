@@ -1,5 +1,5 @@
 import type * as v from 'valibot';
-import type { DefOf, DefTexts } from '#core/kernel/def/def';
+import type { DefOf, DefSpec, DefTexts } from '#core/kernel/def/def';
 import type { AnyErrorDef } from '#core/kernel/errors/error-def';
 import type { BaseEntityFields } from '#core/kernel/fields/fields';
 import type { JsonSchema } from '#core/kernel/schema/json-schema';
@@ -59,7 +59,7 @@ type Lifecycle<X extends string> = {
 };
 
 /** Описание агрегата для `AggregateDef.define`. */
-export type AggregateSpec<S extends StateSchema = StateSchema> = DefTexts & {
+export type AggregateSpec<S extends StateSchema = StateSchema> = DefSpec & {
   readonly state: S;
   readonly events: { readonly [key: string]: AnyEventDef };
   readonly errors: { readonly [key: string]: AnyErrorDef };
@@ -81,6 +81,7 @@ export type NormalizedTransition = {
 /** Сериализуемая форма агрегата. */
 export type NormalizedAggregate = DefTexts & {
   readonly dmg: 'aggregate';
+  readonly visible: boolean;
   readonly state: JsonSchema;
   readonly statuses: Lifecycle<string>['statuses'] | undefined;
   readonly transitions:
