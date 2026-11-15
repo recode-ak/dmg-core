@@ -3,7 +3,7 @@ covers:
   - src/kernel/errors/**
   - src/kernel/result/**
   - src/app/use-case/use-case-from-def.ts
-verified: 64af7d9
+verified: 1d3e613
 ---
 
 # Отказ, баг и сбой

@@ -1,7 +1,7 @@
 ---
 covers:
   - src/kernel/errors/**
-verified: 64af7d9
+verified: 1d3e613
 ---
 
 # Errors — гайд
