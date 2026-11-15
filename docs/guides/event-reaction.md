@@ -17,6 +17,7 @@ covers:
 - ER техничен (API-01): загрузить → отдать домену → `uow.register`. Что менять — домен: метод Ar для одного агрегата, DCS для нескольких ([repo.md](./repo.md), DOM-06).
 - Вызывающего нет: база строит `SystemCaller` этой ER без человека, `Trace.fromEvent` (причина — событие). Policy нет, `callers` нет.
 - Чужой модуль — только `this.call` по Def из `calls` (UC с `'system'` в `callers`, D-43).
+- Внешний слой (бот, web-UI) реагирует не ER, а `EventSubscriber` (`dmg-core/app`): Def, отсева повторов и своей записи в oplog нет; вызывающего выбирает обработчик, UC — через `api.dispatch` со следом события (D-98).
 
 ## 2. Команда
 

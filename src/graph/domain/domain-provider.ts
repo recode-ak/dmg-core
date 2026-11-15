@@ -39,7 +39,7 @@ export class DomainProvider implements GraphProvider {
 
   contribute(): GraphContribution {
     const modules = this.index.modules;
-    const rules = this.rules();
+    const rules = this.domainRules();
     return {
       nodes: [
         this.appNode(),
@@ -117,7 +117,7 @@ export class DomainProvider implements GraphProvider {
 
   // Правила, на которые ссылается хотя бы один UC, по одному на Def; правило
   // с ошибкой вне модулей — не узел (внешний `id`).
-  private rules(): AnyDomainRule[] {
+  private domainRules(): AnyDomainRule[] {
     const referenced = this.index.modules.flatMap((m) =>
       m.useCases.flatMap((uc): readonly AnyDomainRule[] => uc.rules),
     );

@@ -1,6 +1,7 @@
 // Чистая пара модулей для контрактных проверок: `alpha` зависит от `beta`,
 // слушает его событие и вызывает его UC через фасад (`calls`). Негативные
-// фикстуры — в тестах, как варианты этих Def.
+// фикстуры — в тестах, как варианты этих Def. Внизу — игрушечные поставщики
+// графа с правилами (D-97).
 import * as v from 'valibot';
 import { AggregateDef } from '../domain/aggregate/aggregate-def';
 import { EventReactionDef } from '../domain/contracts/event-reaction-def';
@@ -9,6 +10,11 @@ import { ModuleDef } from '../domain/contracts/module-def';
 import { UseCaseDef } from '../domain/contracts/use-case-def';
 import { EventDef } from '../domain/events/event-def';
 import { allowAll } from '../domain/policy/rule';
+import type { Graph } from '../graph/graph';
+import type { GraphNodeInput } from '../graph/graph.types';
+import type { GraphContribution, GraphProvider } from '../graph/graph-provider';
+import type { GraphRule } from '../graph/graph-rule.types';
+import type { GraphKinds } from '../graph/kind-registry.types';
 import { ErrorDef } from '../kernel/errors/error-def';
 import { BaseEntityFields, F } from '../kernel/fields/fields';
 
@@ -129,3 +135,77 @@ export const AlphaModuleDef = ModuleDef.define({
   reactions: [AddNoteErDef],
   jobs: [PurgeNotesJobDef],
 });
+
+/** Правило поставщика: сообщения заданы, вызовы и графы запоминаются. */
+export class StubRule implements GraphRule {
+  readonly graphs: Graph[] = [];
+
+  constructor(
+    readonly id: string,
+    private readonly messages: readonly string[] = [],
+  ) {}
+
+  check(graph: Graph): readonly string[] {
+    this.graphs.push(graph);
+    return this.messages;
+  }
+}
+
+/** `TOY-01`: заметка без вложенных узлов. */
+export class NoteWithoutChildrenRule implements GraphRule {
+  readonly id = 'TOY-01';
+
+  check(graph: Graph): readonly string[] {
+    return graph
+      .nodes()
+      .filter((n) => n.kind === 'note' && graph.children(n.id).length === 0)
+      .map((n) => `заметка ${n.id} без вложений`);
+  }
+}
+
+const NOTE_KINDS: GraphKinds = {
+  nodes: [
+    { kind: 'note', label: 'Заметка', description: 'Заметка поставщика.' },
+  ],
+  edges: [],
+};
+
+/** Узел `toy` вида `note` под корнем учебного приложения. */
+export const TOY_NODE: GraphNodeInput = {
+  kind: 'note',
+  id: 'example/toy',
+  label: 'Заметка',
+  description: 'Заметка игрушечного поставщика.',
+};
+
+/**
+ * Игрушечный поставщик графа с правилами: вид `note`, узел под корнем
+ * `example`. `rules` нет, если не переданы; `contributed` считает вызовы
+ * `contribute` — по нему видно, строился ли граф.
+ */
+export class RuleProvider implements GraphProvider {
+  readonly version = '1.0.0';
+  contributed = 0;
+  readonly rules?: () => readonly GraphRule[];
+
+  constructor(
+    readonly name: string,
+    rules?: readonly GraphRule[],
+    private readonly nodes: readonly GraphNodeInput[] = [],
+  ) {
+    if (rules) this.rules = () => rules;
+  }
+
+  kinds(): GraphKinds {
+    return this.nodes.length > 0 ? NOTE_KINDS : { nodes: [], edges: [] };
+  }
+
+  contribute(): GraphContribution {
+    this.contributed += 1;
+    return { nodes: this.nodes, edges: [] };
+  }
+}
+
+/** `toy` с узлом-заметкой и правилом `TOY-01`. */
+export const toyRuleProvider = (): RuleProvider =>
+  new RuleProvider('toy', [new NoteWithoutChildrenRule()], [TOY_NODE]);

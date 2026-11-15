@@ -1,21 +1,22 @@
 import type { AnyAppDef } from '../domain/contracts/app-def';
 import type { AnyModuleDef } from '../domain/contracts/module-def';
 import { DefIndex } from '../graph/def-index';
+import type { GraphApp } from '../graph/domain/graph-app.types';
 import { AppDefChecker } from './app-def-checker';
 import { AssemblyChecker } from './assembly-checker';
 import type { AssemblyPlaces } from './assembly-checker.types';
 import { DefChecker } from './def-checker';
 import { FileChecker, type ModuleLayout } from './file-checker';
+import { ProviderRuleChecker } from './provider-rule-checker';
 import type { Violation } from './violation';
 
 /**
- * Приложение для `arch:check` (D-52): манифест (`def`, D-93), файлы модулей,
- * их входы (`entry`, по умолчанию `index`; `testing` — фикстуры, см.
- * `FileChecker`); необязательно — каталоги корня сборки (`root`) и раннеров
- * (`runners`), их импорты — `AssemblyChecker`.
+ * Приложение для `arch:check` (D-52): вход графа (`def`, D-93; `providers` с
+ * правилами, D-97), файлы модулей, их входы (`entry`, по умолчанию `index`;
+ * `testing` — фикстуры, см. `FileChecker`); необязательно — каталоги корня
+ * сборки (`root`) и раннеров (`runners`), их импорты — `AssemblyChecker`.
  */
-export type ArchApp = {
-  readonly def: AnyAppDef;
+export type ArchApp = GraphApp & {
   readonly layout: (module: string) => ModuleLayout;
   readonly entry?: string;
   readonly testing?: string;
@@ -26,14 +27,15 @@ export type ArchApp = {
 /**
  * Контрактные проверки по индексу Def: Def (`DefChecker`), `AppDef` при
  * наличии (`AppDefChecker`), при раскладке — файлы модулей (`FileChecker`),
- * корень сборки и раннеры (`AssemblyChecker`). Без раскладки — только Def:
- * так проверяют модуль домена в его тесте.
+ * корень сборки и раннеры (`AssemblyChecker`), при наличии — правила
+ * поставщиков графа (`ProviderRuleChecker`). Без раскладки — только Def.
  */
 export class ArchChecker {
   private readonly defs: DefChecker;
   private readonly files: FileChecker | undefined;
   private readonly assembly: AssemblyChecker | undefined;
   private readonly app: AppDefChecker | undefined;
+  private readonly providers: ProviderRuleChecker | undefined;
 
   constructor(
     index: DefIndex,
@@ -42,8 +44,10 @@ export class ArchChecker {
     places: AssemblyPlaces = {},
     testing = 'testing',
     app?: AnyAppDef,
+    providers?: ProviderRuleChecker,
   ) {
     this.app = app && new AppDefChecker(app);
+    this.providers = providers;
     this.defs = new DefChecker(index);
     this.files = layout && new FileChecker(index, layout, entry, testing);
     this.assembly =
@@ -52,7 +56,8 @@ export class ArchChecker {
 
   /**
    * Все проверки приложения: `AppDef` (`AppDefChecker`), по Def, по файлам
-   * модулей и вокруг них. Индекс — замыкание состава по `dependsOn`.
+   * модулей и вокруг них, правила поставщиков. Индекс — замыкание состава по
+   * `dependsOn`. Неверный ID правила поставщика — исключение ARC-13.
    */
   static of(app: ArchApp): ArchChecker {
     return new ArchChecker(
@@ -62,6 +67,7 @@ export class ArchChecker {
       { root: app.root, runners: app.runners },
       app.testing,
       app.def,
+      new ProviderRuleChecker(app),
     );
   }
 
@@ -76,6 +82,7 @@ export class ArchChecker {
       ...this.defs.check(),
       ...(this.files?.check() ?? []),
       ...(this.assembly?.check() ?? []),
+      ...(this.providers?.check() ?? []),
     ];
   }
 

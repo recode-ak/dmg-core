@@ -145,6 +145,8 @@ export {
   type ErrorOf,
   type ErrorSpec,
 } from './kernel/errors/error-def';
+export { ErrorText } from './kernel/errors/error-text';
+export type { ErrorTextField } from './kernel/errors/error-text.types';
 export { serializeError } from './kernel/errors/serialize-error';
 export { BaseEntityFields, F } from './kernel/fields/fields';
 export {

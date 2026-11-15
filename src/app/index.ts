@@ -36,6 +36,8 @@ export type {
   EventEnvelope,
   PublishedEvent,
 } from './events/event-envelope';
+export { EventSubscriber } from './events/event-subscriber';
+export type { TracedHandler } from './events/event-subscriber.types';
 export { InProcEventBus } from './events/in-proc-event-bus';
 export {
   DEFAULT_INBOX_CAPACITY,

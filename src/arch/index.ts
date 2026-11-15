@@ -16,4 +16,8 @@ export type {
   SourceFile,
 } from './debt-checker.types';
 export type { ModuleLayout } from './file-checker';
-export { type ArchRule, Violation } from './violation';
+export {
+  type ArchRule,
+  PACKAGE_RULE_PREFIXES,
+  Violation,
+} from './violation';

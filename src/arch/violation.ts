@@ -6,6 +6,7 @@ export type ArchRule =
   | 'ARC-07'
   | 'ARC-08'
   | 'ARC-12'
+  | 'ARC-13'
   | 'DOM-16'
   | 'ERR-02'
   | 'ERR-04'
@@ -23,10 +24,24 @@ export type ArchRule =
   | 'MAN-16'
   | 'TST-07';
 
-/** Нарушение правила `rules.md`, найденное `arch:check`. */
+/** Префиксы ID правил пакета; поставщику графа они не достаются (ARC-13). */
+export const PACKAGE_RULE_PREFIXES = [
+  'API',
+  'ARC',
+  'CODE',
+  'DOM',
+  'ERR',
+  'MAN',
+  'TST',
+] as const;
+
+/**
+ * Нарушение, найденное `arch:check`: правила `rules.md` пакета (`ArchRule`)
+ * или правила поставщика графа со своим ID (D-97).
+ */
 export class Violation {
   constructor(
-    readonly rule: ArchRule,
+    readonly rule: string,
     readonly message: string,
   ) {}
 

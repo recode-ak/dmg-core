@@ -5,6 +5,7 @@ import { DefIndex } from '../graph/def-index';
 import { ExampleArch } from '../testing/example/example.arch';
 import { TodoModuleDef } from '../testing/example/todo';
 import { UsersModuleDef } from '../testing/example/users';
+import { RuleProvider, StubRule, toyRuleProvider } from './arch.fixture';
 import { ArchChecker } from './arch-checker';
 
 const broken = ModuleDef.define({
@@ -168,5 +169,29 @@ describe('ArchChecker', () => {
     ).toEqual([
       'MAN-01: приложение example: label не заполнен — «TODO: название приложения»',
     ]);
+  });
+
+  it('правило поставщика: нарушение TOY-01 — последняя строка report()', () => {
+    const app = { ...ExampleArch, providers: [toyRuleProvider()] };
+    expect(ArchChecker.of(app).report()).toEqual([
+      'TOY-01: заметка example/toy без вложений',
+    ]);
+  });
+
+  it('поставщики без правил: граф не строится, нарушений нет', () => {
+    const plain = new RuleProvider('plain');
+    const app = { ...ExampleArch, providers: [plain] };
+    expect(ArchChecker.of(app).check()).toEqual([]);
+    expect(plain.contributed).toBe(0);
+  });
+
+  it('неверный ID правила поставщика — отказ ARC-13 из of()', () => {
+    const app = {
+      ...ExampleArch,
+      providers: [new RuleProvider('toy', [new StubRule('MAN-01')])],
+    };
+    expect(() => ArchChecker.of(app)).toThrow(
+      'ARC-13: правило MAN-01 поставщика toy — префикс MAN занят правилами пакета dmg-core',
+    );
   });
 });

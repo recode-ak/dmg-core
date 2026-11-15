@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { AppDef } from '../domain/contracts/app-def';
 import { ModuleDef } from '../domain/contracts/module-def';
 import { ExampleArch } from '../testing/example/example.arch';
+import { toyRuleProvider } from './arch.fixture';
 import type { ArchApp } from './arch-checker';
 import { RULES_DOC, reportArchCheck } from './arch-report';
 
@@ -139,5 +140,18 @@ describe('reportArchCheck', () => {
       `${import.meta.dir}/../../docs/reference/rules.md`,
     ).text();
     for (const id of ['MAN-01', 'ARC-06']) expect(text).toContain(`| ${id} |`);
+  });
+
+  it('нарушение поставщика — в общем отчёте со своим ID, код 1', () => {
+    const app = { ...ExampleArch, providers: [toyRuleProvider()] };
+    expect(run([app])).toEqual({
+      code: 1,
+      lines: [
+        'arch:check example: нарушений — 1',
+        'TOY-01: заметка example/toy без вложений',
+        'arch:check: нарушений — 1',
+        `Правила по ID: ${RULES_DOC}`,
+      ],
+    });
   });
 });

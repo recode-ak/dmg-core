@@ -1,7 +1,8 @@
 import * as v from 'valibot';
 import { ErrorDef } from './error-def';
 
-const Issues = v.object({
+/** Проблемы валидации входа и выхода; `ErrorText` читает по ней поля (D-99). */
+export const Issues = v.object({
   issues: v.pipe(
     v.array(
       v.object({

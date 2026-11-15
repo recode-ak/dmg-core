@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ApiApp } from '#core/app/api-app/api-app';
+import { EventSubscriber } from '#core/app/events/event-subscriber';
 import {
   GuestCaller,
   type OperationRef,
@@ -12,8 +13,10 @@ import {
 import { Trace } from '#core/kernel/trace/trace';
 import {
   AssignTaskUcDef,
+  CompleteTaskUcDef,
   CreateTaskUcDef,
   GetTaskUcDef,
+  TaskEvents,
   TodoModuleDef,
 } from '#core/testing/example/todo/contract';
 import {
@@ -289,5 +292,60 @@ describe('ExampleApp.start', () => {
     await bus.delivered();
 
     expect(await assigneeOf(example, owner, taskId)).toBe(OTHER);
+  });
+});
+
+describe('внешняя подписка (D-98)', () => {
+  it('UC из обработчика пишется в oplog с причиной-событием и correlationId запроса', async () => {
+    const { example, bus } = makeApp();
+    const logger = new MemoryLogger();
+    const subscriber = new EventSubscriber({ bus, logger }, 'ui');
+    subscriber.on(TaskEvents.created, async (envelope, trace) => {
+      const caller = expectOk(await example.callers.resolve(OWNER, trace));
+      expectOk(
+        await example.api.dispatch(
+          TodoModuleDef,
+          CompleteTaskUcDef.command({ taskId: envelope.payload.taskId }),
+          caller,
+          trace,
+        ),
+      );
+    });
+    const owner = await userCaller(example, OWNER);
+    const requestId = crypto.randomUUID();
+
+    expectOk(
+      await example.api.dispatch(
+        TodoModuleDef,
+        CreateTaskUcDef.command({ title: 'Хлеб' }),
+        owner,
+        Trace.fromRequest({ requestId }),
+      ),
+    );
+    await bus.delivered();
+
+    const [created] = bus.published.filter(
+      (e) => e.name === TaskEvents.created.name,
+    );
+    const traceOf = (op: string) =>
+      readFileSync(join(dir, 'oplog', '2026-10-01.jsonl'), 'utf8')
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line))
+        .filter((record) => record.op === op)
+        .map((record) => record.trace);
+    expect(logger.records).toEqual([]);
+    expect(traceOf('completeTask')).toEqual([
+      {
+        cause: { kind: 'event', eventId: created?.eventId },
+        correlationId: requestId,
+      },
+    ]);
+    expect(traceOf('createTask')).toEqual([
+      {
+        cause: { kind: 'request', requestId },
+        correlationId: requestId,
+      },
+    ]);
   });
 });

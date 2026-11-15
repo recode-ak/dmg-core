@@ -27,6 +27,7 @@ export { GraphError } from './graph-error';
 export type { GraphErrorCode } from './graph-error.types';
 export { GraphId } from './graph-id';
 export type { GraphContribution, GraphProvider } from './graph-provider';
+export type { GraphRule } from './graph-rule.types';
 export { KindRegistry } from './kind-registry';
 export type {
   GraphKindInfo,
