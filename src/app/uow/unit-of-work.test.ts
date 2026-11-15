@@ -393,7 +393,7 @@ describe('UnitOfWork — writes для лога операций (D-73)', () => 
   });
 });
 
-describe('UnitOfWork — патч записи в writes (D-85)', () => {
+describe('UnitOfWork — патч записи в writes (D-86)', () => {
   /** Изменения записи в порядке пути: порядок обхода — не контракт. */
   const sorted = (write: AggregateWrite | undefined) =>
     [...(write?.changes ?? [])].sort((a, b) => a.path.localeCompare(b.path));

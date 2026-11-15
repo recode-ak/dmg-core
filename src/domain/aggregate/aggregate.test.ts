@@ -396,7 +396,7 @@ describe('Aggregate', () => {
       expect(ar.storedVersion).toBe(4);
     });
   });
-  describe('baseline и current — состояния для патча в логе (D-85)', () => {
+  describe('baseline и current — состояния для патча в логе (D-86)', () => {
     it('create — базы нет', () => {
       const ar = expectOk(TaskAr.create(ID, 'Купить хлеб', T0));
       expect(ar.baseline).toBeUndefined();

@@ -13,7 +13,7 @@ import { TaskArDef } from '#core/testing/example/todo/index';
 import type { OperationRecord } from './operation-record';
 import { RecordMask } from './record-mask';
 
-// Маскирование записи лога по Def операции (D-85): вход, выход и payload
+// Маскирование записи лога по Def операции (D-86): вход, выход и payload
 // ошибки — схемами Def; `writes` маскирует UoW, здесь они как есть.
 
 const SECRET = 'пароль-42';

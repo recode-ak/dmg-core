@@ -81,7 +81,7 @@ class ValueLimit {
  * `input`, `output` и `payload` ошибки больше порога обрезаются с пометкой
  * (`TruncatedValue`); `events` и `writes` — короткие ссылки, без порога,
  * кроме `from`/`to` изменений патча: больше `valueMaxBytes` — `ValueDigest`.
- * `retainDays` (D-85) — при смене дня записи остаются файлы последних N дней.
+ * `retainDays` (D-86) — при смене дня записи остаются файлы последних N дней.
  * @see src/app/oplog/jsonl-operation-log.test.ts
  * @see src/app/oplog/jsonl-operation-log.retain.test.ts
  */

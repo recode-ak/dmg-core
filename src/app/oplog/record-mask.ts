@@ -10,7 +10,7 @@ import type { OperationRecord } from './operation-record';
 const CORE_ERRORS: readonly AnyErrorDef[] = Object.values(CoreErrors);
 
 /**
- * Маскирование записи лога по Def операции (D-85): поля `F.sensitive` —
+ * Маскирование записи лога по Def операции (D-86): поля `F.sensitive` —
  * `'[redacted]'`. UC — вход, выход и payload ошибки; ER — только `payload`
  * конверта события; Job схем не имеет. `writes` маскирует UoW. Payload
  * ошибки с кодом вне `errors` и `CoreErrors` (вложенный вызов) скрывается

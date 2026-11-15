@@ -26,7 +26,7 @@ covers:
 ## 3. Образец
 
 - [example-app.types.ts](../../src/testing/example/app/example-app.types.ts): `ExampleAppEnv` — только данные; `ExampleAppPorts` — подмена шины, логгера и часов.
-- [example-app.ts](../../src/testing/example/app/example-app.ts): `AppContext` на `InProcEventBus`, `InProcOutbox`/`InProcInbox`, `InProcReplayStore` (часы приложения), `ConsoleLogger`, `JsonlOperationLog`; фабрики модулей из входов пакетов (`app/<m>/index.ts`) с замыканием на репозитории; `start()` → `api.subscribe()`, возвращает остановку.
+- [example-app.ts](../../src/testing/example/app/example-app.ts): `AppContext` на `InProcEventBus`, `InProcOutbox`/`InProcInbox`, `InProcReplayStore` (часы приложения), `ConsoleLogger`, `JsonlOperationLog` (опции `maxBytes`, `valueMaxBytes`, `retainDays` и чтение лога — [oplog.md](../reference/oplog.md)); фабрики модулей из входов пакетов (`app/<m>/index.ts`) с замыканием на репозитории; `start()` → `api.subscribe()`, возвращает остановку.
 - [example-caller-resolver.ts](../../src/testing/example/app/example-caller-resolver.ts): `getUser` через `api.dispatch`; нет пользователя → `GuestCaller`, прочие `Err` — исключение (ошибка конфигурации).
 - [example-cli.ts](../../src/testing/example/runner/example-cli.ts): argv → `Result` разбора → `Trace` (канал `cli`) → резолвер → одна точка `dispatch`; коды выхода 0 / 1 (ввод) / 2 (отказ UC).
 - [example-env.ts](../../src/testing/example/runner/example-env.ts) и [main.ts](../../src/testing/example/runner/main.ts): `process.env` → `ExampleAppEnv` — единственное место чтения окружения.

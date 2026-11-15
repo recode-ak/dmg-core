@@ -6,7 +6,7 @@ import type { PublishedEvent } from '../events/event-envelope';
 import type { AggregateWrite } from '../uow/unit-of-work';
 
 /**
- * Крупное значение патча в JSONL (D-85): размер JSON в байтах UTF-8 и
+ * Крупное значение патча в JSONL (D-86): размер JSON в байтах UTF-8 и
  * первые 12 hex sha256 — одинаковые значения видны по совпадению `hash`.
  */
 export type ValueDigest = {

@@ -80,7 +80,7 @@ class TimeRange {
 }
 
 /**
- * Чтение каталога лога операций `JsonlOperationLog` (D-85): файлы дней вне
+ * Чтение каталога лога операций `JsonlOperationLog` (D-86): файлы дней вне
  * диапазона `since`/`until` не открываются, битая строка или без `at`, `module`,
  * `op`, `kind` — пропуск и `warn` (файл и номер строки). Запись старого формата без `writes` — с пустым.
  * @see src/app/oplog/operation-log-reader.test.ts

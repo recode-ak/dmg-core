@@ -115,7 +115,7 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
 
   /**
    * Состояние на момент загрузки или последней записи — база патча в логе
-   * операций (D-85); `undefined` — создан и не записан. Ссылка, не копия:
+   * операций (D-86); `undefined` — создан и не записан. Ссылка, не копия:
    * только для UoW и лога, не мутировать.
    */
   get baseline(): Readonly<StateOf<D>> | undefined {

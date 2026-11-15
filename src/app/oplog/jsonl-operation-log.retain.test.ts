@@ -33,7 +33,7 @@ function seed(...names: string[]): string {
 
 const files = (dir: string) => readdirSync(dir).sort();
 
-describe('JsonlOperationLog: retainDays (D-85)', () => {
+describe('JsonlOperationLog: retainDays (D-86)', () => {
   test('старше срока удалены, последние N дней включая текущий остаются', async () => {
     const dir = seed(
       '2026-10-18.jsonl',

@@ -163,7 +163,7 @@ describe('ExampleApp: сборка', () => {
       .filter((line) => JSON.parse(line).op === 'createTask');
     const records = lines.map((line) => JSON.parse(line));
 
-    // Название задачи помечено F.sensitive: ни во входе, ни в патче (D-85).
+    // Название задачи помечено F.sensitive: ни во входе, ни в патче (D-86).
     expect(records).toEqual([
       expect.objectContaining({
         module: 'todo',

@@ -15,7 +15,7 @@ import { type Repository, VersionConflict } from './repository';
 
 /**
  * Что UoW нужно от агрегата: идентификатор, версии, события, отметка записи.
- * `baseline` и `current` — для патча в логе (D-85); без `current` патча нет.
+ * `baseline` и `current` — для патча в логе (D-86); без `current` патча нет.
  */
 export type Committable = {
   readonly uuid: string;

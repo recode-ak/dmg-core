@@ -158,7 +158,7 @@ describe('JsonlOperationLog', () => {
   });
 });
 
-describe('JsonlOperationLog — патч записи: дайджест крупных значений (D-85)', () => {
+describe('JsonlOperationLog — патч записи: дайджест крупных значений (D-86)', () => {
   /** Запись с одним изменённым полем. */
   const patched = (from: unknown, to: unknown): OperationRecord =>
     record({

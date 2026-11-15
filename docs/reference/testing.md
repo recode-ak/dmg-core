@@ -53,6 +53,8 @@ expect(res.ok ? undefined : res.error.code).toBe('TASK_ALREADY_DONE');
 - Готовые `testAppContext` (шина — `RecordingBus`, логгер — `MemoryLogger`), `MemoryBus` (доставляет события подписчикам), `MemoryRepo`, `StubFacade`, `expectIdempotentReaction` — для UC/ER без реального приложения (`src/testing/index.ts`); учебный модуль — `src/testing/example`.
 - Данные теста (D-84): след запроса — `TEST_TRACE` (`requestId: 'r-1'`) или `testTrace()` — свежий `r-<n>` на каждый вызов (отсев повторов D-56 считает одинаковый `requestId` повтором; вместо `crypto.randomUUID()`), `testTrace('r-42')` — заданный; uuid — `testUuid(n, prefix?)` → `<prefix>-0000-4000-8000-<n, 12 hex>`, проходит `F.uuid`; временный каталог — `TempDir.create(prefix?)` (`path`, `file(...segments)`, `dispose()`, `using`) или `useTempDir(prefix?)` — свой каталог на каждый тест блока (`beforeEach`/`afterEach`, возвращает `() => TempDir`) вместо ручного `mkdtemp`/`rm`.
 
+- Персональные данные (D-86): механика маскирования проверена в пакете; модулю достаточно теста, что помеченные поля state и схем операций — `F.sensitive`, и сквозного прогона, что значения нет в строке лога ([oplog.md](./oplog.md)).
+
 ## 5. Один уровень на правило (TST-08)
 
 Рефакторинг не меняет функционал — число тестов не должно расти так, будто он добавлен.

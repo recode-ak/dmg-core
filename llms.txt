@@ -18,6 +18,7 @@
 - [Ошибки и Result](docs/reference/errors-result.md): модель ошибки, `kind`, исполнение UC, UoW
 - [Caller и Trace](docs/reference/caller.md): кто вызывает, субъект, след вызова
 - [Транспорт](docs/reference/transport.md): HTTP (JSON-команда, `meta.requestId`, ожидаемая версия — поле входа `expectedVersion`), MCP, in-proc
+- [Лог операций](docs/reference/oplog.md): запись `OperationRecord`, патч `writes[].changes`, персональные данные — `F.sensitive` и маскирование всей записи, `retainDays`, чтение — `dmg-core oplog`, `OperationLogReader`
 
 ## Правила и качество
 

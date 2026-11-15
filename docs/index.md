@@ -48,6 +48,7 @@
 - [errors-result.md](./reference/errors-result.md) — `Result`, модель ошибки, базовые ошибки ядра, гарантии исполнения UC
 - [caller.md](./reference/caller.md) — кто вызывает: `guest`, `user`, `delegate`, `system`; след `Trace`
 - [transport.md](./reference/transport.md) — HTTP (JSON-команда), отсев повторов, MCP, in-proc
+- [oplog.md](./reference/oplog.md) — лог операций: запись, патч полей, маскирование `F.sensitive`, срок хранения, чтение (`dmg-core oplog`)
 - [testing.md](./reference/testing.md) — тестирование; хелперы `dmg-core/testing` (фейк `MemoryRepo`, `testTrace`, `testUuid`, `TempDir`)
 - [typescript.md](./reference/typescript.md) — стиль TypeScript
 

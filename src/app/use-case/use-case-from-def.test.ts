@@ -1036,7 +1036,7 @@ describe('UseCaseFromDef — лог операций (D-43, Р6)', () => {
   });
 });
 
-describe('UseCaseFromDef — помеченные поля в логе операций (D-85)', () => {
+describe('UseCaseFromDef — помеченные поля в логе операций (D-86)', () => {
   const SECRET = 'пароль-42';
 
   const LockUcDef = UseCaseDef.define({

@@ -3,7 +3,7 @@ import * as v from 'valibot';
 import { BaseEntityFields, F } from '#core/kernel/fields/fields';
 import { FieldDiff } from './field-diff';
 
-// Патч записи агрегата для лога операций (D-85): что изменила операция,
+// Патч записи агрегата для лога операций (D-86): что изменила операция,
 // по полям state; помеченные поля — без значений.
 
 const T0 = Date.UTC(2026, 9, 1);

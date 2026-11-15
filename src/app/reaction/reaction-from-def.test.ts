@@ -400,7 +400,7 @@ describe('ReactionFromDef — сбой inbox (ERR-07)', () => {
   });
 });
 
-describe('ReactionFromDef — помеченные поля в логе операций (D-85)', () => {
+describe('ReactionFromDef — помеченные поля в логе операций (D-86)', () => {
   const SECRET = 'пароль-42';
 
   const NoteEvents = EventDef.define('notes.note', {

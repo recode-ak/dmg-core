@@ -29,7 +29,7 @@ const VALUED: ReadonlySet<string> = new Set([
 class OplogArgsError extends Error {}
 
 /**
- * Команда `dmg-core oplog <dir> [фильтры] [--json]` (D-85): лента или JSONL
+ * Команда `dmg-core oplog <dir> [фильтры] [--json]` (D-86): лента или JSONL
  * записей лога операций. Пакет проекта не нужен — читается только каталог.
  * Ошибка ввода — `usage: true` (код 2 и `USAGE` у вызывающего).
  * @see src/cli/main-oplog.test.ts
