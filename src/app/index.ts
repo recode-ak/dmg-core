@@ -71,8 +71,15 @@ export {
   DEFAULT_OPLOG_MAX_BYTES,
   DEFAULT_OPLOG_VALUE_MAX_BYTES,
   JsonlOperationLog,
+  OPLOG_DAY_FILE,
   type TruncatedValue,
 } from './oplog/jsonl-operation-log';
+export { OperationLogFeed } from './oplog/operation-log-feed';
+export {
+  type OperationLogFilter,
+  OperationLogFilterError,
+  OperationLogReader,
+} from './oplog/operation-log-reader';
 export type {
   OperationLog,
   OperationRecord,

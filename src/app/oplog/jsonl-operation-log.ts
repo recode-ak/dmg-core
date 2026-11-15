@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { appendFile, mkdir } from 'node:fs/promises';
+import { appendFile, mkdir, readdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AggregateWrite } from '../uow/unit-of-work';
 import type {
@@ -13,6 +13,11 @@ export const DEFAULT_OPLOG_MAX_BYTES = 8 * 1024;
 
 /** Порог размера `from`/`to` изменения в патче записи по умолчанию — 1 КБ. */
 export const DEFAULT_OPLOG_VALUE_MAX_BYTES = 1024;
+
+/** Имя файла дня в каталоге лога. */
+export const OPLOG_DAY_FILE = /^(\d{4}-\d{2}-\d{2})\.jsonl$/;
+
+const DAY_MS = 86_400_000;
 
 /** Обрезанное значение: размер исходного JSON и его начало. */
 export type TruncatedValue = {
@@ -76,21 +81,35 @@ class ValueLimit {
  * `input`, `output` и `payload` ошибки больше порога обрезаются с пометкой
  * (`TruncatedValue`); `events` и `writes` — короткие ссылки, без порога,
  * кроме `from`/`to` изменений патча: больше `valueMaxBytes` — `ValueDigest`.
+ * `retainDays` (D-85) — при смене дня записи остаются файлы последних N дней.
  * @see src/app/oplog/jsonl-operation-log.test.ts
+ * @see src/app/oplog/jsonl-operation-log.retain.test.ts
  */
 export class JsonlOperationLog implements OperationLog {
   private readonly limit: SizeLimit;
   private readonly valueLimit: ValueLimit;
   private queue: Promise<void> = Promise.resolve();
   private ready: Promise<unknown> | undefined;
+  private readonly retainDays: number | undefined;
+  private prunedDay: string | undefined;
 
   constructor(
     private readonly dir: string,
     options: {
       readonly maxBytes?: number;
       readonly valueMaxBytes?: number;
+      /** Сколько дней хранить, включая день записи; нет — не удалять. */
+      readonly retainDays?: number;
     } = {},
   ) {
+    const { retainDays } = options;
+    if (
+      retainDays !== undefined &&
+      (!Number.isInteger(retainDays) || retainDays < 1)
+    ) {
+      throw new Error(`retainDays — целое ≥ 1, получено ${retainDays}`);
+    }
+    this.retainDays = retainDays;
     this.limit = new SizeLimit(options.maxBytes ?? DEFAULT_OPLOG_MAX_BYTES);
     this.valueLimit = new ValueLimit(
       options.valueMaxBytes ?? DEFAULT_OPLOG_VALUE_MAX_BYTES,
@@ -99,18 +118,42 @@ export class JsonlOperationLog implements OperationLog {
 
   append(record: OperationRecord): Promise<void> {
     const line = `${JSON.stringify(this.limited(record))}\n`;
-    const file = join(this.dir, `${this.day(record)}.jsonl`);
+    const day = this.day(record);
+    const file = join(this.dir, `${day}.jsonl`);
     const next = this.queue.then(async () => {
       this.ready ??= mkdir(this.dir, { recursive: true }).catch((error) => {
         this.ready = undefined;
         throw error;
       });
       await this.ready;
+      await this.prune(day);
       await appendFile(file, line, 'utf8');
     });
     // Сбой одной записи не должен блокировать следующие.
     this.queue = next.catch(() => {});
     return next;
+  }
+
+  /**
+   * Удаляет файлы дней старше срока — раз на смену дня. День — меньший из
+   * дня `at` записи и системных часов: запись из будущего не стирает свежие
+   * файлы. Сбой удаления запись не блокирует.
+   */
+  private async prune(recordDay: string): Promise<void> {
+    if (this.retainDays === undefined) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const day = recordDay < today ? recordDay : today;
+    if (day === this.prunedDay) return;
+    this.prunedDay = day;
+    const oldest = new Date(Date.parse(day) - (this.retainDays - 1) * DAY_MS)
+      .toISOString()
+      .slice(0, 10);
+    const names = await readdir(this.dir).catch(() => [] as string[]);
+    for (const name of names) {
+      const fileDay = OPLOG_DAY_FILE.exec(name)?.[1];
+      if (fileDay === undefined || fileDay >= oldest) continue;
+      await unlink(join(this.dir, name)).catch(() => {});
+    }
   }
 
   private limited(record: OperationRecord): OperationRecord {
