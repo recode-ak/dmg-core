@@ -89,6 +89,16 @@ describe('ProviderRuleChecker: проверка графа', () => {
     expect(toy.contributed).toBe(1);
   });
 
+  it('повторный check() граф заново не строит', () => {
+    const toy = toyRuleProvider();
+    const checker = new ProviderRuleChecker({
+      def: ExampleAppDef,
+      providers: [toy],
+    });
+    expect(lines(checker)).toEqual(lines(checker));
+    expect(toy.contributed).toBe(1);
+  });
+
   it('граф не собран: нарушение ARC-13, правила не вызваны', () => {
     const rule = new StubRule('RIV-01', ['не должно быть']);
     const clash = new RuleProvider('dmg-core', [rule]);

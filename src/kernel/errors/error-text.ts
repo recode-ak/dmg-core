@@ -19,7 +19,10 @@ export class ErrorText {
   private static readonly RULES: Record<ErrorKind, ErrorTextRule> = {
     validation: (error) => ({
       summary: error.label,
-      fields: v.is(Issues, error.payload) ? error.payload.issues : [],
+      // Копия двух ключей: схема лишние ключи проблемы не отсекает.
+      fields: v.is(Issues, error.payload)
+        ? error.payload.issues.map(({ path, message }) => ({ path, message }))
+        : [],
     }),
     unauthorized: (error) => ErrorText.labelOnly(error),
     access: (error) => ({
@@ -44,7 +47,7 @@ export class ErrorText {
     const { summary, fields } =
       known && error.label
         ? ErrorText.RULES[error.kind](error)
-        : ErrorText.labelOnly(CoreErrors.SERVER_INTERNAL.make());
+        : { summary: CoreErrors.SERVER_INTERNAL.label, fields: [] };
     return new ErrorText(summary, fields);
   }
 

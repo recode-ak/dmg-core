@@ -107,6 +107,18 @@ describe('ErrorText', () => {
     expect(text.toString()).toBe('Некорректные данные');
   });
 
+  it('validation с лишними ключами в issues: в fields — только path и message', () => {
+    const error: DomainError = {
+      ...CoreErrors.INPUT_VALIDATION.make({ issues: [] }),
+      payload: {
+        issues: [{ path: 'title', message: 'Слишком длинно', hint: 'MARK' }],
+      },
+    };
+    const text = ErrorText.of(error);
+    expect(text.fields).toEqual([{ path: 'title', message: 'Слишком длинно' }]);
+    expect(JSON.stringify(text.fields)).not.toContain('MARK');
+  });
+
   it('validation модуля с payload не по Issues: label, полей нет', () => {
     const text = ErrorText.of(ToyErrors.BAD_INPUT.make({ note: 'NOTE-MARK' }));
     expect(text.summary).toBe('Плохой ввод');

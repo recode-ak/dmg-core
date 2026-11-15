@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { AppDef } from '../domain/contracts/app-def';
 import { ModuleDef } from '../domain/contracts/module-def';
 import { ExampleArch } from '../testing/example/example.arch';
-import { toyRuleProvider } from './arch.fixture';
+import { RuleProvider, StubRule, toyRuleProvider } from './arch.fixture';
 import type { ArchApp } from './arch-checker';
 import { RULES_DOC, reportArchCheck } from './arch-report';
 
@@ -140,6 +140,29 @@ describe('reportArchCheck', () => {
       `${import.meta.dir}/../../docs/reference/rules.md`,
     ).text();
     for (const id of ['MAN-01', 'ARC-06']) expect(text).toContain(`| ${id} |`);
+  });
+
+  it('граф не собран — нарушение ARC-13 в отчёте, код 1', () => {
+    const clash = new RuleProvider('dmg-core', [new StubRule('RIV-01')]);
+    const { code, lines } = run([{ ...ExampleArch, providers: [clash] }]);
+    expect(code).toBe(1);
+    expect(lines[0]).toBe('arch:check example: нарушений — 1');
+    expect(lines[1]).toStartWith(
+      'ARC-13: граф приложения example не собран, правила поставщиков не проверены — ',
+    );
+  });
+
+  it('отказ ARC-13 (ID правила не по форме) — исключение, отчёта нет', () => {
+    const bad = new RuleProvider('toy', [new StubRule('toy-1')]);
+    const lines: string[] = [];
+    expect(() =>
+      reportArchCheck([{ ...ExampleArch, providers: [bad] }], (line) =>
+        lines.push(line),
+      ),
+    ).toThrow(
+      'ARC-13: правило toy-1 поставщика toy — ID не по форме <ПРЕФИКС>-<NN>',
+    );
+    expect(lines).toEqual([]);
   });
 
   it('нарушение поставщика — в общем отчёте со своим ID, код 1', () => {
