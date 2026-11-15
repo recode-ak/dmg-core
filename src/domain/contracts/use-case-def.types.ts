@@ -1,5 +1,5 @@
 import type * as v from 'valibot';
-import type { CallerKind } from '#core/kernel/caller/caller';
+import type { DeclaredCaller } from '#core/kernel/caller/caller';
 import type { DefTexts } from '#core/kernel/def/def';
 import type { CoreError } from '#core/kernel/errors/core-errors';
 import type { AnyErrorDef, ErrorOf } from '#core/kernel/errors/error-def';
@@ -12,8 +12,16 @@ import type { UseCaseDef } from './use-case-def';
 
 type Common = DefTexts & {
   readonly aggregate: AnyAggregateDef;
-  /** Допустимые вызывающие (MAN-11); остальные получают `UNAUTHORIZED`. */
-  readonly callers: readonly [CallerKind, ...CallerKind[]];
+  /**
+   * Допустимые вызывающие (MAN-11, D-89); остальные получают `UNAUTHORIZED`.
+   * Заместитель проходит как `user`.
+   */
+  readonly callers: readonly [DeclaredCaller, ...DeclaredCaller[]];
+  /**
+   * Только лично (D-89): UC недоступен заместителю — ни напрямую, ни во
+   * вложенном вызове за `SystemCaller`. Без поля — `false`.
+   */
+  readonly personal?: boolean;
   /** Право на действие; без ограничений — явно `allowAll`. */
   readonly policy: AnyRule;
   /**
@@ -90,7 +98,8 @@ export type NormalizedUseCase = DefTexts & {
   readonly dmg: 'useCase';
   readonly type: 'command' | 'query';
   readonly aggregate: string;
-  readonly callers: readonly CallerKind[];
+  readonly callers: readonly DeclaredCaller[];
+  readonly personal: boolean;
   readonly policy: NormalizedRule;
   readonly input: JsonSchema;
   readonly output: JsonSchema;

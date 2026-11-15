@@ -13,7 +13,7 @@ export const CreateTaskUcDef = UseCaseDef.define({
   description: 'Добавляет открытую задачу в список вызывающего.',
   type: 'command',
   aggregate: TaskArDef,
-  callers: ['user', 'delegate'],
+  callers: ['user'],
   policy: allowAll,
   rules: [TaskRules.rules.withinOpenLimit],
   input: v.object({ title: TaskState.entries.title }),

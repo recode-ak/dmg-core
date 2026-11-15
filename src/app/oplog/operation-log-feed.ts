@@ -40,7 +40,8 @@ export class OperationLogFeed {
     if (caller === undefined || caller.kind === 'guest') return 'guest';
     if (caller.kind === 'user') return caller.subjectId;
     if (caller.kind === 'delegate') {
-      return `${caller.subjectId} (через ${caller.actorId})`;
+      const mode = caller.readOnly ? ', только чтение' : '';
+      return `${caller.subjectId} (через ${caller.actorId}${mode})`;
     }
     const from = `system:${caller.from.module}.${caller.from.name}`;
     return caller.person ? `${from} за ${this.who(caller.person)}` : from;

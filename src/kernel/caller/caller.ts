@@ -3,6 +3,7 @@ import type {
   CallerJson,
   CallerKind,
   CallerLog,
+  DeclaredCaller,
   DelegateCallerJson,
   GuestCallerJson,
   Identified,
@@ -15,6 +16,7 @@ export type {
   CallerJson,
   CallerKind,
   CallerLog,
+  DeclaredCaller,
   DelegateCallerJson,
   GuestCallerJson,
   Identified,
@@ -42,6 +44,7 @@ const PersonJson = v.variant('kind', [
     principal: v.unknown(),
     actor: v.unknown(),
     delegationId: v.string(),
+    readOnly: v.optional(v.boolean()),
   }),
 ]);
 
@@ -63,6 +66,8 @@ const IdentifiedJson = v.looseObject({ uuid: v.string() });
  */
 export abstract class Caller<U extends Identified = Identified> {
   abstract readonly kind: CallerKind;
+  /** Вид для сверки с `callers` Def UC (D-89): заместитель — `user`. */
+  abstract declaredKind(): DeclaredCaller;
   /** От чьего имени действие; нет — гость или система без человека. */
   abstract subject(): U | undefined;
   /** Исходный человек — для вложенных вызовов; у системы без него — нет. */
@@ -111,6 +116,7 @@ export abstract class Caller<U extends Identified = Identified> {
           subject(json.principal),
           subject(json.actor),
           json.delegationId,
+          json.readOnly ?? false,
         );
     }
   }
@@ -161,6 +167,10 @@ export type PersonCaller<U extends Identified = Identified> =
 export class GuestCaller<U extends Identified = Identified> extends Caller<U> {
   readonly kind = 'guest';
 
+  declaredKind(): 'guest' {
+    return 'guest';
+  }
+
   subject(): undefined {
     return undefined;
   }
@@ -186,6 +196,10 @@ export class UserCaller<U extends Identified = Identified> extends Caller<U> {
     super();
   }
 
+  declaredKind(): 'user' {
+    return 'user';
+  }
+
   subject(): U {
     return this.user;
   }
@@ -205,7 +219,8 @@ export class UserCaller<U extends Identified = Identified> extends Caller<U> {
 
 /**
  * Заместитель (`actor`) действует от имени другого по делегированию
- * `delegationId`. Субъект — замещаемый; заместитель — для аудита.
+ * `delegationId` (D-89). Субъект — замещаемый; заместитель — для аудита;
+ * `readOnly` — только query UC.
  */
 export class DelegateCaller<
   U extends Identified = Identified,
@@ -216,8 +231,13 @@ export class DelegateCaller<
     private readonly principal: U,
     readonly actor: U,
     readonly delegationId: string,
+    readonly readOnly = false,
   ) {
     super();
+  }
+
+  declaredKind(): 'user' {
+    return 'user';
   }
 
   subject(): U {
@@ -234,6 +254,7 @@ export class DelegateCaller<
       subjectId: this.principal.uuid,
       actorId: this.actor.uuid,
       delegationId: this.delegationId,
+      ...(this.readOnly ? { readOnly: true } : {}),
     };
   }
 
@@ -243,6 +264,7 @@ export class DelegateCaller<
       principal: this.principal,
       actor: this.actor,
       delegationId: this.delegationId,
+      ...(this.readOnly ? { readOnly: true } : {}),
     };
   }
 }
@@ -260,6 +282,10 @@ export class SystemCaller<U extends Identified = Identified> extends Caller<U> {
     private readonly origin?: PersonCaller<U>,
   ) {
     super();
+  }
+
+  declaredKind(): 'system' {
+    return 'system';
   }
 
   subject(): U | undefined {

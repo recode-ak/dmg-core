@@ -90,7 +90,7 @@ export const CompleteTaskUcDef = UseCaseDef.define({
   description: 'Отмечает задачу выполненной.',
   type: 'command',
   aggregate: TaskArDef,
-  callers: ['user', 'delegate'],
+  callers: ['user'],
   policy: TaskPolicy.rules.canComplete,
   calls: [GetUserUcDef],
   input: v.object({ taskId: F.uuid('задачи') }),

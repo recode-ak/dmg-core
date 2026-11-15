@@ -54,6 +54,22 @@ describe('OperationLogFeed', () => {
     expect(lines[0]).toContain('UNAUTHORIZED');
   });
 
+  test('заместитель: оба идентификатора; только чтение — пометка (D-89)', () => {
+    const delegate = {
+      kind: 'delegate',
+      subjectId: 'u-1',
+      actorId: 'u-2',
+      delegationId: 'd-1',
+    } as const;
+    const [plain, readOnly] = feed.lines([
+      record({ caller: delegate }),
+      record({ caller: { ...delegate, readOnly: true } }),
+    ]);
+    expect(plain).toContain('u-1 (через u-2)');
+    expect(plain).not.toContain('только чтение');
+    expect(readOnly).toContain('u-1 (через u-2, только чтение)');
+  });
+
   test('без aggregate изменения не выводятся', () => {
     const lines = feed.lines([
       record({ writes: [write([{ path: 'title', from: 'a', to: 'b' }])] }),

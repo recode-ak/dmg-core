@@ -104,7 +104,7 @@ describe('CompleteTaskUc', () => {
     expectNothingWritten();
   });
 
-  it('системный вызов — UNAUTHORIZED: callers только user и delegate', async () => {
+  it('системный вызов — UNAUTHORIZED: callers только user', async () => {
     const job = new SystemCaller<ExampleUser>({
       kind: 'job',
       module: 'todo',

@@ -15,7 +15,7 @@ describe('AssignTaskUcDef', () => {
       name: 'assignTask',
       type: 'command',
       aggregate: 'task',
-      callers: ['user', 'delegate'],
+      callers: ['user'],
       errors: [
         'TASK_NOT_FOUND',
         'USER_NOT_FOUND',

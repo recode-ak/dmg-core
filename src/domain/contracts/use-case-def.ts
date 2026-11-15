@@ -44,6 +44,7 @@ export class UseCaseDef<
   readonly type: S['type'];
   readonly aggregate: S['aggregate'];
   readonly callers: S['callers'];
+  readonly personal: boolean;
   readonly policy: S['policy'];
   readonly rules: Declared<S, 'rules'>;
   readonly input: S['input'];
@@ -56,6 +57,7 @@ export class UseCaseDef<
     this.type = spec.type;
     this.aggregate = spec.aggregate;
     this.callers = spec.callers;
+    this.personal = spec.personal ?? false;
     this.policy = spec.policy;
     this.rules = (spec.rules ?? []) as Declared<S, 'rules'>;
     this.input = spec.input;
@@ -148,6 +150,7 @@ export class UseCaseDef<
       type: this.type,
       aggregate: this.aggregate.name,
       callers: this.callers,
+      personal: this.personal,
       policy: this.policy.normalize(),
       input: toJsonSchema(this.input),
       output: toJsonSchema(this.output),

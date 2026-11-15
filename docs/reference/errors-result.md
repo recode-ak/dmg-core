@@ -35,7 +35,7 @@
 
 | Код | kind | Когда | payload |
 |---|---|---|---|
-| `UNAUTHORIZED` | `unauthorized` | вид вызывающего не в `callers` | `{ callerKind }` |
+| `UNAUTHORIZED` | `unauthorized` | вид вызывающего не в `callers` или операция недоступна заместителю (`personal`, `readOnly`, D-89) | `{ callerKind, reason? }` |
 | `INPUT_VALIDATION` | `validation` | вход не прошёл схему UC | замечания схемы |
 | `ACCESS_DENIED` | `access` | Policy отказала | `{ rule, denyMessage }` |
 | `OUTPUT_VALIDATION` | `internal` | выход UC не прошёл схему | замечания схемы |

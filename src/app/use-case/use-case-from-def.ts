@@ -155,8 +155,8 @@ export abstract class UseCaseFromDef<
   }
 
   /**
-   * Шаги: `checkCaller` → `parseInput` → `load` → `checkPolicy` →
-   * `fetch` → `checkRules` → `execute` → `parseOutput` → фиксация (с публикацией) →
+   * Шаги: `checkCaller` → допуск заместителя → `parseInput` → `load` →
+   * `checkPolicy` → `fetch` → `checkRules` → `execute` → `parseOutput` → фиксация (с публикацией) →
    * запись в лог операций (любой исход; выход query — сводкой, D-73). Непредвиденное исключение —
    * `SERVER_INTERNAL` с записью в лог.
    */
@@ -183,10 +183,35 @@ export abstract class UseCaseFromDef<
     );
   }
 
-  /** Вид вызывающего — из `callers` Def; иначе `UNAUTHORIZED`. */
+  /**
+   * Вид вызывающего — из `callers` Def (заместитель — `user`, D-89); иначе
+   * `UNAUTHORIZED`.
+   */
   protected checkCaller(caller: Caller<U>): Result<void, UseCaseErrorOf<D>> {
-    if (!this.def.callers.includes(caller.kind)) {
+    if (!this.def.callers.includes(caller.declaredKind())) {
       return CoreErrors.UNAUTHORIZED.err({ callerKind: caller.kind });
+    }
+    return ok();
+  }
+
+  /**
+   * Сужения для заместителя (D-89) — по исходному человеку, поэтому и за
+   * `SystemCaller`. Приватный: наследник не обходит его переопределением.
+   */
+  private checkDelegate(caller: Caller<U>): Result<void, UseCaseErrorOf<D>> {
+    const person = caller.person();
+    if (person?.kind !== 'delegate') return ok();
+    if (this.def.personal) {
+      return CoreErrors.UNAUTHORIZED.err({
+        callerKind: caller.kind,
+        reason: 'personal',
+      });
+    }
+    if (person.readOnly && this.def.type === 'command') {
+      return CoreErrors.UNAUTHORIZED.err({
+        callerKind: caller.kind,
+        reason: 'readOnly',
+      });
     }
     return ok();
   }
@@ -274,6 +299,8 @@ export abstract class UseCaseFromDef<
   ): Promise<Result<OutputOf<D>, UseCaseErrorOf<D>>> {
     const allowed = this.checkCaller(caller);
     if (!allowed.ok) return allowed;
+    const admitted = this.checkDelegate(caller);
+    if (!admitted.ok) return admitted;
     const parsed = this.parseInput(input);
     if (!parsed.ok) return parsed;
     const loaded = await this.load(parsed.value, caller, trace);

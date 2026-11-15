@@ -108,6 +108,7 @@ export {
   type CallerJson,
   type CallerKind,
   type CallerLog,
+  type DeclaredCaller,
   DelegateCaller,
   GuestCaller,
   type Identified,

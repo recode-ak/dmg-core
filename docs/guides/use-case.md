@@ -24,7 +24,7 @@ covers:
 
 ## 2. Команда
 
-`dmg-core gen uc <m>.<a> <имя> --write` — пара Def + реализация с тестами, строка в `<M>ModuleDef.useCases` и в карте модуля. Требует `<m>.module.ts`. Заполнить: `label`/`description`, `callers`, `policy`, `rules`, `calls`, схемы, `errors`, `emits`.
+`dmg-core gen uc <m>.<a> <имя> --write` — пара Def + реализация с тестами, строка в `<M>ModuleDef.useCases` и в карте модуля. Требует `<m>.module.ts`. Заполнить: `label`/`description`, `callers`, `personal` (UC только лично, недоступен заместителю), `policy`, `rules`, `calls`, схемы, `errors`, `emits`.
 
 Заготовка зависит от имени:
 
@@ -36,7 +36,7 @@ covers:
 ## 3. Устройство реализации
 
 - Конструктор `(deps, module: typeof <M>ModuleDef)` → `super(<N>UcDef, deps, module)`: модуль передаёт себя, из него — `this.ref` для `SystemCaller` и лога операций.
-- Шаги базы — `protected`, порядок фиксирован: `checkCaller` → `parseInput` → `load` → `checkPolicy` → `fetch` → `checkRules` → `execute` → `parseOutput` → фиксация (`uow.commit()`, публикация через outbox, запись в `OperationLog` — инвариант базы; поля `F.sensitive` в записи скрыты, [oplog.md](../reference/oplog.md)). Наследник пишет `load` и `execute` методами, при вызовах чужих модулей — и `fetch`; переопределение `checkPolicy` — только для системного вызова без субъекта.
+- Шаги базы — `protected`, порядок фиксирован: `checkCaller` → сужения для заместителя (приватный шаг, D-89) → `parseInput` → `load` → `checkPolicy` → `fetch` → `checkRules` → `execute` → `parseOutput` → фиксация (`uow.commit()`, публикация через outbox, запись в `OperationLog` — инвариант базы; поля `F.sensitive` в записи скрыты, [oplog.md](../reference/oplog.md)). Наследник пишет `load` и `execute` методами, при вызовах чужих модулей — и `fetch`; переопределение `checkPolicy` — только для системного вызова без субъекта.
 - `load(input, caller, trace)` собирает контекст Policy — обычно свои агрегаты из репозитория. `fetch(input, loaded, caller, trace)` — после права (D-58): вызовы чужих модулей (`this.call`) и всё, что нужно только правилам и операции; не переопределён — ничего. `execute(input, loaded, uow, caller, trace)` получает загруженное и добытое одним объектом (`Loaded & Fetched`) — домен и `uow.register`. `caller` и `trace` передаются в `this.call` как пришли.
 - `this.call` в `load` — ошибка lint (API-07): Policy проверяется после `load`, и до права не-владелец узнал бы ответ зависимости, а она получила бы лишний вызов. Вызов, ответ которого нужен самой Policy, остаётся в `load` с причиной: `// biome-ignore lint/plugin: <что из ответа нужно Policy>`.
 - Сигнатуры с типами (`ParsedInputOf` и `UnitOfWork` — из `dmg-core/app`, `Caller` и `Identified` — из `dmg-core`):

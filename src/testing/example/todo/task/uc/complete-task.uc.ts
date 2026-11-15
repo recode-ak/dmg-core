@@ -13,7 +13,7 @@ export const CompleteTaskUcDef = UseCaseDef.define({
   description: 'Отмечает открытую задачу выполненной.',
   type: 'command',
   aggregate: TaskArDef,
-  callers: ['user', 'delegate'],
+  callers: ['user'],
   policy: TaskPolicy.rules.canManage,
   input: v.object({
     taskId: TaskState.entries.uuid,

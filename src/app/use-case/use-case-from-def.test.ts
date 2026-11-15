@@ -13,6 +13,7 @@ import { allowAll } from '#core/domain/policy/rule';
 import { DomainRuleDef } from '#core/domain/rules/domain-rule-def';
 import {
   type Caller,
+  DelegateCaller,
   GuestCaller,
   type OperationRef,
   SystemCaller,
@@ -1077,5 +1078,212 @@ describe('UseCaseFromDef — помеченные поля в логе опер�
     expect(rec?.input).toEqual({ taskId: TASK, password: '[redacted]' });
     expect(rec?.result).toEqual({ ok: true, output: { echo: '[redacted]' } });
     expect(JSON.stringify(rec)).not.toContain(SECRET);
+  });
+});
+
+describe('UseCaseFromDef — заместитель (D-89)', () => {
+  const principal = (): User => ({ uuid: OWNER, hasRole: () => false });
+  const actor: User = { uuid: 'заместитель', hasRole: () => false };
+  const delegate = (readOnly = false) =>
+    new DelegateCaller<User>(principal(), actor, 'd-1', readOnly);
+  const via = (person: Caller<User>) =>
+    new SystemCaller<User>(
+      { kind: 'useCase', module: 'notes', name: 'notify' },
+      person.person(),
+    );
+
+  /** UC с заданным `callers`/`personal`/`type`; Policy и операция те же. */
+  function ucWith({
+    type = 'command',
+    ...extra
+  }: {
+    callers: ['user'] | ['system'] | ['user', 'system'];
+    personal?: boolean;
+    type?: 'command' | 'query';
+  }) {
+    // query без событий: `emits` образца — только у command.
+    const def =
+      type === 'query'
+        ? UseCaseDef.define({
+            ...CompleteTaskUcDef,
+            ...extra,
+            type,
+            emits: [],
+          })
+        : UseCaseDef.define({
+            ...CompleteTaskUcDef,
+            ...extra,
+          });
+    class Custom extends UseCaseFromDef<typeof def, Deps, Loaded> {
+      constructor() {
+        super(def, { app: ctx.app, facades, tasks }, moduleOf(def));
+      }
+      protected load(i: { taskId: string }) {
+        return loadTask(tasks, i);
+      }
+      protected async execute() {
+        return ok({});
+      }
+    }
+    return new Custom();
+  }
+
+  test('callers: [user] допускает заместителя; лог — оба идентификатора', async () => {
+    expectOk(
+      await ucWith({ callers: ['user'] }).handle(
+        { taskId: TASK },
+        delegate(),
+        REQ,
+      ),
+    );
+    expect(ctx.oplog.records[0]?.caller).toEqual({
+      kind: 'delegate',
+      subjectId: OWNER,
+      actorId: 'заместитель',
+      delegationId: 'd-1',
+    });
+  });
+
+  test('Policy вызывается для заместителя: чужая задача → ACCESS_DENIED', async () => {
+    const stranger = new DelegateCaller<User>(
+      { uuid: 'чужой', hasRole: () => false },
+      actor,
+      'd-1',
+    );
+    const res = await ucWith({ callers: ['user'] }).handle(
+      { taskId: TASK },
+      stranger,
+      REQ,
+    );
+    expect(expectErr(res, 'ACCESS_DENIED').payload.rule).toBe('canManage');
+  });
+
+  test('callers: [system] без user: заместитель напрямую — UNAUTHORIZED', async () => {
+    const res = await ucWith({ callers: ['system'] }).handle(
+      { taskId: TASK },
+      delegate(),
+      REQ,
+    );
+    expect(expectErr(res, 'UNAUTHORIZED').payload).toEqual({
+      callerKind: 'delegate',
+    });
+  });
+
+  test('personal: заместителю отказ, reason personal, операция не выполнена', async () => {
+    const res = await ucWith({ callers: ['user'], personal: true }).handle(
+      { taskId: TASK },
+      delegate(),
+      REQ,
+    );
+    expect(expectErr(res, 'UNAUTHORIZED').payload).toEqual({
+      callerKind: 'delegate',
+      reason: 'personal',
+    });
+    expect(ctx.published).toEqual([]);
+    expect(ctx.oplog.records[0]?.result).toMatchObject({ ok: false });
+  });
+
+  test('personal: отказ и заместителю за SystemCaller (вложенный вызов)', async () => {
+    const res = await ucWith({
+      callers: ['user', 'system'],
+      personal: true,
+    }).handle({ taskId: TASK }, via(delegate()), REQ);
+    expect(expectErr(res, 'UNAUTHORIZED').payload).toEqual({
+      callerKind: 'system',
+      reason: 'personal',
+    });
+  });
+
+  test('personal: user и system с user проходят', async () => {
+    const personal = ucWith({ callers: ['user', 'system'], personal: true });
+    expectOk(await personal.handle({ taskId: TASK }, user(OWNER), REQ));
+    seed();
+    expectOk(await personal.handle({ taskId: TASK }, via(user(OWNER)), REQ));
+  });
+
+  test('readOnly: command — отказ, reason readOnly', async () => {
+    const res = await ucWith({ callers: ['user'] }).handle(
+      { taskId: TASK },
+      delegate(true),
+      REQ,
+    );
+    expect(expectErr(res, 'UNAUTHORIZED').payload).toEqual({
+      callerKind: 'delegate',
+      reason: 'readOnly',
+    });
+    expect(tasks.rows.get(TASK)?.status).toBe('open');
+  });
+
+  test('readOnly: command — отказ и заместителю за SystemCaller', async () => {
+    const res = await ucWith({ callers: ['user', 'system'] }).handle(
+      { taskId: TASK },
+      via(delegate(true)),
+      REQ,
+    );
+    expect(expectErr(res, 'UNAUTHORIZED').payload).toEqual({
+      callerKind: 'system',
+      reason: 'readOnly',
+    });
+  });
+
+  test('readOnly: query проходит', async () => {
+    expectOk(
+      await ucWith({ callers: ['user'], type: 'query' }).handle(
+        { taskId: TASK },
+        delegate(true),
+        REQ,
+      ),
+    );
+  });
+
+  test('наследник с checkCaller «всегда ok» не снимает сужения заместителя', async () => {
+    const personalDef = UseCaseDef.define({
+      ...CompleteTaskUcDef,
+      personal: true,
+    });
+    const open = (def: typeof CompleteTaskUcDef | typeof personalDef) => {
+      class Open extends UseCaseFromDef<typeof def, Deps, Loaded> {
+        constructor() {
+          super(def, { app: ctx.app, facades, tasks }, moduleOf(def));
+        }
+        protected override checkCaller() {
+          return ok();
+        }
+        protected load(i: { taskId: string }) {
+          return loadTask(tasks, i);
+        }
+        protected async execute() {
+          return ok({});
+        }
+      }
+      return new Open();
+    };
+    const personal = await open(personalDef).handle(
+      { taskId: TASK },
+      delegate(),
+      REQ,
+    );
+    expect(expectErr(personal, 'UNAUTHORIZED').payload).toMatchObject({
+      reason: 'personal',
+    });
+    const readOnly = await open(CompleteTaskUcDef).handle(
+      { taskId: TASK },
+      delegate(true),
+      REQ,
+    );
+    expect(expectErr(readOnly, 'UNAUTHORIZED').payload).toMatchObject({
+      reason: 'readOnly',
+    });
+  });
+
+  test('personal и readOnly вместе: reason — personal (проверяется первым)', async () => {
+    const res = await ucWith({ callers: ['user'], personal: true }).handle(
+      { taskId: TASK },
+      delegate(true),
+      REQ,
+    );
+    expect(expectErr(res, 'UNAUTHORIZED').payload).toMatchObject({
+      reason: 'personal',
+    });
   });
 });

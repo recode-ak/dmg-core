@@ -24,11 +24,12 @@ describe('CoreErrors', () => {
     expect(error.payload.rule).toBe('todo.owner');
   });
 
-  it('UNAUTHORIZED несёт только вид вызывающего (D-43, Р7)', () => {
+  it('UNAUTHORIZED несёт вид вызывающего и сужение заместителя (D-43, D-89)', () => {
     const error = CoreErrors.UNAUTHORIZED.make({ callerKind: 'guest' });
     expect(error.payload).toEqual({ callerKind: 'guest' });
     expect(Object.keys(CoreErrors.UNAUTHORIZED.payload.entries)).toEqual([
       'callerKind',
+      'reason',
     ]);
     CoreErrors.UNAUTHORIZED.make({
       callerKind: 'system',

@@ -1,6 +1,6 @@
 # Caller и Trace
 
-**Назначение:** контракт вызывающей стороны и следа для UC, Policy и аудита. Классы `Caller` и `Trace` — в `dmg-core` (дженерик пользователя замыкает пакет приложения). Решения — D-25, D-43, D-46, D-56 ([decisions.md](../decisions.md)).
+**Назначение:** контракт вызывающей стороны и следа для UC, Policy и аудита. Классы `Caller` и `Trace` — в `dmg-core` (дженерик пользователя замыкает пакет приложения). Решения — D-25, D-43, D-46, D-56, D-89 ([decisions.md](../decisions.md)).
 
 ---
 
@@ -11,6 +11,7 @@
 ```ts
 abstract class Caller<U extends { uuid: string }> {
   abstract readonly kind: 'guest' | 'user' | 'delegate' | 'system';
+  abstract declaredKind(): 'guest' | 'user' | 'system'; // вид для callers; заместитель — 'user'
   abstract subject(): U | undefined;              // от чьего имени — для Policy и домена
   abstract person(): PersonCaller<U> | undefined; // исходный человек — для вложенных вызовов
   abstract toLog(): CallerLog;                    // форма для лога операций
@@ -22,17 +23,17 @@ type PersonCaller<U> = GuestCaller<U> | UserCaller<U> | DelegateCaller<U>;
 |---|---|---|---|
 | `GuestCaller` | не зарегистрирован (канал — в `Trace.channel`) | нет | он сам |
 | `UserCaller(user)` | авторизованный пользователь | он сам | он сам |
-| `DelegateCaller(subject, actor, delegationId)` | заместитель действует от имени другого по делегированию | **тот, кого замещают** | он сам |
+| `DelegateCaller(subject, actor, delegationId, readOnly = false)` | заместитель действует от имени другого по делегированию; `readOnly` — только query UC | **тот, кого замещают** | он сам |
 | `SystemCaller(from, person?)` | UC/ER/Job своего или другого модуля; `from: OperationRef` — `{ kind, module, name }` вызвавшей операции | `person?.subject()` | `person` |
 
 - `person` по типу не `SystemCaller`; вложенный вызов передаёт `caller.person()` пришедшего.
 - ER и Job — `SystemCaller` без `person`; Job — не гость (гость — реальный посетитель). «Кто породил» ER — через `trace.cause` к записи операции-причины в логе операций.
 - Свой или чужой модуль — сравнение `from.module` с модулем вызываемого; отдельного вида `module` нет.
-- `toLog()`: `{ kind: 'guest' }` · `{ kind: 'user', subjectId }` · `{ kind: 'delegate', subjectId, actorId, delegationId }` · `{ kind: 'system', from, person? }`.
+- `toLog()`: `{ kind: 'guest' }` · `{ kind: 'user', subjectId }` · `{ kind: 'delegate', subjectId, actorId, delegationId, readOnly? }` (`readOnly: true` — только у заместителя на чтение; в `toJSON` так же) · `{ kind: 'system', from, person? }`.
 
 ## 2. Ключевые правила
 
-1. Def UC объявляет допустимые виды: `callers: ('guest' | 'user' | 'delegate' | 'system')[]`. Недопустимый вид отсекается до запуска UC (`UNAUTHORIZED`).
+1. Def UC объявляет допустимые виды: `callers: DeclaredCaller[]` (`'guest' | 'user' | 'system'`), сверка — по `declaredKind()`: заместитель проходит там, где `user`. Недопустимый вид отсекается до запуска UC (`UNAUTHORIZED`). Сужения для заместителя — сразу после `callers`, по `caller.person()` (прямо и за `SystemCaller`): UC с `personal: true` — `UNAUTHORIZED { reason: 'personal' }`; заместитель с `readOnly` на command UC — `UNAUTHORIZED { reason: 'readOnly' }`, query проходят. Шаг приватный — наследник не обходит его.
 2. Policy и домен работают только с **субъектом** (`caller.subject()`): `Rule.evaluate(subject, ctx)`; вид вызывающего Policy не знает и делегирование не проверяет. Policy вызывается всегда; правило без субъекта — отказ (`ACCESS_DENIED`).
 3. Системный вызов без субъекта разрешается только явно: отдельный UC (`callers: ['system']`, `allowAll`) или переопределение `protected checkPolicy` в наследнике `UseCaseFromDef` — ответственность наследника.
 4. Межмодульный вызов — `this.call(def, input, caller, trace)` базы `OperationFromDef`: только Def из `calls` (по типу — UC с `'system'` в `callers`); база подставляет `SystemCaller(this.ref, caller.person())` и идёт через фасад модуля-владельца (`Facade<M>.handle`). Рантайм-проверки `calls` нет.
@@ -55,4 +56,4 @@ type PersonCaller<U> = GuestCaller<U> | UserCaller<U> | DelegateCaller<U>;
 
 ## 4. Делегирование
 
-Делегирование — агрегат модуля пользователей приложения, а не платформы: `from`, `to`, область (роли или правила), `validFrom`/`validTo`, причина, отзыв; это не вход под чужим именем: делегирование ограничено сроком и правами, отзывается, все действия видны в аудите; события `<m>.delegation.granted/revoked/expired`. Пока приложение его не реализовало, `delegate` в `callers` объявляется, но транспорт его не строит.
+Делегирование — агрегат модуля пользователей приложения, а не платформы: `from`, `to`, область (роли или правила), `validFrom`/`validTo`, причина, отзыв; это не вход под чужим именем: делегирование ограничено сроком и правами, отзывается, все действия видны в аудите; события `<m>.delegation.granted/revoked/expired`. Пока приложение его не реализовало, транспорт `DelegateCaller` не строит.

@@ -97,6 +97,7 @@ describe('UseCaseDef', () => {
       type: 'command',
       aggregate: 'task',
       callers: ['user'],
+      personal: false,
       policy: TaskPolicy.rules.canComplete.normalize(),
       input: toJsonSchema(input),
       output: toJsonSchema(output),
@@ -115,6 +116,14 @@ describe('UseCaseDef', () => {
       calls: [GetUserUcDef, CompleteTask],
     });
     expect(def.calls).toHaveLength(2);
+  });
+
+  it("callers — словарь DeclaredCaller: 'delegate' — ошибка типа (D-89)", () => {
+    UseCaseDef.define({
+      ...CompleteTask,
+      // @ts-expect-error 'delegate' — вид класса и лога, не значение callers
+      callers: ['user', 'delegate'],
+    });
   });
 
   it('конкретный Def совместим с AnyUseCaseDef; сравнение по ссылке', () => {

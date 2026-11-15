@@ -316,3 +316,98 @@ describe('Caller.toJSON / fromJSON — круг через JSON (D-46)', () => {
     }
   });
 });
+
+describe('DelegateCaller — readOnly (D-89)', () => {
+  const plain = new DelegateCaller(alice, bob, 'd1');
+  const readOnly = new DelegateCaller(alice, bob, 'd1', true);
+
+  it('по умолчанию readOnly = false', () => {
+    expect(plain.readOnly).toBe(false);
+    expect(readOnly.readOnly).toBe(true);
+  });
+
+  it('обычный заместитель: форма toLog и toJSON без readOnly', () => {
+    expect(plain.toLog()).toStrictEqual({
+      kind: 'delegate',
+      subjectId: 'alice',
+      actorId: 'bob',
+      delegationId: 'd1',
+    });
+    expect(plain.toJSON()).toStrictEqual({
+      kind: 'delegate',
+      principal: alice,
+      actor: bob,
+      delegationId: 'd1',
+    });
+  });
+
+  it('заместитель только на чтение: readOnly: true в toLog и toJSON', () => {
+    expect(readOnly.toLog()).toStrictEqual({
+      kind: 'delegate',
+      subjectId: 'alice',
+      actorId: 'bob',
+      delegationId: 'd1',
+      readOnly: true,
+    });
+    expect(readOnly.toJSON()).toStrictEqual({
+      kind: 'delegate',
+      principal: alice,
+      actor: bob,
+      delegationId: 'd1',
+      readOnly: true,
+    });
+  });
+
+  it('fromJSON сохраняет readOnly, в том числе за SystemCaller', () => {
+    const restored = Caller.fromJSON<User>(
+      JSON.parse(JSON.stringify(readOnly.toJSON())),
+    );
+    expect(restored).toBeInstanceOf(DelegateCaller);
+    expect((restored as DelegateCaller<User>).readOnly).toBe(true);
+    const nested = Caller.fromJSON<User>(
+      JSON.parse(JSON.stringify(new SystemCaller(ucRef, readOnly).toJSON())),
+    );
+    expect(nested.toLog()).toStrictEqual(
+      new SystemCaller(ucRef, readOnly).toLog(),
+    );
+  });
+
+  it('старая запись без readOnly читается как false', () => {
+    const restored = Caller.fromJSON<User>({
+      kind: 'delegate',
+      principal: alice,
+      actor: bob,
+      delegationId: 'd1',
+    });
+    expect((restored as DelegateCaller<User>).readOnly).toBe(false);
+    expect(restored.toJSON()).toStrictEqual(plain.toJSON());
+  });
+
+  it('readOnly не булев — Error', () => {
+    expect(() =>
+      Caller.fromJSON({
+        kind: 'delegate',
+        principal: alice,
+        actor: bob,
+        delegationId: 'd1',
+        readOnly: 'yes',
+      }),
+    ).toThrow(/Caller\.fromJSON/);
+  });
+});
+
+describe('Caller.declaredKind — вид для callers (D-89)', () => {
+  it('заместитель объявляется как user, остальные — своим видом', () => {
+    expect(new GuestCaller<User>().declaredKind()).toBe('guest');
+    expect(new UserCaller(alice).declaredKind()).toBe('user');
+    expect(new DelegateCaller(alice, bob, 'd1').declaredKind()).toBe('user');
+    expect(new DelegateCaller(alice, bob, 'd1', true).declaredKind()).toBe(
+      'user',
+    );
+    expect(new SystemCaller<User>(erRef).declaredKind()).toBe('system');
+  });
+
+  it('kind заместителя остаётся delegate — вид класса и лога', () => {
+    expect(new DelegateCaller(alice, bob, 'd1').kind).toBe('delegate');
+  });
+});

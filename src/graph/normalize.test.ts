@@ -116,7 +116,8 @@ describe('normalize', () => {
       description: 'Отмечает задачу выполненной.',
       type: 'command',
       aggregate: 'task',
-      callers: ['user', 'delegate'],
+      callers: ['user'],
+      personal: false,
       policy: expect.objectContaining({ op: 'rule', name: 'isOwner' }),
       input: objectSchema,
       output: objectSchema,
@@ -131,6 +132,15 @@ describe('normalize', () => {
       calls: [],
       emits: [],
     });
+  });
+
+  it('UC: personal — false по умолчанию, true при объявлении (D-89)', () => {
+    expect(normalize(CompleteTaskUcDef)).toMatchObject({ personal: false });
+    const personal = UseCaseDef.define({
+      ...CompleteTaskUcDef,
+      personal: true,
+    });
+    expect(normalize(personal)).toMatchObject({ personal: true });
   });
 
   it('доменные правила: тексты и код ошибки; UC ссылается по имени', () => {

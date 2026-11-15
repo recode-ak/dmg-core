@@ -18,9 +18,16 @@ export const CoreErrors = ErrorDef.define('', {
   UNAUTHORIZED: {
     kind: 'unauthorized',
     label: 'Вызов не разрешён',
-    description: 'Вид вызывающего не входит в `callers` операции.',
+    description:
+      'Вид вызывающего не входит в `callers` операции или операция недоступна заместителю (`personal`, `readOnly`).',
     payload: v.object({
       callerKind: v.pipe(v.string(), v.description('Вид вызывающего')),
+      reason: v.optional(
+        v.pipe(
+          v.picklist(['personal', 'readOnly']),
+          v.description('Сужение для заместителя, по которому отказано'),
+        ),
+      ),
     }),
   },
   INPUT_VALIDATION: {

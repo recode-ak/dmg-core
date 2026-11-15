@@ -4,8 +4,14 @@
  */
 export type Identified = { readonly uuid: string };
 
-/** Вид вызывающего — то, что объявляет `callers` в Def UC (MAN-11). */
+/** Вид вызывающего — класс `Caller` и запись в логе операций. */
 export type CallerKind = 'guest' | 'user' | 'delegate' | 'system';
+
+/**
+ * Вид вызывающего, который объявляет `callers` в Def UC (MAN-11, D-89):
+ * заместитель допускается как `user` и отдельно не перечисляется.
+ */
+export type DeclaredCaller = 'guest' | 'user' | 'system';
 
 /**
  * Ссылка на операцию приложения (D-51): UC, ER или Job своего или другого
@@ -28,6 +34,7 @@ export type CallerLog =
       readonly subjectId: string;
       readonly actorId: string;
       readonly delegationId: string;
+      readonly readOnly?: boolean;
     }
   | {
       readonly kind: 'system';
@@ -41,12 +48,16 @@ export type GuestCallerJson = { readonly kind: 'guest' };
 /** Пользователь в JSON: субъект целиком (D-46). */
 export type UserCallerJson<U> = { readonly kind: 'user'; readonly user: U };
 
-/** Заместитель в JSON: замещаемый и заместитель целиком. */
+/**
+ * Заместитель в JSON (D-89): замещаемый и заместитель целиком. `readOnly`
+ * пишется только при `true`: запись без поля — обычный заместитель.
+ */
 export type DelegateCallerJson<U> = {
   readonly kind: 'delegate';
   readonly principal: U;
   readonly actor: U;
   readonly delegationId: string;
+  readonly readOnly?: boolean;
 };
 
 /** Человек на входе в JSON — то, что может стоять за системным. */

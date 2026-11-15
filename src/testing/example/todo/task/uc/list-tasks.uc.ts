@@ -10,7 +10,7 @@ export const ListTasksUcDef = UseCaseDef.define({
   description: 'Неархивные задачи вызывающего: открытые и выполненные.',
   type: 'query',
   aggregate: TaskArDef,
-  callers: ['user', 'delegate'],
+  callers: ['user'],
   policy: allowAll,
   input: v.object({}),
   output: v.array(v.pick(TaskState, ['uuid', 'title', 'status'])),

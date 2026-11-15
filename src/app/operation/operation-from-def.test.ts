@@ -11,6 +11,7 @@ import {
 import { allowAll } from '#core/domain/policy/rule';
 import {
   type Caller,
+  DelegateCaller,
   SystemCaller,
   UserCaller,
 } from '#core/kernel/caller/caller';
@@ -31,8 +32,10 @@ import { StubFacade } from '#core/testing/stub-facade';
 import { MemoryTasks, OWNER, T0, TASK, taskRow } from '../app.fixture';
 import type { ModuleDeps } from '../context';
 import type { EnvelopeOf } from '../events/event-envelope';
+import { ModuleFacade } from '../facade/module-facade';
 import { ModuleFacades } from '../facade/module-facades';
 import { JobFromDef, type JobRun } from '../job/job-from-def';
+import { ModuleFromDef } from '../module/module-from-def';
 import { ReactionFromDef } from '../reaction/reaction-from-def';
 import type { UnitOfWork } from '../uow/unit-of-work';
 import { UseCaseFromDef } from '../use-case/use-case-from-def';
@@ -492,5 +495,153 @@ describe('OperationFromDef.createUow (D-43, Р8)', () => {
     expect(prod.logs.map((l) => [l.level, l.source, l.message])).toEqual([
       ['warn', 'silentJob', 'UoW: агрегат task не заявлен в touches'],
     ]);
+  });
+});
+
+// Цепочка заместителя (D-89): UC модуля front вызывает UC модуля vault через
+// `this.call` и настоящий фасад над `ModuleFromDef` — `personal` держит
+// вызванный UC по исходному человеку. `readOnly` сквозным не проверяется:
+// query вызывает только query (MAN-14), и заместитель «только чтение» до
+// command в цепочке не доходит; шаг за `SystemCaller` проверяет
+// use-case-from-def.test.ts.
+const VaultArDef = AggregateDef.define({
+  name: 'vault',
+  label: 'Хранилище',
+  description: 'Агрегат модуля, который вызывают из цепочки.',
+  state: v.object({ ...BaseEntityFields }),
+  events: {},
+  errors: {},
+});
+
+const vaultSpec = {
+  aggregate: VaultArDef,
+  callers: ['user', 'system'],
+  policy: allowAll,
+  input: v.object({}),
+  output: v.object({}),
+  errors: [],
+} as const;
+
+const ReadSecretUcDef = UseCaseDef.define({
+  ...vaultSpec,
+  name: 'readSecret',
+  label: 'Прочитать секрет',
+  description: 'Только лично — недоступно заместителю.',
+  type: 'query',
+  personal: true,
+});
+
+const VaultModuleDef = ModuleDef.define({
+  name: 'vault',
+  label: 'Хранилище',
+  description: 'Модуль, который вызывают из цепочки.',
+  dependsOn: [],
+  aggregates: [VaultArDef],
+  useCases: [ReadSecretUcDef],
+  reactions: [],
+  jobs: [],
+});
+
+const relaySpec = {
+  aggregate: DigestArDef,
+  type: 'query',
+  callers: ['user'],
+  policy: allowAll,
+  input: v.object({}),
+  output: v.object({}),
+  errors: [],
+} as const;
+
+const PeekUcDef = UseCaseDef.define({
+  ...relaySpec,
+  name: 'peek',
+  label: 'Подсмотреть',
+  description: 'Вызывает readSecret модуля vault.',
+  calls: [ReadSecretUcDef],
+});
+
+const FrontModuleDef = ModuleDef.define({
+  name: 'front',
+  label: 'Вход',
+  description: 'Модуль, начинающий цепочку.',
+  dependsOn: [VaultModuleDef],
+  aggregates: [DigestArDef],
+  useCases: [PeekUcDef],
+  reactions: [],
+  jobs: [],
+});
+
+class ReadSecret extends UseCaseFromDef<
+  typeof ReadSecretUcDef,
+  ModuleDeps,
+  undefined,
+  User
+> {
+  constructor(deps: ModuleDeps, module: typeof VaultModuleDef) {
+    super(ReadSecretUcDef, deps, module);
+  }
+  protected async load() {
+    return ok(undefined);
+  }
+  protected async execute() {
+    return ok({});
+  }
+}
+
+class Peek extends UseCaseFromDef<
+  typeof PeekUcDef,
+  ModuleDeps,
+  undefined,
+  User
+> {
+  constructor(deps: ModuleDeps, module: typeof FrontModuleDef) {
+    super(PeekUcDef, deps, module);
+  }
+  protected async load() {
+    return ok(undefined);
+  }
+  protected async execute(
+    _: Record<string, never>,
+    __: undefined,
+    ___: UnitOfWork,
+    caller: Caller<User>,
+    trace: Trace,
+  ) {
+    const res = await this.call(ReadSecretUcDef, {}, caller, trace);
+    return res.ok ? ok({}) : res;
+  }
+}
+
+describe('OperationFromDef.call — заместитель в цепочке (D-89)', () => {
+  const principal: User = { uuid: OWNER };
+  const actor: User = { uuid: 'заместитель' };
+  const delegate = () => new DelegateCaller(principal, actor, 'd-1');
+
+  function front() {
+    const app = testAppContext({ at: T0 }).app;
+    const vault = new ModuleFromDef<typeof VaultModuleDef, ModuleDeps, User>(
+      VaultModuleDef,
+      {
+        useCases: { readSecret: ReadSecret },
+        reactions: {},
+        jobs: {},
+      },
+      { app, facades: new ModuleFacades() },
+    );
+    const deps = {
+      app,
+      facades: new ModuleFacades([new ModuleFacade(vault)]),
+    };
+    return new Peek(deps, FrontModuleDef);
+  }
+
+  test('personal у вызванного UC — отказ заместителю, reason personal; user проходит', async () => {
+    const peek = front();
+    const res = await peek.handle({}, delegate(), REQ);
+    expect(expectErr(res, 'UNAUTHORIZED').payload).toEqual({
+      callerKind: 'system',
+      reason: 'personal',
+    });
+    expectOk(await peek.handle({}, new UserCaller(principal), REQ));
   });
 });

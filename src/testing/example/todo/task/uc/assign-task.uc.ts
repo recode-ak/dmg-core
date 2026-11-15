@@ -21,7 +21,7 @@ export const AssignTaskUcDef = UseCaseDef.define({
     'Назначает открытой задаче исполнителя — активного пользователя.',
   type: 'command',
   aggregate: TaskArDef,
-  callers: ['user', 'delegate'],
+  callers: ['user'],
   policy: TaskPolicy.rules.canManage,
   rules: [TaskRules.rules.assigneeActive],
   calls: [GetUserUcDef],
