@@ -25,7 +25,7 @@ covers:
 ## 3. Образец
 
 - [task.state.ts](../../src/testing/example/todo/task/task.state.ts): `TaskState`, `TaskStatus` и `TaskAssignmentVo` — у каждого одно имя и для схемы, и для типа; необязательные поля (`completedAt`, `assignment`) — `v.optional` с описанием.
-- [task.state.test.ts](../../src/testing/example/todo/task/task.state.test.ts): «принимает / отклоняет» для VO и статуса, разбор ISO-дат (в т. ч. без зоны) в числа, описания у всех полей.
+- [task.state.test.ts](../../src/testing/example/todo/task/task.state.test.ts): «принимает / отклоняет» для VO и статуса, даты — числами, ISO-строка отвергается, описания у всех полей.
 - [state.ts](../../src/testing/example/todo/state.ts): реэкспорт схем state для своего прикладного слоя (репозиторий, выход query). Наружу модуля state не выходит: остальной код получает форму данных из контракта (D-45).
 
 ## 4. Чеклист правил
