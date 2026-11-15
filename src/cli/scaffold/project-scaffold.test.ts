@@ -215,10 +215,10 @@ describe('ProjectScaffold single: прочие конфиги', () => {
     expect(src).toContain("import { GenLayout } from 'dmg-core/gen'");
     expect(src).toContain('await GenLayout.read(');
     expect(src).toContain('layout: (m) => layout.module(m)');
-    expect(src).toContain(
-      "import { AcmeAppDef } from '../src/domain/acme.app';",
-    );
-    expect(src).toContain('def: AcmeAppDef');
+    expect(src).toContain("import AcmeGraph from './acme.graph';");
+    expect(src).toContain('...AcmeGraph,');
+    expect(src).not.toContain('def:');
+    expect(src).not.toContain('AcmeAppDef');
     expect(src).not.toContain("ArchApp['modules']");
     expect(src).not.toContain('gen:');
     expect(src).toContain("root: join(root, 'src/app')");

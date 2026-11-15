@@ -35,7 +35,7 @@ bun install && bun run check
 | `package.json` | `version` `0.1.0` (есть в проекте — остаётся), скрипты `check`, `lint`, `format`, `arch:check`, `graph`; версии из пакета | то же + `workspaces`, домен в `devDependencies` корня |
 | `tsconfig.json`, `biome.json` | строгий TS; `overrides` по [карте линтера](../reference/rules.md#карта-линтера); `data/` biome не проверяет | то же; у каждого пакета свой `tsconfig.json` поверх корневого |
 | `dmg-core.json` | секция `gen`: `compositionRoot: src/app`, `appDef` | `gen` с `domainImport`, `package`, `compositionRoot: app/src`, `appDef` |
-| `scripts/arch-check.ts` | `ArchApp` с `def: <Имя>AppDef`, раскладка из `GenLayout`, `root` и `runners` — для ARC-07/08; маркеров генератора нет | то же; `AppDef` — из `@<scope>/domain` |
+| `scripts/arch-check.ts` | `ArchApp` собирается из входа графа: `{ ...<Имя>Graph, entry, layout, root, runners }` — состав приложения (`AppDef`, поставщики с правилами) берётся из `scripts/<имя>.graph.ts`; раскладка из `GenLayout`, `root` и `runners` — для ARC-07/08; маркеров генератора нет | то же; `AppDef` — из `@<scope>/domain` (через вход графа) |
 | `scripts/<имя>.graph.ts` (D-96) | вход `dmg-core graph`: `export default { def: <Имя>AppDef } satisfies GraphApp`; `bun run graph` пишет `graph.json` — документ графа приложения (версия — из `version` в `package.json`); `graph.json` в `.gitignore`, не коммитится; поставщиков графа сверх домена добавляй в `providers` | то же; `AppDef` — из `@<scope>/domain` |
 | `AppDef` (D-93) | `src/domain/<имя>.app.ts` — `<Имя>AppDef` (имя пакета без scope) с маркерами `gen:imports`, `gen:modules`, `TODO` в `label` и `description`; путь — `gen.appDef` | `domain/src/<имя>.app.ts`, экспорт из `domain/src/index.ts` |
 | домен | `src/domain/shared/app-user.ts` — тип пользователя | `domain/` — пакет с `exports` `./*/contract`, `./*/testing`, `./*` |
@@ -95,7 +95,7 @@ APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e '
 
 ## 5. Кто что правит руками
 
-- **Каркас** пишется один раз: дальше `app.ts`, файл `AppDef`, `arch-check.ts`, раннер и конфиги — код проекта, `init` их не обновляет. Маркеры `// gen:…` в них не удаляй — по ним генератор подключает модули.
+- **Каркас** пишется один раз: дальше `app.ts`, файл `AppDef`, `arch-check.ts`, вход графа, раннер и конфиги — код проекта, `init` их не обновляет. Маркеры `// gen:…` (в `app.ts`, файле `AppDef`, `index.ts`) не удаляй — по ним генератор подключает модули.
 - **Генератор** создаёт заготовки и правит существующие файлы только по маркерам: паспорт и карту модуля, `index.ts`, `Deps`, корень сборки, `modules` файла `AppDef`, `dependencies` пакета корня сборки.
 - **Автор** заполняет `TODO` заготовок (названия, схемы, поля state, операции Ar), контракт модуля для других модулей (D-45), `dependsOn`, `callers` и `policy` UC.
 - **`dmg-core sync`** обновляет скилы и роли агентов после обновления пакета; `biome.json` и `tsconfig.json` после обновления пакета сверяй с картой линтера сам.

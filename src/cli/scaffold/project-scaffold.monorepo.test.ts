@@ -246,8 +246,10 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
     const src = file('scripts/arch-check.ts');
 
     expect(src).toContain('await GenLayout.read(');
-    expect(src).toContain("import { AcmeAppDef } from '@acme/domain';");
-    expect(src).toContain('def: AcmeAppDef');
+    expect(src).toContain("import AcmeGraph from './acme.graph';");
+    expect(src).toContain('...AcmeGraph,');
+    expect(src).not.toContain('def:');
+    expect(src).not.toContain('AcmeAppDef');
     expect(src).not.toContain("ArchApp['modules']");
     expect(src).not.toContain('gen:');
     expect(src).toContain("root: join(root, 'app/src')");
@@ -303,7 +305,7 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
       'domain/src/school.app.ts',
     );
     expect(file('scripts/arch-check.ts', name)).toContain(
-      "import { SchoolAppDef } from '@acme/domain';",
+      "import SchoolGraph from './school.graph';",
     );
   });
 

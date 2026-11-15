@@ -218,18 +218,20 @@ export class ProjectFiles {
 
   private archCheck(): string {
     const { app, runner, appDef } = this.layout;
-    // Порядок biome: пакет `@scope/domain` раньше `dmg-core`, путь `../` — позже.
+    const graph = `${appDef.constant.replace(/AppDef$/, '')}Graph`;
+    // Порядок biome: пакеты раньше относительных путей.
     const imports = sortImports([
       "import { join } from 'node:path';",
       "import { type ArchApp, reportArchCheck } from 'dmg-core/arch';",
       "import { GenLayout } from 'dmg-core/gen';",
-      `import { ${appDef.constant} } from '${appDef.scriptImport}';`,
+      `import ${graph} from './${appDef.name}.graph';`,
     ]);
     return `/**
  * \`bun run arch:check\` — контрактные проверки архитектуры (\`ArchChecker\`):
- * \`AppDef\` приложения, раскладка модулей из \`dmg-core.json\` (\`GenLayout\`),
- * корень сборки и раннер. Выход 1 — есть нарушения. \`--strict\` —
- * незаполненные \`TODO\` в описаниях Def тоже нарушения (MAN-01).
+ * состав приложения (\`AppDef\`, поставщики с правилами) — из входа графа
+ * \`${appDef.name}.graph.ts\`, раскладка модулей — из \`dmg-core.json\`
+ * (\`GenLayout\`), корень сборки и раннер. Выход 1 — есть нарушения.
+ * \`--strict\` — незаполненные \`TODO\` в описаниях Def тоже нарушения (MAN-01).
  */
 ${imports}
 
@@ -237,7 +239,7 @@ const root = join(import.meta.dir, '..');
 const layout = await GenLayout.read(root);
 
 const app: ArchApp = {
-  def: ${appDef.constant},
+  ...${graph},
   entry: 'contract',
   layout: (m) => layout.module(m),
   root: join(root, '${app}'),
