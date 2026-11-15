@@ -1,0 +1,12 @@
+// DOM-17: `baselineState`/`currentState` — живые ссылки на state для патча в логе
+// операций (D-86); читает только UnitOfWork пакета. Репозиторию они тоже не нужны:
+// запись — `snapshot()`. Разрешено (overrides biome.json): `src/app/uow/**` пакета, тесты.
+// У потребителя UoW лежит в node_modules — исключений, кроме тестов, нет.
+or {
+  `$ar.baselineState`,
+  `$ar?.baselineState`,
+  `$ar.currentState`,
+  `$ar?.currentState`
+} as $m where {
+  register_diagnostic(span=$m, message="DOM-17: baselineState/currentState читает только UnitOfWork — состояние наружу отдаёт view(), репозиторию — snapshot() (rules.md, D-86)", severity="error")
+}

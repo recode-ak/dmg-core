@@ -24,6 +24,7 @@
 | CODE-02 | `code-02-class-members.grit` | все исходники | `src` | `domain/src`, `app/src`, `modules/*/src`, `runners/*/src` |
 | DOM-12 | `dom-12-no-iso-dates.grit` | все исходники | то же | то же |
 | DOM-17 | `dom-17-snapshot-repo-only.grit` | все исходники, кроме репозиториев (`*.repo.ts`, `*-repo.ts`, `*.json-repo.ts`, `*.memory-repo.ts`) | то же | то же |
+| DOM-17 | `dom-17-state-uow-only.grit` | все исходники (UoW — в пакете, у проекта исключений нет) | то же | то же |
 | ERR-01 | `err-01-no-throw.grit` | `*.ar.ts`, `*.dcs.ts`, `*.facade.ts`, `*.uc.ts`, `*.er.ts` | то же | то же |
 | API-02 | `api-02-no-manual-publish.grit` | файлы ERR-01 и `*.job.ts` | то же | то же |
 | API-07 | `api-07-no-call-in-load.grit` | `*.uc.ts` | то же | то же |
@@ -70,7 +71,7 @@
 | DOM-14 | Домен не читает часы: момент — аргумент операции Ar (`at`), статус меняет только `transition` (D-34, D-35) | lint + type |
 | DOM-15 | Policy — только права субъекта; правило, ответ которого не зависит от субъекта, — доменное правило (D-40) | review |
 | DOM-16 | Доменное правило декларативно: имя, `label`, `description`, ошибка своей группы; возвращает `Result`, не `Decision` (D-40); в `rules` UC не повторяется | type (`check` возвращает только свою ошибку) + test (дубль в `rules` UC; ошибка правила в `errors` UC — ERR-02) + review (ошибка — группы своего агрегата) |
-| DOM-17 | Состояние агрегата наружу — `view()`; `snapshot()` вызывает только репозиторий (D-44) | lint (`.snapshot()` и `?.snapshot()` вне `*.repo.ts`, `*-repo.ts`, `*.json-repo.ts`, `*.memory-repo.ts` и тестов) + review (переопределённый `view()` собирает объект явно) |
+| DOM-17 | Состояние агрегата наружу — `view()`; `snapshot()` вызывает только репозиторий (D-44); `baselineState`/`currentState` читает только `UnitOfWork` (D-86) | lint (`.snapshot()` и `?.snapshot()` вне `*.repo.ts`, `*-repo.ts`, `*.json-repo.ts`, `*.memory-repo.ts` и тестов; `.baselineState`/`.currentState` и `?.` — вне `src/app/uow/**` пакета и тестов) + review (переопределённый `view()` собирает объект явно) |
 | DOM-18 | Story, экран и презентер решают вопросом `ReadonlyAr`/DQS или по полям готового ответа UC; ветвление по полям state или `view()` агрегата — нарушение. Путь (домен на фронте или готовый ответ бэка) выбирается для сценария (D-72) | review |
 
 ## MAN — манифесты

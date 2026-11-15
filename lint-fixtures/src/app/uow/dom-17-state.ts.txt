@@ -1,0 +1,5 @@
+// expect: none
+export const patch = (ar: { baselineState: unknown; currentState: unknown }) => [
+  ar.baselineState,
+  ar.currentState,
+];

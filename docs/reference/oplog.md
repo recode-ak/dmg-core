@@ -26,7 +26,7 @@ covers:
 | `events` | опубликованные события — `name`, `eventId` |
 | `writes` | записанные агрегаты: `{ aggregate, uuid, from, to, changes? }` — версии до и после; `from: null` — создан |
 
-**Патч `changes`** — что изменилось в state между загрузкой и записью: `{ path, from, to }`. Объекты разбираются по полям (`profile.telegram`), массив и примитив — одно значение. У созданного агрегата — поля верхнего уровня без `from`. Служебные поля (`uuid`, `version`, `createdAt`, `updatedAt`) не входят, у query патча нет. Считает `UnitOfWork.commit` между `save` и `markStored`: база — `Aggregate.baseline` (ссылка на состояние при загрузке или последней записи), текущее — `Aggregate.current`. Оба геттера — для UoW и лога; состояние наружу отдаёт `view()` (DOM-17).
+**Патч `changes`** — что изменилось в state между загрузкой и записью: `{ path, from, to }`. Объекты разбираются по полям (`profile.telegram`), массив и примитив — одно значение. У созданного агрегата — поля верхнего уровня без `from`. Служебные поля (`uuid`, `version`, `createdAt`, `updatedAt`) не входят, у query патча нет. Считает `UnitOfWork.commit` между `save` и `markStored`: база — `Aggregate.baselineState` (ссылка на состояние при загрузке или последней записи), текущее — `Aggregate.currentState`. Оба геттера читает только UoW (обращение вне `src/app/uow/**` пакета — lint DOM-17); состояние наружу отдаёт `view()`.
 
 **Пороги** `JsonlOperationLog(dir, options)`:
 

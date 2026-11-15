@@ -1,0 +1,2 @@
+// expect: DOM-17 error
+export const base = (ar?: { baselineState: unknown }) => ar?.baselineState;

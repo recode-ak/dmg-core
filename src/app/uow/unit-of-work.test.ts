@@ -439,7 +439,7 @@ describe('UnitOfWork — патч записи в writes (D-86)', () => {
     ]);
   });
 
-  test('агрегат без baseline и current — запись без changes', async () => {
+  test('агрегат без baselineState и currentState — запись без changes', async () => {
     const plain = {
       uuid: A,
       version: 1,
@@ -470,8 +470,8 @@ describe('UnitOfWork — патч записи в writes (D-86)', () => {
       storedVersion: 0,
       pullEvents: () => [],
       markStored: () => {},
-      baseline: task(A).snapshot(),
-      get current(): never {
+      baselineState: task(A).snapshot(),
+      get currentState(): never {
         throw new Error('state недоступен');
       },
     };
@@ -513,8 +513,8 @@ describe('UnitOfWork — патч записи в writes (D-86)', () => {
       storedVersion: 1,
       pullEvents: () => [],
       markStored: () => {},
-      baseline: { ...head, version: 1, kind: 'secret', secret: 'старый' },
-      current: { ...head, version: 2, kind: 'secret', secret: 'НОВЫЙ' },
+      baselineState: { ...head, version: 1, kind: 'secret', secret: 'старый' },
+      currentState: { ...head, version: 2, kind: 'secret', secret: 'НОВЫЙ' },
     };
     notes.register(note, { aggregate: NoteArDef, save: async () => {} });
     expectOk(await notes.commit());

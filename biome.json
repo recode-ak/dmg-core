@@ -257,6 +257,10 @@
       "plugins": ["./biome-plugins/dom-17-snapshot-repo-only.grit"]
     },
     {
+      "includes": ["src/**", "!**/*.test.ts", "!src/app/uow/**"],
+      "plugins": ["./biome-plugins/dom-17-state-uow-only.grit"]
+    },
+    {
       "includes": ["src/**", "!**/*.test.ts", "!src/kernel/fields/fields.ts"],
       "plugins": ["./biome-plugins/dom-12-no-iso-dates.grit"]
     },

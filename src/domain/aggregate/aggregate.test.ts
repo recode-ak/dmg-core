@@ -396,24 +396,24 @@ describe('Aggregate', () => {
       expect(ar.storedVersion).toBe(4);
     });
   });
-  describe('baseline и current — состояния для патча в логе (D-86)', () => {
+  describe('baselineState и currentState — состояния для патча в логе (D-86)', () => {
     it('create — базы нет', () => {
       const ar = expectOk(TaskAr.create(ID, 'Купить хлеб', T0));
-      expect(ar.baseline).toBeUndefined();
-      expect(ar.current).toMatchObject({ uuid: ID, title: 'Купить хлеб' });
+      expect(ar.baselineState).toBeUndefined();
+      expect(ar.currentState).toMatchObject({ uuid: ID, title: 'Купить хлеб' });
     });
 
     it('restore — база равна загруженному state', () => {
       const ar = TaskAr.restore(stored('open'));
-      expect(ar.baseline).toEqual(stored('open'));
-      expect(ar.current).toEqual(stored('open'));
+      expect(ar.baselineState).toEqual(stored('open'));
+      expect(ar.currentState).toEqual(stored('open'));
     });
 
     it('после мутации база прежняя, current — новый', () => {
       const ar = TaskAr.restore(stored('open'));
       expectOk(ar.complete(T1));
-      expect(ar.baseline).toEqual(stored('open'));
-      expect(ar.current).toEqual({
+      expect(ar.baselineState).toEqual(stored('open'));
+      expect(ar.currentState).toEqual({
         ...stored('done'),
         updatedAt: T1,
         version: 4,
@@ -423,21 +423,21 @@ describe('Aggregate', () => {
     it('Err — current не меняется', () => {
       const ar = TaskAr.restore(stored('open'));
       expectErr(ar.rename('резерв', T1), 'TASK_TITLE_RESERVED');
-      expect(ar.current).toEqual(stored('open'));
+      expect(ar.currentState).toEqual(stored('open'));
     });
 
     it('markStored — база равна current', () => {
       const ar = TaskAr.restore(stored('open'));
       expectOk(ar.complete(T1));
       ar.markStored();
-      expect(ar.baseline).toEqual(ar.current);
-      expect(ar.baseline).toMatchObject({ status: 'done', version: 4 });
+      expect(ar.baselineState).toEqual(ar.currentState);
+      expect(ar.baselineState).toMatchObject({ status: 'done', version: 4 });
     });
 
     it('create, затем markStored — база появляется', () => {
       const ar = expectOk(TaskAr.create(ID, 'Купить хлеб', T0));
       ar.markStored();
-      expect(ar.baseline).toEqual(ar.current);
+      expect(ar.baselineState).toEqual(ar.currentState);
     });
   });
 });

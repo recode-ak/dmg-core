@@ -116,17 +116,17 @@ export abstract class Aggregate<D extends AnyAggregateDef, V = StateOf<D>> {
   /**
    * Состояние на момент загрузки или последней записи — база патча в логе
    * операций (D-86); `undefined` — создан и не записан. Ссылка, не копия:
-   * только для UoW и лога, не мутировать.
+   * только для UoW и лога (lint DOM-17), не мутировать.
    */
-  get baseline(): Readonly<StateOf<D>> | undefined {
+  get baselineState(): Readonly<StateOf<D>> | undefined {
     return this.base;
   }
 
   /**
    * Текущее состояние — вторая сторона патча. Ссылка, не копия:
-   * мутация строит новый объект, база не меняется; только для UoW и лога.
+   * мутация строит новый объект, база не меняется; только для UoW (DOM-17).
    */
-  get current(): Readonly<StateOf<D>> {
+  get currentState(): Readonly<StateOf<D>> {
     return this.live;
   }
 

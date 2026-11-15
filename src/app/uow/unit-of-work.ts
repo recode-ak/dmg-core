@@ -15,14 +15,15 @@ import { type Repository, VersionConflict } from './repository';
 
 /**
  * Что UoW нужно от агрегата: идентификатор, версии, события, отметка записи.
- * `baseline` и `current` — для патча в логе (D-86); без `current` патча нет.
+ * `baselineState` и `currentState` — для патча в логе (D-86); без
+ * `currentState` патча нет. Читать их вне UoW запрещает lint DOM-17.
  */
 export type Committable = {
   readonly uuid: string;
   readonly version: number;
   readonly storedVersion: number | undefined;
-  readonly baseline?: object | undefined;
-  readonly current?: object;
+  readonly baselineState?: object | undefined;
+  readonly currentState?: object;
   pullEvents(): readonly DomainEvent[];
   markStored(): void;
 };
@@ -110,7 +111,7 @@ export class UnitOfWork {
         const { ar, aggregate } = entry;
         const from = ar.storedVersion ?? null;
         await entry.save();
-        // Патч — до markStored: он переносит baseline на current.
+        // Патч — до markStored: он переносит baselineState на currentState.
         const changes = this.changesOf(entry);
         ar.markStored();
         this.written.push({
@@ -156,9 +157,9 @@ export class UnitOfWork {
     state,
   }: Entry): AggregateWrite['changes'] {
     try {
-      const { current } = ar;
+      const current = ar.currentState;
       if (current === undefined) return undefined;
-      return new FieldDiff(state).between(ar.baseline, current);
+      return new FieldDiff(state).between(ar.baselineState, current);
     } catch (error) {
       this.ctx.warn?.(
         `UoW: патч записи ${aggregate} ${ar.uuid} не рассчитан — ${messageOf(error)}`,

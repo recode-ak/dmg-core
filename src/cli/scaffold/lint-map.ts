@@ -163,6 +163,12 @@ export class LintMap {
           '!**/*.memory-repo.ts',
         ],
       },
+      {
+        // Геттеры патча (D-86) читает только UoW пакета — у проекта его нет.
+        id: 'DOM-17',
+        plugin: 'dom-17-state-uow-only',
+        includes: all('**'),
+      },
       { id: 'ERR-01', plugin: 'err-01-no-throw', includes: operations },
       {
         id: 'API-02',

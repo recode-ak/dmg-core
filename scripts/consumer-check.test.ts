@@ -76,6 +76,7 @@ it('PLUGINS: все GritQL-плагины пакета — в установле
     'node_modules/dmg-core/biome-plugins/dom-12-no-iso-dates.grit',
     'node_modules/dmg-core/biome-plugins/dom-14-no-clock.grit',
     'node_modules/dmg-core/biome-plugins/dom-17-snapshot-repo-only.grit',
+    'node_modules/dmg-core/biome-plugins/dom-17-state-uow-only.grit',
     'node_modules/dmg-core/biome-plugins/err-01-no-throw.grit',
   ]);
 });

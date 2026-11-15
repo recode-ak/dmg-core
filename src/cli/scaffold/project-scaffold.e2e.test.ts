@@ -193,6 +193,15 @@ const SINGLE_VIOLATIONS: Violations = {
     code: 'export const f = (ar: { snapshot(): unknown }) => ar.snapshot();\n',
     ids: ['DOM-17'],
   },
+  // Состояния для патча (D-86) — только UoW пакета; репозиторию тоже нельзя.
+  'src/app/v/patch.ts': {
+    code: 'export const f = (ar: { currentState: unknown }) => ar.currentState;\n',
+    ids: ['DOM-17'],
+  },
+  'src/app/v/infra/b.json-repo.ts': {
+    code: 'export const f = (ar?: { baselineState: unknown }) => ar?.baselineState;\n',
+    ids: ['DOM-17'],
+  },
   'src/app/v/env.ts': {
     code: 'export const mode = process.env.APP_MODE;\n',
     ids: ['ARC-09'],
@@ -306,6 +315,10 @@ const MONOREPO_VIOLATIONS: Violations = {
   },
   'modules/v/src/view.ts': {
     code: 'export const f = (ar: { snapshot(): unknown }) => ar.snapshot();\n',
+    ids: ['DOM-17'],
+  },
+  'modules/v/src/infra/b.json-repo.ts': {
+    code: 'export const f = (ar: { baselineState: unknown }) => ar.baselineState;\n',
     ids: ['DOM-17'],
   },
   'modules/v/src/infra/a.json-repo.ts': {
