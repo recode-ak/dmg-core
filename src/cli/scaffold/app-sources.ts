@@ -124,12 +124,14 @@ export type AppUser = {
 
   private appTypes(): string {
     return `${this.imports([
-      { from: 'dmg-core', names: ['type PersonCaller'] },
+      { from: 'dmg-core', names: ['type PersonCaller', 'type Result'] },
       {
         from: 'dmg-core/app',
         names: [
           'type AppMode',
           'type Clock',
+          'type DelegationClaim',
+          'type DelegationDenied',
           'type EventBus',
           'type Logger',
           'type Trace',
@@ -159,16 +161,16 @@ export type AppPorts = {
 };
 
 /**
- * Резолвер \`Caller\` (D-50): идентичность из транспорта (uuid или её
- * отсутствие) → человек на входе. \`trace\` — для вызова модуля
- * пользователей через \`api.dispatch\`. Раннер получает резолвер как
- * \`app.callers\`.
+ * Резолвер \`Caller\` (D-89): идентичность из транспорта → человек на входе;
+ * \`trace\` — для вызова модуля пользователей. Заявка \`claim\`: отказ —
+ * \`DELEGATION_DENIED\` в \`Result\`, тихого входа «как сам себе» нет.
  */
 export type CallerResolver = {
   resolve(
     uuid: string | undefined,
     trace: Trace,
-  ): Promise<PersonCaller<AppUser>>;
+    claim?: DelegationClaim,
+  ): Promise<Result<PersonCaller<AppUser>, DelegationDenied>>;
 };
 `;
   }
@@ -250,9 +252,19 @@ export class App {
     return `${this.imports([
       {
         from: 'dmg-core',
-        names: ['GuestCaller', 'type PersonCaller', 'UserCaller'],
+        names: [
+          'CoreErrors',
+          'GuestCaller',
+          'ok',
+          'type PersonCaller',
+          'type Result',
+          'UserCaller',
+        ],
       },
-      { from: 'dmg-core/app', names: ['type Trace'] },
+      {
+        from: 'dmg-core/app',
+        names: ['type DelegationClaim', 'type DelegationDenied', 'type Trace'],
+      },
       { from: this.from.appUser, names: ['type AppUser'] },
       { from: './app.types', names: ['type CallerResolver'] },
     ])}
@@ -261,25 +273,28 @@ export class App {
 const TRUSTED_CHANNEL = 'cli';
 
 /**
- * Резолвер \`Caller\` приложения (D-50) — заглушка до модуля пользователей:
- * нет uuid — гость; uuid с канала \`cli\` — \`UserCaller\` без ролей, на веру;
- * с другого канала — исключение (ERR-01). Почему так — guides/project.md
- * пакета dmg-core.
+ * Резолвер \`Caller\` (D-50) — заглушка до модуля пользователей: нет uuid —
+ * гость; uuid с канала \`cli\` — \`UserCaller\` на веру; с другого — исключение
+ * (ERR-01); заявка — \`DELEGATION_DENIED\` \`disabled\`. Почему так —
+ * guides/project.md пакета dmg-core.
  */
 export class AppCallerResolver implements CallerResolver {
   // TODO: после модуля пользователей — \`UserCaller\` через \`api.dispatch\`
-  // от \`SystemCaller\` \`kind: 'app'\`; образец — учебное приложение.
+  // от \`SystemCaller\` \`kind: 'app'\`; делегирование — \`DelegationCheck\` с
+  // портом \`DelegationStore\`; образец — учебное приложение.
   async resolve(
     uuid: string | undefined,
     trace: Trace,
-  ): Promise<PersonCaller<AppUser>> {
-    if (uuid === undefined) return new GuestCaller();
+    claim?: DelegationClaim,
+  ): Promise<Result<PersonCaller<AppUser>, DelegationDenied>> {
+    if (claim) return CoreErrors.DELEGATION_DENIED.err({ reason: 'disabled' });
+    if (uuid === undefined) return ok(new GuestCaller());
     if (trace.channel?.name !== TRUSTED_CHANNEL) {
       throw new Error(
         \`Резолвер Caller: uuid принимается только с канала \${TRUSTED_CHANNEL} — подключи модуль пользователей\`,
       );
     }
-    return new UserCaller({ uuid, hasRole: () => false });
+    return ok(new UserCaller({ uuid, hasRole: () => false }));
   }
 }
 `;
@@ -292,13 +307,19 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { GuestCaller, UserCaller } from 'dmg-core';
 import { Trace } from 'dmg-core/app';
-import { AwaitingBus, MemoryLogger } from 'dmg-core/testing';
+import {
+  AwaitingBus,
+  expectErr,
+  expectOk,
+  MemoryLogger,
+} from 'dmg-core/testing';
 import { App } from './app';
 
 // Приложение целиком: окружение → контекст, резолвер Caller, запуск и
 // остановка реакций. Порты подменены, данные — во временном каталоге.
 
 const USER = '5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6';
+const PRINCIPAL = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
 const REQ = Trace.fromRequest({ requestId: 'r-1' });
 const CLI = Trace.fromRequest({ requestId: 'r-2', channel: { name: 'cli' } });
 const HTTP = Trace.fromRequest({ requestId: 'r-3', channel: { name: 'http' } });
@@ -328,13 +349,13 @@ describe('App.start', () => {
 
 describe('App.callers', () => {
   it('нет идентичности — GuestCaller на любом канале', async () => {
-    expect(await makeApp().callers.resolve(undefined, CLI)).toBeInstanceOf(
-      GuestCaller,
-    );
+    expect(
+      expectOk(await makeApp().callers.resolve(undefined, CLI)),
+    ).toBeInstanceOf(GuestCaller);
   });
 
   it('модуля пользователей нет, канал cli — по uuid UserCaller без ролей', async () => {
-    const caller = await makeApp().callers.resolve(USER, CLI);
+    const caller = expectOk(await makeApp().callers.resolve(USER, CLI));
 
     expect(caller).toBeInstanceOf(UserCaller);
     expect(caller.toLog()).toEqual({ kind: 'user', subjectId: USER });
@@ -350,6 +371,20 @@ describe('App.callers', () => {
         'Резолвер Caller: uuid принимается только с канала cli',
       );
     }
+  });
+
+  it('заявка на делегирование — DELEGATION_DENIED disabled, не UserCaller', async () => {
+    const claim = {
+      principalId: PRINCIPAL,
+      actorId: USER,
+      delegationId: 'd-1',
+    };
+
+    const res = await makeApp().callers.resolve(USER, CLI, claim);
+
+    expect(expectErr(res, 'DELEGATION_DENIED').payload).toEqual({
+      reason: 'disabled',
+    });
   });
 });
 `;
@@ -458,7 +493,7 @@ export type CliIo = {
   private cli(): string {
     return `${this.imports([
       { from: 'dmg-core', names: ['err', 'F', 'ok', 'type Result'] },
-      { from: 'dmg-core/app', names: ['Trace'] },
+      { from: 'dmg-core/app', names: ['type DelegationClaim', 'Trace'] },
       { from: 'valibot', namespace: 'v' },
       { from: this.from.app, names: ['type App'] },
       { from: './runner-cli.types', names: ['type CliIo'] },
@@ -479,33 +514,45 @@ export const USAGE = [
   'Использование: APP_DATA_DIR=data bun ${this.layout.runner}/main.ts <команда>',
   "  call <module>.<operation> [--input '<json>'] [--user <uuid>] — вызов UC",
   '  whoami [--user <uuid>] — вид вызывающего',
+  '  Делегирование: --user — заместитель, плюс --on-behalf <uuid> --delegation <id> (вместе).',
 ].join('\\n');
 
 type CliCommand = 'call' | 'whoami';
 
 /** Значения опций \`--<имя> <значение>\` любой команды. */
-type CliOptions = { input?: string; user?: string };
+type CliOptions = {
+  input?: string;
+  user?: string;
+  'on-behalf'?: string;
+  delegation?: string;
+};
 
 /**
  * Опции, разрешённые команде (проверка в рантайме); \`--user\` — общая,
- * без неё вызов от гостя.
+ * без неё вызов от гостя. \`--on-behalf\` и \`--delegation\` — заявка на
+ * делегирование (D-89), вместе.
  */
 const OPTIONS: Record<CliCommand, readonly (keyof CliOptions)[]> = {
-  call: ['input', 'user'],
-  whoami: ['user'],
+  call: ['input', 'user', 'on-behalf', 'delegation'],
+  whoami: ['user', 'on-behalf', 'delegation'],
 };
 
 const USER_ID = F.uuid('пользователя');
 
 /** Разобранная команда CLI. */
 type CliRequest =
-  | { readonly command: 'whoami'; readonly user?: string }
+  | {
+      readonly command: 'whoami';
+      readonly user?: string;
+      readonly claim?: DelegationClaim;
+    }
   | {
       readonly command: 'call';
       readonly module: string;
       readonly uc: string;
       readonly input: unknown;
       readonly user?: string;
+      readonly claim?: DelegationClaim;
     };
 
 /**
@@ -534,7 +581,16 @@ export class RunnerCli {
       requestId: crypto.randomUUID(),
       channel: { name: 'cli' },
     });
-    const caller = await this.app.callers.resolve(request.user, trace);
+    const resolved = await this.app.callers.resolve(
+      request.user,
+      trace,
+      request.claim,
+    );
+    if (!resolved.ok) {
+      io.out(JSON.stringify(resolved));
+      return EXIT_REJECTED;
+    }
+    const caller = resolved.value;
     if (request.command === 'whoami') {
       io.out(JSON.stringify({ kind: caller.kind }));
       return EXIT_OK;
@@ -563,8 +619,29 @@ export class RunnerCli {
     if (user !== undefined && !v.is(USER_ID, user)) {
       return err(\`--user: не uuid — \${user}\`);
     }
-    if (command === 'whoami') return ok({ command, user });
-    return RunnerCli.call(address, input, user);
+    const claim = RunnerCli.claim(parsed.value);
+    if (!claim.ok) return claim;
+    if (command === 'whoami') return ok({ command, user, claim: claim.value });
+    return RunnerCli.call(address, input, user, claim.value);
+  }
+
+  /** \`--on-behalf\` и \`--delegation\` — обе или ни одной; заместитель — \`--user\`. */
+  private static claim(
+    options: CliOptions,
+  ): Result<DelegationClaim | undefined, string> {
+    const principalId = options['on-behalf'];
+    const delegationId = options.delegation;
+    if (principalId === undefined && delegationId === undefined) {
+      return ok(undefined);
+    }
+    if (principalId === undefined || delegationId === undefined) {
+      return err('--on-behalf и --delegation задаются вместе');
+    }
+    if (!v.is(USER_ID, principalId)) {
+      return err(\`--on-behalf: не uuid — \${principalId}\`);
+    }
+    // Без \`--user\` заявка заведомо отклоняется резолвером (заместитель не назван).
+    return ok({ principalId, actorId: options.user ?? '', delegationId });
   }
 
   /** Адрес \`<module>.<operation>\` и JSON входа → запрос \`call\`. */
@@ -572,6 +649,7 @@ export class RunnerCli {
     address: string | undefined,
     raw: string | undefined,
     user: string | undefined,
+    claim: DelegationClaim | undefined,
   ): Result<CliRequest, string> {
     if (address === undefined || address.startsWith('--')) {
       return err('call: нужен адрес <module>.<operation>');
@@ -589,7 +667,7 @@ export class RunnerCli {
         return err(\`call: --input — не JSON: \${reason}\`);
       }
     }
-    return ok({ command: 'call', module, uc, input, user });
+    return ok({ command: 'call', module, uc, input, user, claim });
   }
 
   private static isCommand(name: string | undefined): name is CliCommand {
@@ -642,6 +720,7 @@ export class RunnerCli {
 // io, данные — во временном каталоге.
 
 const USER = '5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6';
+const PRINCIPAL = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
 
 let dir: string;
 beforeEach(() => {
@@ -699,6 +778,38 @@ describe('RunnerCli: whoami', () => {
 
     expect(res.code).toBe(1);
     expect(res.io.stderr).toEqual(['--user: не uuid — admin', USAGE]);
+  });
+});
+
+describe('RunnerCli: делегирование', () => {
+  it('заявка при заглушке резолвера — DELEGATION_DENIED disabled в stdout, код 2', async () => {
+    const res = await run(
+      'whoami',
+      '--user',
+      USER,
+      '--on-behalf',
+      PRINCIPAL,
+      '--delegation',
+      'del-1',
+    );
+
+    expect(res.code).toBe(2);
+    expect(res.io.stderr).toEqual([]);
+    expect(JSON.parse(res.io.stdout.join(''))).toMatchObject({
+      ok: false,
+      error: { code: 'DELEGATION_DENIED', payload: { reason: 'disabled' } },
+    });
+  });
+
+  it('одна из двух опций — ошибка ввода, код 1', async () => {
+    const res = await run('whoami', '--user', USER, '--on-behalf', PRINCIPAL);
+
+    expect(res.code).toBe(1);
+    expect(res.io.stdout).toEqual([]);
+    expect(res.io.stderr).toEqual([
+      '--on-behalf и --delegation задаются вместе',
+      USAGE,
+    ]);
   });
 });
 

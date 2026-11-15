@@ -209,6 +209,14 @@ describe('ProjectScaffold single: прочие конфиги', () => {
   });
 });
 
+describe('ProjectScaffold single: делегирование (D-89)', () => {
+  it('CallerResolver — результат с отказом делегирования', () => {
+    expect(file('src/app/app.types.ts')).toContain(
+      'Result<PersonCaller<AppUser>, DelegationDenied>',
+    );
+  });
+});
+
 describe('ProjectScaffold single: применение', () => {
   let dir: string;
   beforeEach(() => {

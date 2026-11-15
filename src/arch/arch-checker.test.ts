@@ -98,6 +98,7 @@ describe('ArchChecker', () => {
       root('example-app.ts', 'todo'),
       root('example-app.ts', 'users'),
       root('example-caller-resolver.ts', 'users'),
+      root('example-delegation.test.ts', 'users'),
       // раннер (ARC-08)
       'ARC-08: раннер runner/example-cli.ts импортирует todo мимо index.ts: #core/testing/example/todo/contract',
     ]);

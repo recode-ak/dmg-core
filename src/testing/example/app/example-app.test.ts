@@ -59,7 +59,7 @@ function makeApp() {
 }
 
 async function userCaller(example: ExampleApp, uuid: string) {
-  const caller = await example.callers.resolve(uuid, req());
+  const caller = expectOk(await example.callers.resolve(uuid, req()));
   if (!(caller instanceof UserCaller)) {
     throw new Error(`Пользователь ${uuid} не распознан`);
   }
@@ -199,26 +199,26 @@ describe('ExampleApp.callers', () => {
   it('неизвестный uuid — GuestCaller', async () => {
     const { example } = makeApp();
 
-    expect(await example.callers.resolve(STRANGER, req())).toBeInstanceOf(
-      GuestCaller,
-    );
+    expect(
+      expectOk(await example.callers.resolve(STRANGER, req())),
+    ).toBeInstanceOf(GuestCaller);
   });
 
   it('нет идентичности — GuestCaller', async () => {
     const { example } = makeApp();
 
-    expect(await example.callers.resolve(undefined, req())).toBeInstanceOf(
-      GuestCaller,
-    );
+    expect(
+      expectOk(await example.callers.resolve(undefined, req())),
+    ).toBeInstanceOf(GuestCaller);
   });
 
   it('удалённый пользователь — GuestCaller', async () => {
     const { example } = makeApp();
     await removeOther(example);
 
-    expect(await example.callers.resolve(OTHER, req())).toBeInstanceOf(
-      GuestCaller,
-    );
+    expect(
+      expectOk(await example.callers.resolve(OTHER, req())),
+    ).toBeInstanceOf(GuestCaller);
   });
 
   it('резолвер вызывает users от приложения — в oplog from.kind: app (D-51)', async () => {
@@ -244,8 +244,11 @@ describe('ExampleApp.callers', () => {
   });
 
   it('users не подключён — исключение, а не гость', async () => {
+    const { app } = testAppContext();
     const callers = new ExampleCallerResolver(
-      new ApiApp<ExampleUser>(testAppContext().app, []),
+      new ApiApp<ExampleUser>(app, []),
+      undefined,
+      app.clock,
     );
 
     await expect(callers.resolve(OWNER, req())).rejects.toThrow(

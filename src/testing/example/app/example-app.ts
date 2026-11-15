@@ -50,7 +50,11 @@ export class ExampleApp {
       },
     ];
     this.api = new ApiApp(context, modules);
-    this.callers = new ExampleCallerResolver(this.api);
+    this.callers = new ExampleCallerResolver(
+      this.api,
+      ports.delegations,
+      context.clock,
+    );
   }
 
   /** Подписывает реакции всех модулей; возвращает остановку. */

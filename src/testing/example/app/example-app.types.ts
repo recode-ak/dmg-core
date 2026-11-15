@@ -1,5 +1,6 @@
 import type { AppMode, Clock, Logger } from '#core/app/context';
 import type { EventBus } from '#core/app/events/event-bus';
+import type { DelegationStore } from '#core/app/index';
 
 /**
  * Окружение учебного приложения (D-50) — простые данные: раннер собирает
@@ -15,10 +16,12 @@ export type ExampleAppEnv = {
 
 /**
  * Подмена портов контекста — для тестов и встраивания. Не задан — боевой:
- * `InProcEventBus`, `ConsoleLogger`, `systemClock`.
+ * `InProcEventBus`, `ConsoleLogger`, `systemClock`; `delegations` не задан —
+ * делегирование не подключено (`disabled`, D-89).
  */
 export type ExampleAppPorts = {
   readonly bus?: EventBus;
   readonly logger?: Logger;
   readonly clock?: Clock;
+  readonly delegations?: DelegationStore;
 };
