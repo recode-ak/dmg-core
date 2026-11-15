@@ -8,7 +8,7 @@ export type {
 } from './screen-def.types';
 
 /**
- * Манифест экрана приложения UI: вид Def, добавленный снаружи пакета (ФР-9).
+ * Манифест экрана приложения UI: вид Def, добавленный снаружи пакета.
  * Наследник `Def` со своим `dmg` и `static define`, как виды домена.
  */
 export class ScreenDef<N extends string = string> extends Def<N> {

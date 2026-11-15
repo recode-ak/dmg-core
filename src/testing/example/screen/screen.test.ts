@@ -5,11 +5,10 @@ import { join } from 'node:path';
 import { Trace } from '#core/app/index';
 import { ArchChecker, reportArchCheck } from '#core/arch/index';
 import { AppGraph } from '#core/graph/index';
-import { SystemCaller, UserCaller } from '#core/index';
+import { UserCaller } from '#core/index';
 import { AwaitingBus, expectOk, MemoryLogger } from '#core/testing/index';
 import { ExampleApp } from '../app/example-app';
 import { ExampleAppDef } from '../example.app';
-import type { ExampleUser } from '../shared/app-user';
 import {
   CompleteTaskUcDef,
   CreateTaskUcDef,
@@ -30,6 +29,7 @@ import { TasksScreen } from './tasks-screen';
 // подменены (`AwaitingBus`, `MemoryLogger`, часы).
 
 const OWNER = '5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6';
+const OTHER = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
 const T0 = Date.UTC(2026, 9, 1);
 
 const AboutScreenDef = ScreenDef.define({
@@ -50,7 +50,7 @@ function makeApp() {
   const bus = new AwaitingBus();
   const logger = new MemoryLogger();
   const example = new ExampleApp(
-    { mode: 'test', dataDir: dir, users: [OWNER] },
+    { mode: 'test', dataDir: dir, users: [OWNER, OTHER] },
     { bus, logger, clock: () => T0 },
   );
   const session = new ScreenSession(
@@ -59,6 +59,36 @@ function makeApp() {
     example.api,
   );
   return { example, bus, logger, session };
+}
+
+type App = ReturnType<typeof makeApp>;
+
+async function userCaller({ example }: App, uuid: string) {
+  const caller = expectOk(
+    await example.callers.resolve(uuid, Trace.fromRequest({ requestId: 'r' })),
+  );
+  if (!(caller instanceof UserCaller)) throw new Error('не пользователь');
+  return caller;
+}
+
+async function createTask(app: App, uuid: string, requestId: string) {
+  return expectOk(
+    await app.example.api.dispatch(
+      TodoModuleDef,
+      CreateTaskUcDef.command({ title: 'Хлеб' }),
+      await userCaller(app, uuid),
+      Trace.fromRequest({ requestId }),
+    ),
+  );
+}
+
+function listTasksTraces() {
+  return readFileSync(join(dir, 'oplog', '2026-10-01.jsonl'), 'utf8')
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line))
+    .filter((record) => record.op === 'listTasks')
+    .map((record) => record.trace);
 }
 
 describe('экран: вид Def', () => {
@@ -158,63 +188,63 @@ describe('экран: проверки архитектуры', () => {
 
 describe('экран: сессия', () => {
   it('подписка вызывает UC, цепочка видна в логе операций', async () => {
-    const { example, bus, logger, session } = makeApp();
-    const screen = new TasksScreen(session, example.callers);
+    const app = makeApp();
+    const screen = new TasksScreen(app.session, app.example.callers, OWNER);
     screen.open();
-    const caller = expectOk(
-      await example.callers.resolve(
-        OWNER,
-        Trace.fromRequest({ requestId: 'r' }),
-      ),
-    );
-    if (!(caller instanceof UserCaller)) throw new Error('не пользователь');
     const requestId = crypto.randomUUID();
 
-    const { taskId } = expectOk(
-      await example.api.dispatch(
-        TodoModuleDef,
-        CreateTaskUcDef.command({ title: 'Хлеб' }),
-        caller,
-        Trace.fromRequest({ requestId }),
-      ),
-    );
-    await bus.delivered();
+    const { taskId } = await createTask(app, OWNER, requestId);
+    await app.bus.delivered();
 
     expect(screen.items()).toEqual([
       { uuid: taskId, title: 'Хлеб', status: 'open' },
     ]);
-    const [created] = bus.published.filter(
+    const [created] = app.bus.published.filter(
       (e) => e.name === TaskEvents.created.name,
     );
-    const traces = readFileSync(join(dir, 'oplog', '2026-10-01.jsonl'), 'utf8')
-      .trim()
-      .split('\n')
-      .map((line) => JSON.parse(line))
-      .filter((record) => record.op === 'listTasks')
-      .map((record) => record.trace);
-    expect(traces).toEqual([
+    expect(listTasksTraces()).toEqual([
       {
         cause: { kind: 'event', eventId: created?.eventId },
         correlationId: requestId,
       },
     ]);
-    expect(logger.records).toEqual([]);
+    expect(app.logger.records).toEqual([]);
   });
 
-  it('вызов необъявленного UC — отказ до вызова', () => {
-    const { session } = makeApp();
-    const admin = new SystemCaller<ExampleUser>({
-      kind: 'useCase',
-      module: 'admin',
-      name: 'purge',
-    });
+  it('событие чужого пользователя список не меняет', async () => {
+    const app = makeApp();
+    const screen = new TasksScreen(app.session, app.example.callers, OWNER);
+    screen.open();
+
+    await createTask(app, OTHER, crypto.randomUUID());
+    await app.bus.delivered();
+
+    expect(screen.items()).toEqual([]);
+    expect(listTasksTraces()).toEqual([]);
+  });
+
+  it('повторный open не удваивает подписку', async () => {
+    const app = makeApp();
+    const screen = new TasksScreen(app.session, app.example.callers, OWNER);
+    screen.open();
+    screen.open();
+
+    await createTask(app, OWNER, crypto.randomUUID());
+    await app.bus.delivered();
+
+    expect(listTasksTraces()).toHaveLength(1);
+  });
+
+  it('вызов необъявленного UC — отказ до вызова', async () => {
+    const app = makeApp();
+    const owner = await userCaller(app, OWNER);
 
     expect(() =>
-      session.dispatch(
+      app.session.dispatch(
         TodoModuleDef,
         CompleteTaskUcDef,
         { taskId: crypto.randomUUID() },
-        admin,
+        owner,
         Trace.fromRequest({ requestId: crypto.randomUUID() }),
       ),
     ).toThrow('экран tasks не объявил UC completeTask');

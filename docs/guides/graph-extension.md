@@ -36,11 +36,11 @@ covers:
 ## 3. Шаги
 
 1. **Вид Def** — наследник `Def` (корень `dmg-core`): свой `dmg`, свои поля, `static define` (у базы его нет), `normalize()` — `{ dmg, ...texts(), visible, свои поля }`, ссылки на Def — именами. Структурный тип `Any<Вид>Def` и спека — в `*.types.ts`.
-2. **Виды** — данные `GraphKinds`, как `DOMAIN_KINDS`: свои имена видов узлов и рёбер, схема `props` необязательна (без неё `props` — `{}`).
-3. **Поставщик** — `implements GraphProvider`: `name` уникален (имя пакета), `version` — версия пакета; `AppDef` и Def — в конструктор, `contribute()` без аргументов. Свой корень (приложение UI — не часть доменного приложения), узлы — под ним; `label`, `description`, `visible` — из Def. Ссылки на узлы домена — только `new DomainIds(appDef)`: `operation(uc)`, `event(e)` и др.
+2. **Виды** — данные `GraphKinds`, как `DOMAIN_KINDS`: свои имена видов узлов и рёбер, схема `props` (valibot) необязательна (без неё `props` — `{}`).
+3. **Поставщик** — `implements GraphProvider`: `name` уникален (имя пакета), `version` — версия пакета; `AppDef` и Def — в конструктор, `contribute()` без аргументов. Свой корень (приложение UI — не часть доменного приложения), узлы — под ним; `label`, `description`, `visible` — из Def. Форма вклада (`GraphNodeInput`, `GraphEdgeInput`; `parent` и `provider` не передаются) — [graph.md](../reference/graph.md) §1. Ссылки на узлы домена — только `new DomainIds(appDef)`: `operation(uc)`, `event(e)` и др.
 4. **Правило** — `GraphRule = { id, check(graph) }`: `check` возвращает сообщения без ID, ID приписывает `arch:check`. ID — `<ПРЕФИКС>-<NN>` (`^[A-Z][A-Z0-9]+-\d{2}$`), префикс — свой (ARC-13). Отбор узлов по `kind` и `graph.outgoing(id, kind)` — запрос к графу, не ветвление по виду Def (D-48). `rules?()` у поставщика необязателен.
 5. **Вход графа и проверки** — один список поставщиков (D-97): вход `{ def: <Имя>AppDef, providers: [new <Вид>Provider(...)] }` с `export default` (для `dmg-core graph`), конфиг проверок — `ArchApp = { ...<Имя>Graph, entry, layout, root, runners }`. Правила берутся только у `providers`; каркас `init` собирает `scripts/arch-check.ts` так же ([project.md](./project.md) §3).
-6. **Подписка** — `new EventSubscriber(context, source)` (`dmg-core/app`; `bus` и `logger` из `AppContext` корня сборки; `source` — кто подписан). `on(def, handler)` возвращает отписку; обработчик `TracedHandler` получает конверт и след `Trace.fromEvent(envelope)`. Вызывающего выбирает обработчик (резолвер, гость или явный `SystemCaller` с `from.kind: 'app'`), UC — `api.dispatch(module, UseCaseDef.commandOf(def, input), caller, trace)`: в логе операций причина — событие. Отсева повторов нет. Сбой обработчика — `logger.error(source, 'обработчик события <имя> упал: …')` без payload. Канал закрылся — `close()`.
+6. **Подписка** — `new EventSubscriber(context, source)` (`dmg-core/app`; `bus` и `logger` из `AppContext` корня сборки; `source` — кто подписан). `on(def, handler)` возвращает отписку; обработчик `TracedHandler` получает конверт и след `Trace.fromEvent(envelope)`. Вызывающего выбирает обработчик: канал (экран) открыт пользователем — обработчик пропускает чужие события и разбирает этого пользователя резолвером с тем же `trace`; без пользователя — гость или явный `SystemCaller` с `from.kind: 'app'`. Повторная подписка того же канала удваивает вызовы — подписывай один раз и храни отписку. UC — `api.dispatch(module, UseCaseDef.commandOf(def, input), caller, trace)`: в логе операций причина — событие. Отсева повторов нет. Сбой обработчика — `logger.error(source, 'обработчик события <имя> упал: …')` без payload. Канал закрылся — `close()`.
 7. **Только объявленное** — `DeclaredSet` (`dmg-core/app`): `new DeclaredSet(def.listens)`, `assert(item, message)` сверяет по идентичности; без обработчика нарушения — `throw new Error(message)`, синхронно до вызова; список `undefined` — объявлено всё.
 8. **Текст отказа** — `ErrorText.of(error)` (корень `dmg-core`): `summary`, `fields`, `toString()`, правила по `kind` — [errors-result.md](../reference/errors-result.md) §2. Это текст по умолчанию: адаптер вправе дать свой (D-99).
 
@@ -50,7 +50,7 @@ covers:
 - [screen-kinds.ts](../../src/testing/example/screen/screen-kinds.ts): поставщик `example-screen`, корень `example-ui`, виды `uiApp`, `screen`, `uses`, `listens`.
 - [screen-provider.ts](../../src/testing/example/screen/screen-provider.ts): узлы и рёбра через `DomainIds`; [screen-rule.ts](../../src/testing/example/screen/screen-rule.ts) — правило образца `SCR-01` «экран без UC».
 - [screen.graph.ts](../../src/testing/example/screen/screen.graph.ts) и [screen.arch.ts](../../src/testing/example/screen/screen.arch.ts): вход графа и `{ ...ExampleArch, ...ScreenGraph }`.
-- [screen-session.ts](../../src/testing/example/screen/screen-session.ts): `EventSubscriber` + `DeclaredSet`; [tasks-screen.ts](../../src/testing/example/screen/tasks-screen.ts) — вызывающий из резолвера по событию.
+- [screen-session.ts](../../src/testing/example/screen/screen-session.ts): `EventSubscriber` + `DeclaredSet`; [tasks-screen.ts](../../src/testing/example/screen/tasks-screen.ts) — `new TasksScreen(session, callers, userId)`: события своего пользователя, вызывающий — он через резолвер, ответ последнего запроса, отказ — список прежний.
 
 ## 5. Чеклист правил
 
@@ -68,6 +68,8 @@ covers:
 - Неверный ID (форма, префикс пакета, чужой префикс, повтор) → исключение уже в `ArchChecker.of`, `reportArchCheck` его не ловит.
 - Поставщик добавлен в `ArchApp`, а не во вход графа → в `graph.json` его нет; держи один список (шаг 5).
 - Команда из обработчика в расчёте на отсев повторов → его нет: идемпотентность — забота обработчика.
+- Вызывающий — владелец события (`payload.ownerId`) → экран пользователя X покажет данные Y от имени Y. Вызывающий — пользователь канала (экрана), чужие события пропускаются.
+- Асинхронные обработчики завершаются не по порядку → применяй ответ последнего запроса (счётчик запросов), а не пришедший последним.
 - Payload с полями `F.sensitive` пересылается во внешний канал как есть; данные события в тексте исключения обработчика → текст уходит в лог.
 
 ## 7. Как тестировать

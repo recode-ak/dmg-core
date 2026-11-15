@@ -31,7 +31,7 @@ covers:
 - [example-cli.ts](../../src/testing/example/runner/example-cli.ts): argv → `Result` разбора → `Trace` (канал `cli`) → резолвер → одна точка `dispatch`; коды выхода 0 / 1 (ввод) / 2 (отказ UC).
 - [example-env.ts](../../src/testing/example/runner/example-env.ts) и [main.ts](../../src/testing/example/runner/main.ts): `process.env` → `ExampleAppEnv` — единственное место чтения окружения.
 - [example.arch.ts](../../src/testing/example/example.arch.ts): `root` и `runners` в `ArchApp` — их импорты проверяет `arch:check`.
-- [example.app.ts](../../src/testing/example/example.app.ts): `AppDef` — манифест состава приложения; `ArchApp.def` ссылается на него.
+- [example.app.ts](../../src/testing/example/example.app.ts): `AppDef` — манифест состава приложения; в конфиг проверок `ArchApp` поле `def` приходит через вход графа (`{ ...ExampleGraph, entry, layout, root, runners }`).
 
 ## 4. Чеклист правил
 

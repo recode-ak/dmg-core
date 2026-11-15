@@ -3,10 +3,10 @@ import type { ArchApp } from '#core/arch/arch-checker';
 import { ExampleGraph } from './example.graph';
 
 /**
- * Учебное приложение для `arch:check` (D-45): домен — `example/<m>`,
+ * Учебное приложение для `arch:check` (D-45, D-97): домен — `example/<m>`,
  * прикладной слой — `example/app/<m>`, вход модуля — `contract.ts`. Корень
  * сборки — `example/app`, раннер — `example/runner`; состав — из входа графа
- * (`ExampleGraph`, D-97).
+ * (`ExampleGraph`).
  */
 export const ExampleArch: ArchApp = {
   ...ExampleGraph,
