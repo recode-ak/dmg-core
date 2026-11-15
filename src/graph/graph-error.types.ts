@@ -1,6 +1,7 @@
 export type GraphErrorCode =
   | 'duplicate-provider'
   | 'duplicate-kind'
+  | 'kind-conflict'
   | 'unknown-kind'
   | 'invalid-props'
   | 'invalid-id'

@@ -1,5 +1,6 @@
 // Типы ядра графа (D-92). `id` — строка без брендов. Поля `readonly`: граф
 // неизменяем, элементы из его чтений не правятся.
+import type { GraphKindInfo } from './kind-registry.types';
 
 export type GraphProps = Readonly<Record<string, unknown>>;
 
@@ -8,6 +9,8 @@ export type GraphNodeInput = {
   readonly id: string;
   readonly label: string;
   readonly description: string;
+  /** Показывать ли узел в представлениях для людей; не задано — `false`. */
+  readonly visible?: boolean;
   readonly props?: GraphProps;
 };
 
@@ -16,6 +19,7 @@ export type GraphNode = {
   readonly kind: string;
   readonly label: string;
   readonly description: string;
+  readonly visible: boolean;
   readonly parent?: string;
   readonly provider: string;
   readonly props: GraphProps;
@@ -36,9 +40,18 @@ export type GraphEdge = {
   readonly props: GraphProps;
 };
 
+/** Приложение в шапке документа графа. */
+export type GraphAppInfo = {
+  readonly name: string;
+  readonly version: string;
+};
+
+/** Поставщик и его виды: оба списка есть всегда, порядок — по `kind`. */
 export type GraphProviderInfo = {
   readonly name: string;
   readonly version: string;
+  readonly nodeKinds: readonly GraphKindInfo[];
+  readonly edgeKinds: readonly GraphKindInfo[];
 };
 
 export type LiftedEdge = {

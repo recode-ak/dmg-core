@@ -19,6 +19,7 @@ export {
 } from './domain-graph';
 export { Graph } from './graph';
 export type {
+  GraphAppInfo,
   GraphEdge,
   GraphEdgeInput,
   GraphNode,
@@ -36,6 +37,7 @@ export { GraphId } from './graph-id';
 export type { GraphContribution, GraphProvider } from './graph-provider';
 export { KindRegistry } from './kind-registry';
 export type {
+  GraphKindInfo,
   GraphKindSpec,
   GraphKinds,
   RegisteredKind,

@@ -1,9 +1,13 @@
 import type * as v from 'valibot';
 
-export type GraphKindSpec = {
+/** Описание вида без схемы свойств — запись в `Graph.providers` и в шапке документа. */
+export type GraphKindInfo = {
   readonly kind: string;
   readonly label: string;
   readonly description: string;
+};
+
+export type GraphKindSpec = GraphKindInfo & {
   readonly props?: v.GenericSchema<Record<string, unknown>>;
 };
 

@@ -4,6 +4,7 @@ import type {
   GraphEdgeInput,
   GraphNodeDraft,
   GraphNodeInput,
+  GraphProviderInfo,
 } from './graph.types';
 import { GraphError } from './graph-error';
 import type { GraphProvider } from './graph-provider';
@@ -12,7 +13,8 @@ import { KindRegistry } from './kind-registry';
 /**
  * Сборка `Graph` из поставщиков (D-92). `build()` двухфазный: сначала виды
  * всех поставщиков, затем вклад — элемент чужого вида не зависит от порядка
- * `add`. Здесь — проверки видов и свойств, структурные — в `Graph`.
+ * `add`. Здесь — проверки видов и свойств, структурные — в `Graph`. Виды
+ * поставщика уходят в его запись `Graph.providers`.
  */
 export class GraphBuilder {
   private readonly providers = new Map<string, GraphProvider>();
@@ -34,8 +36,16 @@ export class GraphBuilder {
   build(): Graph {
     const providers = [...this.providers.values()];
     const kinds = new KindRegistry();
+    const infos: GraphProviderInfo[] = [];
     for (const provider of providers) {
-      kinds.register(provider.name, provider.kinds());
+      const declared = provider.kinds();
+      kinds.register(provider.name, declared);
+      infos.push({
+        name: provider.name,
+        version: provider.version,
+        nodeKinds: declared.nodes,
+        edgeKinds: declared.edges,
+      });
     }
     const nodes: GraphNodeDraft[] = [];
     const edges: GraphEdge[] = [];
@@ -48,7 +58,7 @@ export class GraphBuilder {
         edges.push(GraphBuilder.edge(kinds, provider.name, edge));
       }
     }
-    return new Graph({ providers, nodes, edges });
+    return new Graph({ providers: infos, nodes, edges });
   }
 
   private static node(
@@ -56,11 +66,11 @@ export class GraphBuilder {
     provider: string,
     input: GraphNodeInput,
   ): GraphNodeDraft {
-    const { kind, id, label, description } = input;
+    const { kind, id, label, description, visible = false } = input;
     const props = GraphError.at(`Узел «${id}» поставщика «${provider}»`, () =>
       kinds.nodeProps(kind, input.props),
     );
-    return { id, kind, label, description, provider, props };
+    return { id, kind, label, description, visible, provider, props };
   }
 
   private static edge(

@@ -8,14 +8,15 @@ import type {
 } from './graph.types';
 import { GraphError } from './graph-error';
 import { GraphId } from './graph-id';
+import type { GraphKindInfo } from './kind-registry.types';
 
 type Link = { kind: string; from: string; to: string };
 
 /**
- * Неизменяемый граф (D-92): дерево узлов по `id`, рёбра между ними и внешние
- * ссылки; чтения — в каноническом порядке. Создают его `GraphBuilder.build()`
- * и `mount()`: конструктор — их общее место структурных проверок, в публичный
- * контракт не входит.
+ * Неизменяемый граф (D-92): дерево узлов по `id`, рёбра между ними, внешние
+ * ссылки и поставщики с их видами; чтения — в каноническом порядке. Создают
+ * его `GraphBuilder.build()` и `mount()`: конструктор — их общее место
+ * структурных проверок и сверки видов, в публичный контракт не входит.
  */
 export class Graph {
   readonly providers: readonly GraphProviderInfo[];
@@ -37,23 +38,96 @@ export class Graph {
     this.externalIds = [...new Set(external)].sort(GraphId.compare);
   }
 
+  // Запись на пару (name, version); описания вида — три поля, без схемы
+  // свойств. Версии одного поставщика между собой не сверяются: вид
+  // принадлежит имени поставщика.
   private static providersOf(
     providers: readonly GraphProviderInfo[],
   ): readonly GraphProviderInfo[] {
     const sorted = providers
-      .map(({ name, version }) => ({ name, version }))
+      .map(({ name, version, nodeKinds, edgeKinds }) => ({
+        name,
+        version,
+        nodeKinds: Graph.kindsOf(nodeKinds),
+        edgeKinds: Graph.kindsOf(edgeKinds),
+      }))
       .sort(
         (a, b) =>
           Graph.compareText(a.name, b.name) ||
           Graph.compareText(a.version, b.version),
       );
-    return sorted.filter((provider, index) => {
-      const previous = sorted[index - 1];
-      return (
+    const merged: GraphProviderInfo[] = [];
+    for (const provider of sorted) {
+      const previous = merged.at(-1);
+      if (
         previous?.name !== provider.name ||
         previous.version !== provider.version
+      ) {
+        merged.push(provider);
+        continue;
+      }
+      const who = `поставщика «${provider.name}» версии «${provider.version}»`;
+      Graph.sameKinds('узла', who, previous.nodeKinds, provider.nodeKinds);
+      Graph.sameKinds('ребра', who, previous.edgeKinds, provider.edgeKinds);
+    }
+    Graph.kindOwners('узла', merged, (provider) => provider.nodeKinds);
+    Graph.kindOwners('ребра', merged, (provider) => provider.edgeKinds);
+    return merged;
+  }
+
+  private static kindsOf(
+    kinds: readonly GraphKindInfo[],
+  ): readonly GraphKindInfo[] {
+    return kinds
+      .map(({ kind, label, description }) => ({ kind, label, description }))
+      .sort((a, b) => Graph.compareText(a.kind, b.kind));
+  }
+
+  // Списки отсортированы по `kind`: на первом расхождении меньший вид либо
+  // отсутствует во втором списке, либо описан в нём иначе.
+  private static sameKinds(
+    element: string,
+    who: string,
+    a: readonly GraphKindInfo[],
+    b: readonly GraphKindInfo[],
+  ): void {
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      const [x, y] = [a[i], b[i]];
+      if (
+        x?.kind === y?.kind &&
+        x?.label === y?.label &&
+        x?.description === y?.description
+      ) {
+        continue;
+      }
+      const kind = [x?.kind, y?.kind]
+        .filter((name) => name !== undefined)
+        .sort(Graph.compareText)[0];
+      throw new GraphError(
+        'kind-conflict',
+        `Вид ${element} «${kind}» ${who} описан по-разному в соединяемых графах`,
       );
-    });
+    }
+  }
+
+  private static kindOwners(
+    element: string,
+    providers: readonly GraphProviderInfo[],
+    kindsIn: (provider: GraphProviderInfo) => readonly GraphKindInfo[],
+  ): void {
+    const owners = new Map<string, string>();
+    for (const provider of providers) {
+      for (const { kind } of kindsIn(provider)) {
+        const owner = owners.get(kind) ?? provider.name;
+        if (owner !== provider.name) {
+          throw new GraphError(
+            'kind-conflict',
+            `Вид ${element} «${kind}» объявлен поставщиками «${owner}» и «${provider.name}»: у вида один поставщик`,
+          );
+        }
+        owners.set(kind, owner);
+      }
+    }
   }
 
   private static nodesOf(
@@ -61,7 +135,7 @@ export class Graph {
   ): ReadonlyMap<string, GraphNode> {
     const nodes = new Map<string, GraphNode>();
     for (const draft of drafts) {
-      const { id, kind, label, description, provider, props } = draft;
+      const { id, kind, label, description, visible, provider, props } = draft;
       const place = `Узел «${id}» вида «${kind}» поставщика «${provider}»`;
       const parent = GraphError.at(place, () => GraphId.parse(id).parent());
       const known = nodes.get(id);
@@ -76,6 +150,7 @@ export class Graph {
         kind,
         label,
         description,
+        visible,
         ...(parent ? { parent: parent.toString() } : {}),
         provider,
         props,
@@ -168,6 +243,20 @@ export class Graph {
     return found;
   }
 
+  /** Рёбра из узла `id`, при `kind` — только этого вида; неизвестный `id` — `[]`. */
+  outgoing(id: string, kind?: string): readonly GraphEdge[] {
+    return this.edgeList.filter(
+      (edge) => edge.from === id && (kind === undefined || edge.kind === kind),
+    );
+  }
+
+  /** Рёбра в `id`, при `kind` — только этого вида; `id` может быть внешней ссылкой. */
+  incoming(id: string, kind?: string): readonly GraphEdge[] {
+    return this.edgeList.filter(
+      (edge) => edge.to === id && (kind === undefined || edge.kind === kind),
+    );
+  }
+
   /** Концы рёбер, которые не узлы графа; внешнюю ссылку от опечатки ядро не отличает. */
   externals(): readonly string[] {
     return this.externalIds;
@@ -203,7 +292,8 @@ export class Graph {
   /**
    * Новый граф: узлы `child` получают приставку `under/`, его рёбра — тоже,
    * кроме внешних концов. Внешняя ссылка этого графа, совпавшая с новым узлом,
-   * перестаёт быть внешней.
+   * перестаёт быть внешней. Виды поставщиков сверяются: одноимённый вид у
+   * разных поставщиков и разные описания одной версии — `kind-conflict`.
    */
   mount(child: Graph, under: string): Graph {
     if (!this.nodeIndex.has(under)) {
