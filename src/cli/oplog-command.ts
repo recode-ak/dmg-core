@@ -1,3 +1,4 @@
+import { stat } from 'node:fs/promises';
 import { OperationLogFeed } from '../app/oplog/operation-log-feed';
 import {
   type OperationLogFilter,
@@ -42,6 +43,7 @@ export class OplogCommand {
     let records: OperationRecord[];
     try {
       args = this.parse(argv);
+      await this.requireDir(args.dir);
       records = await new OperationLogReader(args.dir).read(args.filter);
     } catch (error) {
       if (
@@ -58,6 +60,13 @@ export class OplogCommand {
           aggregate: args.filter.aggregate,
         });
     return { ok: true, messages };
+  }
+
+  private async requireDir(dir: string): Promise<void> {
+    const found = await stat(dir).catch(() => undefined);
+    if (!found?.isDirectory()) {
+      throw new OplogArgsError(`oplog: нет каталога лога ${dir}`);
+    }
   }
 
   private parse(argv: readonly string[]): OplogArgs {

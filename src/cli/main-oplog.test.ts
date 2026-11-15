@@ -85,6 +85,13 @@ describe('dmg-core oplog', () => {
     expect(result.stderr).toContain('dmg-core oplog <dir>');
   });
 
+  test('каталога нет — код 2, каталог назван', () => {
+    const result = run('oplog', 'нет-такого');
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain('нет-такого');
+    expect(result.stdout).toBe('');
+  });
+
   test('ошибка флагов — код 2, флаг назван, USAGE', () => {
     const cases: [string[], string][] = [
       [['--color'], '--color'],
