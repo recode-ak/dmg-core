@@ -115,6 +115,19 @@ describe('dmg-core graph', () => {
     expect(existsSync(join(temp().path, 'graph.json'))).toBe(false);
   });
 
+  test('второй файл и флаг с одним дефисом — код 2, аргумент назван, USAGE', () => {
+    writeProject();
+    const extra = run(EXAMPLE, 'ещё.ts');
+    expect(extra.code).toBe(2);
+    expect(extra.stderr).toContain('graph: лишний аргумент ещё.ts');
+    expect(extra.stderr).toContain(USAGE_GRAPH);
+    const short = run('-o', 'x.json', EXAMPLE);
+    expect(short.code).toBe(2);
+    expect(short.stderr).toContain('graph: неизвестный флаг -o');
+    expect(existsSync(join(temp().path, 'graph.json'))).toBe(false);
+    expect(existsSync(join(temp().path, 'x.json'))).toBe(false);
+  });
+
   test('--out без значения — код 2, сообщение и USAGE', () => {
     writeProject();
     const result = run(EXAMPLE, '--out');

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'bun:test';
+import * as v from 'valibot';
+import { AggregateDef } from '../domain/aggregate/aggregate-def';
 import {
   ArchiveDoneErDef,
   CompleteTaskUcDef,
@@ -12,8 +14,11 @@ import {
   UserArDef,
   UsersModuleDef,
 } from '../domain/contracts/contracts.fixture';
+import { ModuleDef } from '../domain/contracts/module-def';
+import { EventDef } from '../domain/events/event-def';
 import { DomainRuleDef } from '../domain/rules/domain-rule-def';
 import { ErrorDef } from '../kernel/errors/error-def';
+import { BaseEntityFields } from '../kernel/fields/fields';
 import { ok } from '../kernel/result/result';
 import { DefIndex } from './def-index';
 
@@ -68,6 +73,41 @@ describe('DefIndex', () => {
     expect(index.aggregateOf(TaskEvents.completed)).toBe(TaskArDef);
     expect(index.aggregateOf(TaskErrors.NOT_FOUND)).toBe(TaskArDef);
     expect(index.aggregateOf(Stray.LOST)).toBeUndefined();
+  });
+
+  it('eventLocalName — остаток FQN после `<m>.<a>.`; иначе полное имя', () => {
+    expect(index.eventLocalName(TaskEvents.completed)).toBe('completed');
+    const Nested = EventDef.define('deep.box.sub', {
+      made: {
+        label: 'Сделано',
+        description: 'Имя с лишним сегментом.',
+        payload: v.object({}),
+      },
+    });
+    const BoxArDef = AggregateDef.define({
+      name: 'box',
+      label: 'Коробка',
+      description: 'Агрегат с событием не по MAN-08.',
+      state: v.object({ ...BaseEntityFields }),
+      events: Nested,
+      errors: {},
+    });
+    const deep = DefIndex.from([
+      ModuleDef.define({
+        name: 'deep',
+        label: 'Глубокий',
+        description: 'Модуль с событием не по MAN-08.',
+        dependsOn: [],
+        aggregates: [BoxArDef],
+        useCases: [],
+        reactions: [],
+        jobs: [],
+      }),
+    ]);
+    expect(deep.eventLocalName(Nested.made)).toBe('deep.box.sub.made');
+    expect(deep.eventLocalName(TaskEvents.completed)).toBe(
+      TaskEvents.completed.name,
+    );
   });
 
   it('ruleId — по агрегату-владельцу ошибки правила (D-40)', () => {

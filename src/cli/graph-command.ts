@@ -58,11 +58,11 @@ export class GraphCommand {
       const arg = argv[i] ?? '';
       if (arg === '--out') {
         const value = argv[++i];
-        if (value === undefined || value.startsWith('--')) {
+        if (value === undefined || value.startsWith('-')) {
           throw new GraphArgsError('graph: у флага --out нет значения');
         }
         out = value;
-      } else if (arg.startsWith('--')) {
+      } else if (arg.startsWith('-')) {
         throw new GraphArgsError(`graph: неизвестный флаг ${arg}`);
       } else if (file !== undefined) {
         throw new GraphArgsError(`graph: лишний аргумент ${arg}`);

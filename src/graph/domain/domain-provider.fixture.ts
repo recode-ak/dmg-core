@@ -1,5 +1,5 @@
-// Фикстура поставщика домена (D-95): модули `notes`, `shop`, `cart` из прежнего
-// теста графа, их приложения и локальные Def для признаков, сирот и повторов.
+// Фикстура поставщика домена (D-95): модули `notes`, `shop`, `cart`, их
+// приложения и локальные Def для признаков, сирот и повторов.
 import * as v from 'valibot';
 import { AggregateDef } from '../../domain/aggregate/aggregate-def';
 import { type AnyAppDef, AppDef } from '../../domain/contracts/app-def';

@@ -480,12 +480,26 @@ export class DefChecker {
 
   /**
    * MAN-16: имена одного пространства графа уникальны (D-95) — иначе два
-   * узла получили бы один `id`. В модуле — агрегаты и операции; в агрегате —
-   * события (короткое имя), ошибки (код) и доменные правила его ошибок.
+   * узла получили бы один `id`. В приложении — модули; в модуле — агрегаты и
+   * операции; в агрегате — события (короткое имя), ошибки (код) и доменные
+   * правила его ошибок.
    */
   private checkGraphNames(): Violation[] {
     const rules = this.rulesByAggregate();
-    return this.index.modules.flatMap((m) => [
+    const modules = this.index.modules.map((m) =>
+      this.named(m.name, `модуль ${m.name}`),
+    );
+    return [
+      ...this.nameClashes('в приложении', modules),
+      ...this.index.modules.flatMap((m) => this.moduleNameClashes(m, rules)),
+    ];
+  }
+
+  private moduleNameClashes(
+    m: AnyModuleDef,
+    rules: ReadonlyMap<AnyAggregateDef, readonly AnyDomainRule[]>,
+  ): Violation[] {
+    return [
       ...this.nameClashes(`в модуле ${m.name}`, [
         ...m.aggregates.map((a) =>
           this.named(a.name, `агрегат ${m.localId(a)}`),
@@ -505,7 +519,7 @@ export class DefChecker {
           ),
         ]),
       ),
-    ]);
+    ];
   }
 
   private named(name: string, title: string): NamedDef {

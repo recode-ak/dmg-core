@@ -843,5 +843,73 @@ describe('DefChecker', () => {
     it('имена из разных пространств не пересекаются: событие и UC', () => {
       expect(man16(clash({ useCases: [uc('checked')] }))).toEqual([]);
     });
+
+    it('событие и ошибка одного агрегата — короткое имя совпало с кодом', () => {
+      const GadgetArDef = AggregateDef.define({
+        name: 'gadget',
+        label: 'Прибор',
+        description: 'Событие названо кодом ошибки.',
+        state: v.object({ ...BaseEntityFields }),
+        events: EventDef.define('clash.gadget', {
+          GADGET_LOST: {
+            label: 'Потерян',
+            description: 'Прибор потерян.',
+            payload: v.object({}),
+          },
+        }),
+        errors: ErrorDef.define('GADGET', {
+          LOST: {
+            kind: 'not_found',
+            label: 'Потерян',
+            description: 'Прибора нет.',
+          },
+        }),
+      });
+      const m = ModuleDef.define({
+        name: 'clash',
+        label: 'Коллизии',
+        description: 'Модуль с совпадающими именами.',
+        dependsOn: [],
+        aggregates: [GadgetArDef],
+        useCases: [],
+        reactions: [],
+        jobs: [],
+      });
+      expect(man16(m)).toEqual([
+        'MAN-16: событие clash.gadget.GADGET_LOST и ошибка GADGET_LOST: одно имя «GADGET_LOST» в агрегате clash.gadget',
+      ]);
+    });
+
+    it('правило, на которое ссылаются два UC, — не коллизия', () => {
+      const once = DomainRuleDef.define({
+        name: 'once',
+        label: 'Один раз',
+        description: 'Правило двух UC.',
+        error: ClashErrors.DUPLICATE,
+        check: (_: unknown) => ok(),
+      });
+      const useCases = [
+        uc('first', { rules: [once] }),
+        uc('second', { rules: [once] }),
+      ];
+      expect(man16(clash({ useCases }))).toEqual([]);
+    });
+
+    it('два модуля с одним именем в замыкании dependsOn', () => {
+      const twin = clash({ aggregates: [] });
+      const host = ModuleDef.define({
+        name: 'host',
+        label: 'Хозяин',
+        description: 'Зависит от модуля с занятым именем.',
+        dependsOn: [twin],
+        aggregates: [],
+        useCases: [],
+        reactions: [],
+        jobs: [],
+      });
+      expect(man16(clash({}), host)).toEqual([
+        'MAN-16: модуль clash и модуль clash: одно имя «clash» в приложении',
+      ]);
+    });
   });
 });

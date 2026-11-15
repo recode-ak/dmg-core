@@ -5,6 +5,7 @@ import { DomainProvider } from './domain-provider';
 import {
   CartAppDef,
   domainGraph,
+  LegacyAppDef,
   NotesAppDef,
   PortalAppDef,
   ScaledAppDef,
@@ -116,6 +117,25 @@ describe('DomainProvider: состав', () => {
       'shop-app/shop/item',
       'shop-app/shop/order',
     ]);
+    const checkedBy = (rule: string) =>
+      graph.incoming(rule, 'checks').map((e) => e.from);
+    expect(checkedBy('shop-app/shop/item/unique')).toEqual([
+      'shop-app/shop/createItem',
+    ]);
+    expect(checkedBy('shop-app/shop/order/unique')).toEqual([
+      'shop-app/shop/createOrder',
+    ]);
+  });
+
+  it('внешний модуль из dependsOn — узел приложения с external: true', () => {
+    const graph = domainGraph(LegacyAppDef);
+    expect(graph.node('legacy-app/vendor')).toMatchObject({
+      kind: 'module',
+      parent: 'legacy-app',
+      props: { external: true },
+    });
+    expect(graph.node('legacy-app/legacy')?.props).toEqual({ external: false });
+    expect(graph.node('legacy-app/vendor/part')?.kind).toBe('aggregate');
   });
 
   it('правило чужого модуля — один узел у владельца ошибки', () => {

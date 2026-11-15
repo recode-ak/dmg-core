@@ -105,7 +105,7 @@ export class Graph {
         .sort(Graph.compareText)[0];
       throw new GraphError(
         'kind-conflict',
-        `Вид ${element} «${kind}» ${who} описан по-разному в соединяемых графах`,
+        `Вид ${element} «${kind}» ${who} расходится в соединяемых графах: отсутствует в одном из них или описан иначе`,
       );
     }
   }
