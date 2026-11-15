@@ -163,6 +163,115 @@ describe('OperationLogReader: фильтры', () => {
     ]);
   });
 
+  test('actor: delegate и system с заместителем в person; subjectId — нет', async () => {
+    writeDay(
+      '2026-10-21',
+      record({
+        op: 'delegate',
+        at: D21,
+        caller: {
+          kind: 'delegate',
+          subjectId: 'u-1',
+          actorId: 'a-1',
+          delegationId: 'd-1',
+        },
+      }),
+      record({
+        op: 'system',
+        at: D21 + 1,
+        caller: {
+          kind: 'system',
+          from: { kind: 'job', module: 'todo', name: 'sweep' },
+          person: {
+            kind: 'delegate',
+            subjectId: 'u-1',
+            actorId: 'a-1',
+            delegationId: 'd-1',
+          },
+        },
+      }),
+      record({
+        op: 'subject-user',
+        at: D21 + 2,
+        caller: { kind: 'user', subjectId: 'a-1' },
+      }),
+      record({
+        op: 'subject-delegate',
+        at: D21 + 3,
+        caller: {
+          kind: 'delegate',
+          subjectId: 'a-1',
+          actorId: 'a-2',
+          delegationId: 'd-2',
+        },
+      }),
+      record({
+        op: 'system-user',
+        at: D21 + 4,
+        caller: {
+          kind: 'system',
+          from: { kind: 'job', module: 'todo', name: 'sweep' },
+          person: { kind: 'user', subjectId: 'a-1' },
+        },
+      }),
+      record({ op: 'guest', at: D21 + 5, caller: { kind: 'guest' } }),
+    );
+    const { reader: r } = reader();
+    expect(ops(await r.read({ actor: 'a-1' }))).toEqual(['delegate', 'system']);
+  });
+
+  test('request: requestId (cause.requestId) находит всю цепочку correlationId, включая реакции', async () => {
+    const trace = (correlationId: string, cause: object) =>
+      ({ cause, correlationId }) as OperationRecord['trace'];
+    writeDay(
+      '2026-10-21',
+      record({
+        op: 'uc',
+        at: D21,
+        trace: trace('tg:7', { kind: 'request', requestId: 'tg:7#1' }),
+      }),
+      record({
+        op: 'reaction',
+        at: D21 + 1,
+        kind: 'eventReaction',
+        trace: trace('tg:7', { kind: 'event', eventId: 'e-1' }),
+      }),
+      record({
+        op: 'second',
+        at: D21 + 2,
+        trace: trace('tg:7', { kind: 'request', requestId: 'tg:7#2' }),
+      }),
+      record({
+        op: 'other',
+        at: D21 + 3,
+        trace: trace('tg:8', { kind: 'request', requestId: 'tg:8#1' }),
+      }),
+    );
+    const { reader: r } = reader();
+    expect(ops(await r.read({ request: 'tg:7#1' }))).toEqual([
+      'uc',
+      'reaction',
+      'second',
+    ]);
+  });
+
+  test('request: correlationId — как раньше; неизвестное значение — пусто', async () => {
+    writeDay(
+      '2026-10-21',
+      record({
+        op: 'uc',
+        at: D21,
+        trace: {
+          cause: { kind: 'request', requestId: 'tg:7#1' },
+          correlationId: 'tg:7',
+        },
+      }),
+    );
+    const { reader: r } = reader();
+    expect(ops(await r.read({ request: 'tg:7' }))).toEqual(['uc']);
+    expect(await r.read({ request: 'tg:7#9' })).toEqual([]);
+  });
+
   test('module и op', async () => {
     writeDay(
       '2026-10-21',

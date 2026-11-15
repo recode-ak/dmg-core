@@ -17,10 +17,3 @@
 ```
 
 ID в коде — только в строке `biome-ignore`. Проверяемый код — `src/` и `scripts/` без тестов; маркеры временности («Временное решение», «Уходит с миграцией», «ВРЕМЕННЫЙ») допустимы только в Месте записи (кроме `scripts/` и самого `DebtChecker`).
-
-### DEBT-1: `oplog --request` ищет по `correlationId`, а не по `requestId`
-- **Место:** `src/app/oplog/operation-log-reader.ts` — фильтр `request` сравнивает с `trace.correlationId`
-- **Признак:** `correlationId !== f\.request`
-- **Причина:** фильтр задуман как «вся цепочка запроса» (UC, реакции, Job, вложенные вызовы связаны `correlationId`), но флаг называется `--request`, а в записи видно поле `trace.cause.requestId`. У Telegram-канала `requestId` = `tg:<update>#<n>`, `correlationId` = `tg:<update>`. Значение `requestId` из записи (`--request "tg:672286164#2"`) даёт пустую ленту без подсказки; у UUID-запросов поля совпадают, поэтому разница не видна.
-- **Триггер:** следующая правка CLI `oplog` или первое расследование, где `--request` по `requestId` из записи вернул пусто
-- **Критерий снятия:** `--request` находит цепочку и по `requestId` (`#<n>` → цепочка его `correlationId`) или флаг переименован в `--correlation` с подсказкой при пустой ленте; тест в `operation-log-reader.test.ts`

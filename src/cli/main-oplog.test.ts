@@ -68,6 +68,36 @@ describe('dmg-core oplog', () => {
     expect(lines[0]).toContain('stream.completeStudent');
   });
 
+  test('--actor: записи заместителя, субъект с тем же id не подходит', () => {
+    const dir = logDir();
+    const row = (op: string, caller: object) =>
+      JSON.stringify({
+        at: Date.UTC(2026, 10, 14),
+        module: 'stream',
+        op,
+        kind: 'useCase',
+        caller,
+        trace: {
+          cause: { kind: 'request', requestId: 'x' },
+          correlationId: 'x',
+        },
+        input: {},
+        result: { ok: true, output: {} },
+        events: [],
+        writes: [],
+        durationMs: 1,
+      });
+    writeFileSync(
+      join(dir, '2026-11-14.jsonl'),
+      `${row('byDelegate', { kind: 'delegate', subjectId: 'u-1', actorId: 'a-1', delegationId: 'd-1' })}\n${row('bySubject', { kind: 'user', subjectId: 'a-1' })}\n`,
+    );
+    const result = run('oplog', dir, '--actor', 'a-1');
+    expect(result).toMatchObject({ code: 0, stderr: '' });
+    const lines = result.stdout.trimEnd().split('\n');
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('stream.byDelegate');
+  });
+
   test('--json: исходные записи построчно', () => {
     const result = run('oplog', logDir(), '--json', '--module', 'stream');
     expect(result.code).toBe(0);

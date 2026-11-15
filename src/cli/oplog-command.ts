@@ -20,6 +20,7 @@ const VALUED: ReadonlySet<string> = new Set([
   '--request',
   '--aggregate',
   '--subject',
+  '--actor',
   '--module',
   '--op',
   '--since',
@@ -107,6 +108,8 @@ export class OplogCommand {
         return { ...filter, aggregate: value };
       case '--subject':
         return { ...filter, subject: value };
+      case '--actor':
+        return { ...filter, actor: value };
       case '--module':
         return { ...filter, module: value };
       case '--op':

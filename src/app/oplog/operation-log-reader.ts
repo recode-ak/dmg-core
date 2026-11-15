@@ -9,12 +9,18 @@ import type { OperationRecord } from './operation-record';
  * день `YYYY-MM-DD` (граница дня UTC включительно) или ISO-время (точно).
  */
 export type OperationLogFilter = {
-  /** Цепочка запроса: `trace.correlationId`. */
+  /**
+   * Цепочка запроса: значение — `trace.correlationId` или `requestId` причины
+   * (`cause.kind === 'request'`) любой записи; находятся все записи с её
+   * `correlationId` (UC, реакции, Job, вложенные вызовы).
+   */
   readonly request?: string;
   /** Записи, в `writes` которых есть агрегат с этим `uuid`. */
   readonly aggregate?: string;
   /** Субъект `caller`; у system — субъект `person`. */
   readonly subject?: string;
+  /** Заместитель: `delegate.actorId`; у system — заместитель из `person`. */
+  readonly actor?: string;
   readonly module?: string;
   readonly op?: string;
   /** Только записи с ошибкой в итоге. */
@@ -94,15 +100,16 @@ export class OperationLogReader {
   /** Записи по фильтру по возрастанию `at`. */
   async read(filter: OperationLogFilter): Promise<OperationRecord[]> {
     const range = new TimeRange(filter.since, filter.until);
-    const out: OperationRecord[] = [];
+    const inRange: OperationRecord[] = [];
     for (const name of await this.files(range)) {
       for (const record of await this.parse(name)) {
-        if (range.contains(record.at) && this.matches(record, filter)) {
-          out.push(record);
-        }
+        if (range.contains(record.at)) inRange.push(record);
       }
     }
-    return out.sort((a, b) => a.at - b.at);
+    const chains = this.chains(inRange, filter.request);
+    return inRange
+      .filter((record) => this.matches(record, filter, chains))
+      .sort((a, b) => a.at - b.at);
   }
 
   private async files(range: TimeRange): Promise<string[]> {
@@ -148,8 +155,37 @@ export class OperationLogReader {
     return { ...raw, writes: raw.writes ?? [] } as OperationRecord;
   }
 
-  private matches(r: OperationRecord, f: OperationLogFilter): boolean {
-    if (f.request !== undefined && r.trace?.correlationId !== f.request) {
+  /** `correlationId` цепочек, на которые указывает значение `request`. */
+  private chains(
+    records: readonly OperationRecord[],
+    request: string | undefined,
+  ): ReadonlySet<string> {
+    const ids = new Set<string>();
+    if (request === undefined) return ids;
+    for (const { trace } of records) {
+      if (trace?.correlationId === request) ids.add(request);
+      else if (
+        trace?.cause.kind === 'request' &&
+        trace.cause.requestId === request
+      ) {
+        ids.add(trace.correlationId);
+      }
+    }
+    return ids;
+  }
+
+  private matches(
+    r: OperationRecord,
+    f: OperationLogFilter,
+    chains: ReadonlySet<string>,
+  ): boolean {
+    if (
+      f.request !== undefined &&
+      !(r.trace !== undefined && chains.has(r.trace.correlationId))
+    ) {
+      return false;
+    }
+    if (f.actor !== undefined && this.actor(r.caller) !== f.actor) {
       return false;
     }
     if (
@@ -165,6 +201,12 @@ export class OperationLogReader {
     if (f.op !== undefined && r.op !== f.op) return false;
     if (f.failed && r.result?.ok !== false) return false;
     return true;
+  }
+
+  private actor(caller: CallerLog | undefined): string | undefined {
+    if (caller === undefined) return undefined;
+    if (caller.kind === 'system') return this.actor(caller.person);
+    return caller.kind === 'delegate' ? caller.actorId : undefined;
   }
 
   private subject(caller: CallerLog | undefined): string | undefined {

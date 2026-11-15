@@ -72,15 +72,16 @@ export const TaskState = v.object({
 CLI — только чтение:
 
 ```bash
-dmg-core oplog <dir> [--request id] [--aggregate uuid] [--subject id] \
+dmg-core oplog <dir> [--request id] [--aggregate uuid] [--subject id] [--actor id] \
   [--module m] [--op o] [--failed] [--since d] [--until d] [--json]
 ```
 
 | Флаг | Что |
 |---|---|
-| `--request` | цепочка по `trace.correlationId`: операция, её реакции, Job, вложенные вызовы |
+| `--request` | цепочка: значение — `trace.correlationId` или `requestId` из записи (`tg:7#1` → цепочка `tg:7`): операция, её реакции, Job, вложенные вызовы; цепочка ищется среди записей окна `--since`/`--until` — запрос вне окна даёт пустую ленту |
 | `--aggregate` | история агрегата: записи с ним в `writes`, под каждой — версии и патч |
 | `--subject` | действия субъекта (`subjectId` вызывающего; у system — исходного человека) |
+| `--actor` | действия заместителя (`actorId` у `delegate`; у system — заместитель из `person`) |
 | `--module`, `--op`, `--failed` | модуль, операция, только отказы |
 | `--since`, `--until` | `YYYY-MM-DD` — день UTC включительно; ISO-время — точно (без смещения — UTC) |
 | `--json` | исходные записи построчно вместо ленты |

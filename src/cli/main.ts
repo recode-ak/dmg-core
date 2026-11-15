@@ -11,7 +11,7 @@ import { PackageSource } from './package-source';
 const USAGE = [
   'Использование: dmg-core init | sync [--check] | gen <вид> <модуль>[.<агрегат>] [<имя>] [--write] [--dry-run] [--adopt]',
   '               dmg-core init --profile single|monorepo [--name <имя>] [--dry-run]',
-  '               dmg-core oplog <dir> [--request <id>] [--aggregate <uuid>] [--subject <id>] [--module <m>] [--op <o>] [--failed] [--since <d>] [--until <d>] [--json]',
+  '               dmg-core oplog <dir> [--request <id>] [--aggregate <uuid>] [--subject <id>] [--actor <id>] [--module <m>] [--op <o>] [--failed] [--since <d>] [--until <d>] [--json]',
 ].join('\n');
 
 const [command, ...flags] = process.argv.slice(2);
