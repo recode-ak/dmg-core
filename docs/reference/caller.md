@@ -53,6 +53,9 @@ type PersonCaller<U> = GuestCaller<U> | UserCaller<U> | DelegateCaller<U>;
 | `Trace.fromEvent` | след ER; канал события не переносится — в конверте его нет |
 | `Trace.forJob(def)` | след Job; причина — прогон с именем Job |
 | `toLog()` / `toEnvelope()` | форма для лога операций / для конверта события |
+| `toJSON()` / `Trace.fromJSON` | след через границу процесса (`TraceJson`, D-46); не по схеме — исключение |
+
+`Trace`, `TraceJson`, `Cause`, `TraceChannel`, `RequestMeta` отдаёт корень `dmg-core` и `dmg-core/app` (D-102); `TraceLog` и `TraceStamp` — только `dmg-core/app`.
 
 ## 4. Делегирование
 

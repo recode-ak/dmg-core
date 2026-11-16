@@ -163,3 +163,10 @@ export type {
 export { toJsonSchema } from './kernel/schema/json-schema';
 export { SensitiveMask } from './kernel/schema/sensitive-mask';
 export type { Timestamp } from './kernel/time/timestamp';
+export {
+  type Cause,
+  type RequestMeta,
+  Trace,
+  type TraceChannel,
+  type TraceJson,
+} from './kernel/trace/trace';

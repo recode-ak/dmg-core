@@ -13,6 +13,7 @@
     "src",
     "!src/{app,arch,cli,domain,gen,graph,kernel}/**/*.test.ts",
     "!src/testing/*.test.ts",
+    "!src/*.test.ts",
     "docs",
     "skills",
     "agents",

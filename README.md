@@ -95,7 +95,7 @@ bunx dmg-core init
 
 | Импорт | Что |
 |---|---|
-| `dmg-core` | ядро и Def-классы (`XxxDef.define`), база `Def` для своего вида, текст отказа `ErrorText` — единственное, что импортирует домен |
+| `dmg-core` | ядро и Def-классы (`XxxDef.define`), база `Def` для своего вида, текст отказа `ErrorText`, след `Trace` и его JSON `TraceJson` (D-102) — единственное, что импортирует домен |
 | `dmg-core/app` | прикладной слой: UC/ER/Job по Def, модуль, UoW, фасады, репозитории; подписка внешнего слоя `EventSubscriber`, сверка `DeclaredSet` |
 | `dmg-core/graph` | ядро графа, поставщик домена и граф приложения, нормализация Def, `DefIndex` ([граф приложения](docs/reference/graph.md)) |
 | `dmg-core/arch` | `ArchChecker` (с правилами поставщиков графа), `Violation`, `reportArchCheck` |
