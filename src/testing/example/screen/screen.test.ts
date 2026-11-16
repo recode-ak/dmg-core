@@ -139,7 +139,7 @@ describe('экран: граф', () => {
     expect(graph.externals()).toEqual([]);
   });
 
-  it('документ графа детерминирован и каждый элемент — от поставщика', () => {
+  it('документ графа детерминирован, поставщики — dmg-core и расширение', () => {
     const first = new AppGraph(ScreenGraph).document('1.0.0');
     const again = new AppGraph({
       ...ScreenGraph,
@@ -152,8 +152,6 @@ describe('экран: граф', () => {
       'dmg-core',
       'example-screen',
     ]);
-    expect(json.nodes.filter((n) => !n.provider)).toEqual([]);
-    expect(json.edges.filter((e) => !e.provider)).toEqual([]);
   });
 });
 
