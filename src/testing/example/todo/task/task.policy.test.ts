@@ -90,4 +90,11 @@ describe('TaskPolicy.canManageAll — набор задач', () => {
   it('без субъекта — denied', () => {
     expect(canManageAll.evaluate(undefined, batch(OWNER)).allowed).toBe(false);
   });
+
+  it('пустой набор — denied и владельцу, и администратору', () => {
+    expect(canManageAll.evaluate(user(OWNER), batch()).allowed).toBe(false);
+    expect(canManageAll.evaluate(user(OTHER, 'admin'), batch()).allowed).toBe(
+      false,
+    );
+  });
 });

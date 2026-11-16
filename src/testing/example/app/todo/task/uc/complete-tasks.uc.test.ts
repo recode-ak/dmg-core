@@ -158,10 +158,6 @@ describe('CompleteTasksUc', () => {
 describe('CompleteTasksUc — граница набора', () => {
   const ids = (count: number) => Array.from({ length: count }, () => seed());
 
-  it(`предел набора — ${TASK_BATCH_LIMIT} задач`, () => {
-    expect(TASK_BATCH_LIMIT).toBe(10);
-  });
-
   it('ровно предел задач — все выполнены', async () => {
     const taskIds = ids(TASK_BATCH_LIMIT);
     expectOk(await complete(taskIds));

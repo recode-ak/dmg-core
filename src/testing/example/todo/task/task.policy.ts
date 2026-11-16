@@ -25,6 +25,15 @@ const ownsAll = Rule.of({
     ctx.tasks.every((task) => task.isOwnedBy(subject.uuid)),
 });
 
+// \`every\` на пустом наборе — истина: без этого правила пустой набор прошёл
+// бы Policy у любого субъекта, защищала бы только схема входа.
+const hasTasks = Rule.of({
+  name: 'hasTasks',
+  label: 'Набор задач не пуст',
+  denyMessage: 'Пустым набором задач управлять нельзя.',
+  check: (_subject: unknown, ctx: TaskBatchCtx) => ctx.tasks.length > 0,
+});
+
 export const TaskPolicy = PolicyDef.define({
   name: 'task',
   label: 'Права на задачи',
@@ -40,15 +49,18 @@ export const TaskPolicy = PolicyDef.define({
       isOwner,
       Rule.hasRole('admin'),
     ),
-    canManageAll: Rule.anyOf(
-      {
-        name: 'canManageAll',
-        label: 'Владелец всех задач или администратор',
-        denyMessage:
-          'Управлять набором задач может владелец каждой из них или администратор.',
-      },
-      ownsAll,
-      Rule.hasRole('admin'),
+    canManageAll: Rule.allOf(
+      hasTasks,
+      Rule.anyOf(
+        {
+          name: 'canManageAll',
+          label: 'Владелец всех задач или администратор',
+          denyMessage:
+            'Управлять набором задач может владелец каждой из них или администратор.',
+        },
+        ownsAll,
+        Rule.hasRole('admin'),
+      ),
     ),
   },
 });

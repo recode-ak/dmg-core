@@ -6,9 +6,10 @@ import { TaskErrors } from '../task.errors';
 import { TaskAssignmentVo, TaskState } from '../task.state';
 
 /**
- * Исполнитель задачи — для системных вызовов без человека (получатели
- * уведомлений): `callers: ['system']`, право не нужно (`allowAll`).
- * Задача без исполнителя — пустой ответ.
+ * Исполнитель задачи — для системных вызовов (получатели уведомлений):
+ * `allowAll`, потому что человека за вызовом нет. Модуль, вызвавший UC в
+ * потоке пользователя, ответ человеку не возвращает; защита — `callers:
+ * ['system']` и отсутствие `visible`. Без исполнителя — пустой ответ.
  */
 export const GetTaskAssigneeUcDef = UseCaseDef.define({
   name: 'getTaskAssignee',
