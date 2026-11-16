@@ -12,10 +12,16 @@ export { TaskEvents } from './task/task.events';
 export { AssignTaskUcDef } from './task/uc/assign-task.uc';
 /** Кто: транспорт. Зачем: отметить задачу выполненной. */
 export { CompleteTaskUcDef } from './task/uc/complete-task.uc';
+/** Кто: транспорт. Зачем: выполнить выбранные задачи одной командой. */
+export { CompleteTasksUcDef } from './task/uc/complete-tasks.uc';
 /** Кто: транспорт. Зачем: новая задача в списке вызывающего. */
 export { CreateTaskUcDef } from './task/uc/create-task.uc';
 /** Кто: другие модули через фасад todo (system). Зачем: задача целиком (D-42). */
 export { GetTaskUcDef } from './task/uc/get-task.uc';
+/** Кто: другие модули и каналы (system). Зачем: получатель уведомлений о задаче. */
+export { GetTaskAssigneeUcDef } from './task/uc/get-task-assignee.uc';
+/** Кто: транспорт. Зачем: задачи, назначенные вызывающему. */
+export { ListAssignedTasksUcDef } from './task/uc/list-assigned-tasks.uc';
 /** Кто: транспорт. Зачем: список задач вызывающего. */
 export { ListTasksUcDef } from './task/uc/list-tasks.uc';
 /** Кто: `dependsOn` других модулей и сборка приложения. Зачем: паспорт модуля. */

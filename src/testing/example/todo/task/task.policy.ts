@@ -6,6 +6,9 @@ import type { TaskAr } from './task.ar';
 /** Контекст правил задачи: задача, над которой действие. */
 export type TaskCtx = { readonly task: ReadonlyAr<TaskAr> };
 
+/** Контекст правил набора задач: задачи, над которыми одно действие. */
+export type TaskBatchCtx = { readonly tasks: readonly ReadonlyAr<TaskAr>[] };
+
 const isOwner = Rule.of({
   name: 'isOwner',
   label: 'Владелец задачи',
@@ -14,10 +17,19 @@ const isOwner = Rule.of({
     ctx.task.isOwnedBy(subject.uuid),
 });
 
+const ownsAll = Rule.of({
+  name: 'ownsAll',
+  label: 'Владелец всех задач',
+  denyMessage: 'Набором задач управляет только владелец каждой из них.',
+  check: (subject: { readonly uuid: string }, ctx: TaskBatchCtx) =>
+    ctx.tasks.every((task) => task.isOwnedBy(subject.uuid)),
+});
+
 export const TaskPolicy = PolicyDef.define({
   name: 'task',
   label: 'Права на задачи',
-  description: 'Кто может управлять задачей: владелец или администратор.',
+  description:
+    'Кто может управлять задачей или набором задач: владелец или администратор.',
   rules: {
     canManage: Rule.anyOf(
       {
@@ -26,6 +38,16 @@ export const TaskPolicy = PolicyDef.define({
         denyMessage: 'Управлять задачей может владелец или администратор.',
       },
       isOwner,
+      Rule.hasRole('admin'),
+    ),
+    canManageAll: Rule.anyOf(
+      {
+        name: 'canManageAll',
+        label: 'Владелец всех задач или администратор',
+        denyMessage:
+          'Управлять набором задач может владелец каждой из них или администратор.',
+      },
+      ownsAll,
       Rule.hasRole('admin'),
     ),
   },

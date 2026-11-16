@@ -11,12 +11,18 @@ export {
   TaskArDef,
   type TaskError,
 } from './task/task.ar';
-export { type TaskCtx, TaskPolicy } from './task/task.policy';
+export {
+  type TaskBatchCtx,
+  type TaskCtx,
+  TaskPolicy,
+} from './task/task.policy';
 export {
   type AssigneeCtx,
   OPEN_TASKS_LIMIT,
   type OwnerTasksCtx,
   TaskRules,
 } from './task/task.rules';
+export { TASK_BATCH_LIMIT } from './task/uc/complete-tasks.uc';
+export { TaskCompletionDcs } from './task-completion.dcs';
 export { TaskReleaseDcs } from './task-release.dcs';
 export type { TaskRelease } from './task-release.types';

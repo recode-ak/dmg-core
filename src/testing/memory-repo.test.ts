@@ -25,6 +25,9 @@ class MemoryTaskRepo extends MemoryRepo<TaskAr, TaskState> implements TaskRepo {
   findActiveByParticipant = this.unanswered<[userId: string], TaskAr[]>(
     'findActiveByParticipant',
   );
+  findActiveByAssignee = this.unanswered<[userId: string], TaskAr[]>(
+    'findActiveByAssignee',
+  );
   findDone = this.unanswered<[], TaskAr[]>('findDone');
 }
 

@@ -41,6 +41,13 @@ export class TaskJsonRepo
     return involved.filter((task) => task.isActive());
   }
 
+  async findActiveByAssignee(userId: string): Promise<TaskAr[]> {
+    const assigned = await this.where(
+      (r) => r.assignment?.assigneeId === userId,
+    );
+    return assigned.filter((task) => task.isActive());
+  }
+
   async findDone(): Promise<TaskAr[]> {
     const all = await this.where(() => true);
     return all.filter((task) => task.isDone());

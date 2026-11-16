@@ -10,8 +10,11 @@ import { ArchiveDoneTasksJob } from './task/job/archive-done-tasks.job';
 import type { TaskRepo } from './task/task.repo';
 import { AssignTaskUc } from './task/uc/assign-task.uc';
 import { CompleteTaskUc } from './task/uc/complete-task.uc';
+import { CompleteTasksUc } from './task/uc/complete-tasks.uc';
 import { CreateTaskUc } from './task/uc/create-task.uc';
 import { GetTaskUc } from './task/uc/get-task.uc';
+import { GetTaskAssigneeUc } from './task/uc/get-task-assignee.uc';
+import { ListAssignedTasksUc } from './task/uc/list-assigned-tasks.uc';
 import { ListTasksUc } from './task/uc/list-tasks.uc';
 
 /** Резолвер модуля: платформа + репозитории. */
@@ -25,6 +28,9 @@ export const todoMap = {
     listTasks: ListTasksUc,
     getTask: GetTaskUc,
     assignTask: AssignTaskUc,
+    completeTasks: CompleteTasksUc,
+    listAssignedTasks: ListAssignedTasksUc,
+    getTaskAssignee: GetTaskAssigneeUc,
   },
   reactions: { releaseRemovedUserTasks: ReleaseRemovedUserTasksEr },
   jobs: { archiveDoneTasks: ArchiveDoneTasksJob },

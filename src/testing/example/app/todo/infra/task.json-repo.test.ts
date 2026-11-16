@@ -106,4 +106,22 @@ describe('TaskJsonRepo — выборки', () => {
       assigned.uuid,
     ]);
   });
+
+  it('findActiveByAssignee — неархивные задачи, назначенные пользователю; свои без назначения и чужие назначения не попадают', async () => {
+    const STRANGER = '1c7a3d2f-9b5e-4a4c-8d3f-2e6b8c0f4a21';
+    const open = row('open', ASSIGNEE);
+    const done = row('done', ASSIGNEE);
+    await Bun.write(
+      join(dir, 'tasks.json'),
+      JSON.stringify([
+        open,
+        row('archived', ASSIGNEE),
+        { ...row('open'), ownerId: ASSIGNEE },
+        row('open', STRANGER),
+        done,
+      ]),
+    );
+    const found = await repo.findActiveByAssignee(ASSIGNEE);
+    expect(found.map((t) => t.uuid)).toEqual([open.uuid, done.uuid]);
+  });
 });

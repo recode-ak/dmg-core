@@ -15,6 +15,9 @@ describe('TodoModuleDef', () => {
         'listTasks',
         'getTask',
         'assignTask',
+        'completeTasks',
+        'listAssignedTasks',
+        'getTaskAssignee',
       ],
       reactions: ['releaseRemovedUserTasks'],
       jobs: ['archiveDoneTasks'],
@@ -61,7 +64,7 @@ describe('TodoModuleDef', () => {
       ...TodoModuleDef.aggregates.flatMap((a) => Object.values(a.errors)),
     ];
     for (const def of defs) expect(() => normalize(def)).not.toThrow();
-    expect(defs).toHaveLength(19);
+    expect(defs).toHaveLength(22);
   });
 
   it('ArchChecker вместе с users — без нарушений', () => {

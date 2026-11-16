@@ -8,5 +8,7 @@ export type TaskRepo = Repository<TaskAr> & {
   findActiveByOwner(ownerId: string): Promise<TaskAr[]>;
   /** Неархивные задачи, где пользователь владелец или исполнитель. */
   findActiveByParticipant(userId: string): Promise<TaskAr[]>;
+  /** Неархивные задачи, назначенные пользователю. */
+  findActiveByAssignee(userId: string): Promise<TaskAr[]>;
   findDone(): Promise<TaskAr[]>;
 };
