@@ -417,7 +417,7 @@ DCS остаётся для мутаций нескольких агрегато
 
 **D-103. Учебное приложение: набор задач, назначенные мне, исполнитель задачи.** Версия `0.6.1`. Уточняет D-101: модуль todo — восемь UC, `visible` — у шести.
 - **UC:** `completeTasks` (command, `callers: ['user']`, `visible`; вход `taskIds` — от 1 до `TASK_BATCH_LIMIT` = 10 uuid; повтор id — одна задача, события `completed` — в порядке входа), `listAssignedTasks` (query, `callers: ['user']`, `visible`, `allowAll`; неархивные задачи, назначенные вызывающему: `uuid`, `title`, `status`, `ownerId`), `getTaskAssignee` (query, `callers: ['system']`, без `visible`, `allowAll`; `{ assigneeId? }`). Вход `dmg-core/testing/example` отдаёт их Def через контракт todo.
-- **Право над набором** — правило Policy `canManageAll` (контекст `TaskBatchCtx`: владелец каждой задачи или администратор): участвует субъект, поэтому Policy, хотя агрегатов несколько (D-40, DOM-15).
+- **Право над набором** — правило Policy `canManageAll` (контекст `TaskBatchCtx`: владелец каждой задачи или администратор; пустой набор — отказ всем, правило `hasTasks`, а не только схема входа): участвует субъект, поэтому Policy, хотя агрегатов несколько (D-40, DOM-15).
 - **Мутация набора** — DCS `TaskCompletionDcs.completeAll` (DOM-06), второй образец рядом с `TaskReleaseDcs`: первый отказ `TaskAr.complete` — отказ всей команды, UC регистрирует задачи в UoW только при успехе; отката у UoW нет (D-15) — допущение примера.
 - **`getTaskAssignee`** — образец системного UC для получателей уведомления: человека за вызовом нет, поэтому `allowAll`, а не `canManage` (как у `getTask`, D-43).
 - **Репозиторий** — `findActiveByAssignee(userId)`: ключ — исполнитель, признак «активна» — у Ar (D-87).
