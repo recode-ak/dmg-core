@@ -100,7 +100,7 @@ bunx dmg-core init
 | `dmg-core/graph` | ядро графа, поставщик домена и граф приложения, нормализация Def, `DefIndex` ([граф приложения](docs/reference/graph.md)) |
 | `dmg-core/arch` | `ArchChecker` (с правилами поставщиков графа), `Violation`, `reportArchCheck` |
 | `dmg-core/gen` | `GenLayout`: раскладка проекта из `dmg-core.json` — один источник для `gen` и `ArchApp.layout` |
-| `dmg-core/testing` | хелперы тестов и учебное приложение (`ExampleAppDef`, `ExampleGraph`, `ExampleArch`); образец расширения графа — подпуть `dmg-core/testing/example/screen/*` |
+| `dmg-core/testing` | хелперы тестов и учебное приложение (`ExampleAppDef`, `ExampleGraph`, `ExampleArch`); образец расширения графа — исходники `src/testing/example/screen/` (читается как образец, стабильным входом не является) |
 | `dmg-core/testing/example` | учебное приложение для тестов внешних пакетов: `ExampleApp`, `ExampleAppDef`, типы `ExampleAppEnv`, `ExampleAppPorts`, `ExampleUser`, контракты модулей todo и users (D-101); стабилен только этот вход, глубокие пути `dmg-core/testing/example/*` — нет |
 | `dmg-core/cli` | `DmgCoreCli`: `init`, `sync`, `gen` как API; команды CLI `bunx dmg-core` — `init`, `sync`, `gen`, `oplog`, `graph` |
 
