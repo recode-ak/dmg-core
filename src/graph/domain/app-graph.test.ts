@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import manifest from '../../../package.json' with { type: 'json' };
 import { ExampleAppDef } from '../../testing/example/example.app';
+import { ExampleGraph } from '../../testing/example/example.graph';
 import { toyProvider } from '../graph.fixture';
 import { GRAPH_FORMAT } from '../graph-document';
 import { AppGraph } from './app-graph';
@@ -48,5 +49,16 @@ describe('AppGraph', () => {
     expect(graph.providers.map((p) => p.name)).toEqual(['dmg-core', 'toy']);
     expect(graph.node('example')?.provider).toBe('dmg-core');
     expect(graph.node('shop')?.provider).toBe('toy');
+  });
+
+  it('visible: true в графе учебного приложения — ровно у четырёх UC с callers user', () => {
+    const json = new AppGraph(ExampleGraph).document('1.0.0').toJSON();
+    const visible = json.nodes.filter((n) => n.visible).map((n) => n.id);
+    expect(visible.sort()).toEqual([
+      'example/todo/assignTask',
+      'example/todo/completeTask',
+      'example/todo/createTask',
+      'example/todo/listTasks',
+    ]);
   });
 });

@@ -44,4 +44,4 @@
 ## Optional
 
 - [Как устроено и почему](docs/concepts/index.md): concepts — потоки и жизненный цикл со схемами; читать, когда гайда и правил не хватает, чтобы понять устройство
-- [Учебный модуль](src/testing/example/example.arch.ts): `AppDef` примера — `example.app.ts`, вход графа — `example.graph.ts` (`{ def }`), `ArchApp` — `example.arch.ts` (`{ ...ExampleGraph, layout, … }`); домен — `src/testing/example/<m>`, прикладной слой — `src/testing/example/app/<m>`, расширение графа — `src/testing/example/screen/`
+- [Учебный модуль](src/testing/example/example.arch.ts): `AppDef` примера — `example.app.ts`, вход графа — `example.graph.ts` (`{ def }`), `ArchApp` — `example.arch.ts` (`{ ...ExampleGraph, layout, … }`); домен — `src/testing/example/<m>`, прикладной слой — `src/testing/example/app/<m>`, расширение графа — `src/testing/example/screen/`; стабильный вход для тестов внешних пакетов — `dmg-core/testing/example` (`ExampleApp`, `ExampleAppDef`, контракты todo и users, D-101)

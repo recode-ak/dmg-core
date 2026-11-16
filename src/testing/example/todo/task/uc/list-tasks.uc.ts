@@ -11,6 +11,7 @@ export const ListTasksUcDef = UseCaseDef.define({
   type: 'query',
   aggregate: TaskArDef,
   callers: ['user'],
+  visible: true,
   policy: allowAll,
   input: v.object({}),
   output: v.array(v.pick(TaskState, ['uuid', 'title', 'status'])),

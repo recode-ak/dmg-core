@@ -14,6 +14,7 @@ export const CompleteTaskUcDef = UseCaseDef.define({
   type: 'command',
   aggregate: TaskArDef,
   callers: ['user'],
+  visible: true,
   policy: TaskPolicy.rules.canManage,
   input: v.object({
     taskId: TaskState.entries.uuid,

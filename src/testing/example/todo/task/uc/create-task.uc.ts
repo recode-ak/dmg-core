@@ -14,6 +14,7 @@ export const CreateTaskUcDef = UseCaseDef.define({
   type: 'command',
   aggregate: TaskArDef,
   callers: ['user'],
+  visible: true,
   policy: allowAll,
   rules: [TaskRules.rules.withinOpenLimit],
   input: v.object({ title: TaskState.entries.title }),

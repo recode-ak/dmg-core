@@ -22,6 +22,7 @@ export const AssignTaskUcDef = UseCaseDef.define({
   type: 'command',
   aggregate: TaskArDef,
   callers: ['user'],
+  visible: true,
   policy: TaskPolicy.rules.canManage,
   rules: [TaskRules.rules.assigneeActive],
   calls: [GetUserUcDef],
