@@ -1,42 +1,19 @@
 import { describe, expect, test } from 'bun:test';
 import { VersionConflict } from '#core/app/uow/repository';
-import type { TaskRepo } from '#core/testing/example/app/todo/task/task.repo';
+import { TaskRepoFake } from '#core/testing/example/app/todo/task/task.repo.fake';
 import { TaskAr, TaskArDef } from '#core/testing/example/todo/index';
-import type { TaskState } from '#core/testing/example/todo/state';
 import { OWNER, T0, TASK, TASK_2, taskRow } from '../app/app.fixture';
 import { expectOk } from './expect-result';
 import { MemoryRepo } from './memory-repo';
 
 const T1 = T0 + 1000;
 
-/**
- * Фейк порта `TaskRepo`: запись — память базы, методы поиска — ответы,
- * которые задаёт тест (`findById` — удобство по uuid из памяти).
- */
-class MemoryTaskRepo extends MemoryRepo<TaskAr, TaskState> implements TaskRepo {
-  constructor() {
-    super(TaskArDef, TaskAr.restore);
-  }
-
-  findById = async (uuid: string) => this.restored(uuid);
-  findActiveByOwner = this.unanswered<[ownerId: string], TaskAr[]>(
-    'findActiveByOwner',
-  );
-  findActiveByParticipant = this.unanswered<[userId: string], TaskAr[]>(
-    'findActiveByParticipant',
-  );
-  findActiveByAssignee = this.unanswered<[userId: string], TaskAr[]>(
-    'findActiveByAssignee',
-  );
-  findDone = this.unanswered<[], TaskAr[]>('findDone');
-}
-
 const created = (uuid = TASK): TaskAr =>
   expectOk(TaskAr.create({ uuid, ownerId: OWNER, title: 'Купить хлеб' }, T0));
 
 describe('MemoryRepo', () => {
   test('round trip: save → чтение — тот же снапшот, новый объект', async () => {
-    const repo = new MemoryTaskRepo();
+    const repo = new TaskRepoFake();
     const ar = created();
     await repo.save(ar);
     const read = await repo.findById(TASK);
@@ -46,7 +23,7 @@ describe('MemoryRepo', () => {
   });
 
   test('restored — нет записи — undefined; restoredOrThrow — исключение', () => {
-    const repo = new MemoryTaskRepo();
+    const repo = new TaskRepoFake();
     expect(repo.restored(TASK)).toBeUndefined();
     expect(() => repo.restoredOrThrow(TASK)).toThrow(
       `MemoryRepo task: нет записи ${TASK}`,
@@ -55,13 +32,13 @@ describe('MemoryRepo', () => {
 
   test('seed копирует снапшот: правка исходного объекта не меняет запись', () => {
     const row = taskRow(TASK);
-    const repo = new MemoryTaskRepo().seed(row);
+    const repo = new TaskRepoFake().seed(row);
     row.title = 'Другое';
     expect(repo.restoredOrThrow(TASK).snapshot()).toEqual(taskRow(TASK));
   });
 
   test('seed — записи до UC; агрегат из seed сохраняется по версии', async () => {
-    const repo = new MemoryTaskRepo().seed(taskRow(TASK), taskRow(TASK_2));
+    const repo = new TaskRepoFake().seed(taskRow(TASK), taskRow(TASK_2));
     const ar = await repo.findById(TASK);
     expect(ar?.snapshot()).toEqual(taskRow(TASK));
     expect(repo.saved).toEqual([]);
@@ -72,7 +49,7 @@ describe('MemoryRepo', () => {
   });
 
   test('конфликт версии: запись изменена параллельно — VersionConflict', async () => {
-    const repo = new MemoryTaskRepo().seed(taskRow(TASK));
+    const repo = new TaskRepoFake().seed(taskRow(TASK));
     const a = repo.restored(TASK);
     const b = repo.restored(TASK);
     if (a === undefined || b === undefined) throw new Error('нет задачи');
@@ -84,13 +61,13 @@ describe('MemoryRepo', () => {
   });
 
   test('новый агрегат поверх существующей записи — VersionConflict', async () => {
-    const repo = new MemoryTaskRepo().seed(taskRow(TASK));
+    const repo = new TaskRepoFake().seed(taskRow(TASK));
     await expect(repo.save(created())).rejects.toThrow(VersionConflict);
     expect(repo.saved).toEqual([]);
   });
 
   test('saved — снапшоты записей по порядку на момент save', async () => {
-    const repo = new MemoryTaskRepo();
+    const repo = new TaskRepoFake();
     expect(repo.saved).toEqual([]);
     const ar = created();
     await repo.save(ar);
@@ -108,7 +85,7 @@ describe('MemoryRepo', () => {
   });
 
   test('failOn — save этого uuid бросает, запись не меняется', async () => {
-    const repo = new MemoryTaskRepo().failOn(TASK);
+    const repo = new TaskRepoFake().failOn(TASK);
     await expect(repo.save(created())).rejects.toThrow(TASK);
     expect(repo.restored(TASK)).toBeUndefined();
     expect(repo.saved).toEqual([]);
@@ -117,14 +94,14 @@ describe('MemoryRepo', () => {
   });
 
   test('метод порта — ответ, заданный тестом', async () => {
-    const repo = new MemoryTaskRepo().seed(taskRow(TASK, 'done'));
+    const repo = new TaskRepoFake().seed(taskRow(TASK, 'done'));
     repo.findDone = async () => [repo.restoredOrThrow(TASK)];
     const done = await repo.findDone();
     expect(done.map((t) => t.uuid)).toEqual([TASK]);
   });
 
   test('метод порта без ответа — исключение с понятным текстом', async () => {
-    const repo = new MemoryTaskRepo();
+    const repo = new TaskRepoFake();
     await expect(repo.findActiveByOwner(OWNER)).rejects.toThrow(
       'MemoryRepo task: нет ответа для findActiveByOwner',
     );
@@ -141,7 +118,7 @@ describe('MemoryRepo', () => {
 const TASK_3 = '2d8b4e3a-0c6f-4b5d-9e4a-3f7c9d1a5b32';
 
 /** Фейк с тривиальной выборкой через `where` (предикат по снимку). */
-class WhereTaskRepo extends MemoryTaskRepo {
+class WhereTaskRepo extends TaskRepoFake {
   findDoneWhere = async () => this.where((s) => s.status === 'done');
 }
 

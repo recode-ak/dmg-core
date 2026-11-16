@@ -1027,13 +1027,15 @@ describe('UseCaseFromDef — лог операций (D-43, Р6)', () => {
     uc = new CompleteTask({ app: broken.app, facades, tasks });
     expectOk(await uc.handle({ taskId: TASK }, user(OWNER), REQ));
     expect(tasks.rows.get(TASK)?.status).toBe('done');
-    expect(broken.logs).toEqual([
+    expect(broken.logs).toMatchObject([
       {
         level: 'warn',
         source: 'completeTask',
         message: 'Не удалось записать лог операции',
+        meta: { name: 'Error', message: 'диск полон' },
       },
     ]);
+    expect(broken.logs).toHaveLength(1);
   });
 });
 
