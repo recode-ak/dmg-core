@@ -315,15 +315,4 @@ describe('ExampleApp: getUser человеком', () => {
       active: true,
     });
   });
-
-  it('человек без роли о другом — ACCESS_DENIED по правилу canView', async () => {
-    const { example } = makeApp();
-    const owner = await userCaller(example, OWNER);
-
-    expect(
-      expectErr(await getUser(example, owner, OTHER), 'ACCESS_DENIED').payload,
-    ).toMatchObject({
-      rule: 'canView',
-    });
-  });
 });

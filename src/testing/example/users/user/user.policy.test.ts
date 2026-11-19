@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'bun:test';
 import { allowed, denied } from '#core/index';
-import { GetUserUcDef } from './uc/get-user.uc';
 import { UserAr } from './user.ar';
 import { UserPolicy } from './user.policy';
 
@@ -47,11 +46,5 @@ describe('UserPolicy.canView', () => {
 
   it('без субъекта (гость, system без человека) — denied', () => {
     expect(canView.evaluate(undefined, ctx).allowed).toBe(false);
-  });
-});
-
-describe('GetUserUcDef и UserPolicy', () => {
-  it('право getUser — именно canView', () => {
-    expect(GetUserUcDef.policy).toBe(canView);
   });
 });

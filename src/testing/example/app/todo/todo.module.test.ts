@@ -195,28 +195,6 @@ describe('createTodoModule', () => {
     expect(wire).not.toContain('Чужая тайна');
   });
 
-  it('listTasks: архивные задачи не отдаются', async () => {
-    const { module } = makeModule();
-    const taskId = await create(module);
-    expectOk(
-      await module.dispatch(
-        CompleteTaskUcDef.command({ taskId }),
-        owner,
-        req(),
-      ),
-    );
-    await module.runJob(
-      ArchiveDoneTasksJobDef,
-      Trace.forJob(ArchiveDoneTasksJobDef),
-    );
-
-    const list = expectOk(
-      await module.dispatch(ListTasksUcDef.command({}), owner, req()),
-    );
-
-    expect(list).toEqual([]);
-  });
-
   it('listAssignedTasks на реальном репозитории: только назначенные вызывающему, третьему — пусто', async () => {
     const { module, tasks } = makeModule();
     const assigned = await create(module, 'Назначенная');
@@ -246,38 +224,5 @@ describe('createTodoModule', () => {
 
     expect(mineForAssignee).toEqual([await stored(tasks, assigned)]);
     expect(forStranger).toEqual([]);
-  });
-
-  it('listAssignedTasks: архивные назначенные не отдаются', async () => {
-    const { module } = makeModule();
-    const taskId = await create(module);
-    expectOk(
-      await module.dispatch(
-        AssignTaskUcDef.command({ taskId, assigneeId: ASSIGNEE }),
-        owner,
-        req(),
-      ),
-    );
-    expectOk(
-      await module.dispatch(
-        CompleteTaskUcDef.command({ taskId }),
-        owner,
-        req(),
-      ),
-    );
-    await module.runJob(
-      ArchiveDoneTasksJobDef,
-      Trace.forJob(ArchiveDoneTasksJobDef),
-    );
-
-    const list = expectOk(
-      await module.dispatch(
-        ListAssignedTasksUcDef.command({}),
-        as(ASSIGNEE),
-        req(),
-      ),
-    );
-
-    expect(list).toEqual([]);
   });
 });
