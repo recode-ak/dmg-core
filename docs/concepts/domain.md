@@ -4,7 +4,7 @@ covers:
   - src/kernel/def/**
   - src/kernel/result/**
   - src/testing/example/todo/**
-verified: 517415a
+verified: bf4e3b8
 ---
 
 # Домен — приложение без инфраструктуры
