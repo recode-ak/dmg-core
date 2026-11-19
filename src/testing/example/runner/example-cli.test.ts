@@ -66,9 +66,9 @@ describe('ExampleCli: команды todo', () => {
     expect([created.code, listed.code]).toEqual([0, 0]);
     expect(created.json()).toEqual({ ok: true, value: { taskId: TASK_ID } });
     const { taskId } = created.json().value;
-    expect(listed.json()).toEqual({
+    expect(listed.json()).toMatchObject({
       ok: true,
-      value: [{ uuid: taskId, title: 'Хлеб', status: 'open' }],
+      value: [{ uuid: taskId, ownerId: OWNER, title: 'Хлеб', status: 'open' }],
     });
   });
 

@@ -17,6 +17,7 @@ import {
   TodoModuleDef,
 } from '#core/testing/example/todo/contract';
 import {
+  GetUserUcDef,
   RemoveUserUcDef,
   UsersModuleDef,
 } from '#core/testing/example/users/contract';
@@ -289,5 +290,40 @@ describe('ExampleApp.start', () => {
     await bus.delivered();
 
     expect(await assigneeOf(example, owner, taskId)).toBe(OTHER);
+  });
+});
+
+describe('ExampleApp: getUser человеком', () => {
+  const getUser = (
+    example: ExampleApp,
+    caller: UserCaller<ExampleUser>,
+    userId: string,
+  ) =>
+    example.api.dispatch(
+      UsersModuleDef,
+      GetUserUcDef.command({ userId }),
+      caller,
+      req(),
+    );
+
+  it('человек о себе — ok: активна', async () => {
+    const { example } = makeApp();
+    const owner = await userCaller(example, OWNER);
+
+    expect(expectOk(await getUser(example, owner, OWNER))).toEqual({
+      userId: OWNER,
+      active: true,
+    });
+  });
+
+  it('человек без роли о другом — ACCESS_DENIED по правилу canView', async () => {
+    const { example } = makeApp();
+    const owner = await userCaller(example, OWNER);
+
+    expect(
+      expectErr(await getUser(example, owner, OTHER), 'ACCESS_DENIED').payload,
+    ).toMatchObject({
+      rule: 'canView',
+    });
   });
 });

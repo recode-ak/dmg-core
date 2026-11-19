@@ -194,8 +194,8 @@ describe('экран: сессия', () => {
     const { taskId } = await createTask(app, OWNER, requestId);
     await app.bus.delivered();
 
-    expect(screen.items()).toEqual([
-      { uuid: taskId, title: 'Хлеб', status: 'open' },
+    expect(screen.items()).toMatchObject([
+      { uuid: taskId, ownerId: OWNER, title: 'Хлеб', status: 'open' },
     ]);
     const [created] = app.bus.published.filter(
       (e) => e.name === TaskEvents.created.name,

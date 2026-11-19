@@ -23,7 +23,7 @@ export class ListTasksUc extends UseCaseFromDef<
     return ok(undefined);
   }
 
-  /** Выход — `view()` задач: лишние поля отбрасывает схема output (`v.pick`). */
+  /** Выход — `view()` задач владельца: чужие отсекает выборка по субъекту. */
   protected async execute(
     _: unknown,
     __: undefined,

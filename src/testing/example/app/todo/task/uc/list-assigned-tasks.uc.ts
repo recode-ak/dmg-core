@@ -24,8 +24,8 @@ export class ListAssignedTasksUc extends UseCaseFromDef<
   }
 
   /**
-   * Исполнитель — субъект вызывающего; выход — `view()` задач, лишние поля
-   * отбрасывает схема output (`v.pick`).
+   * Исполнитель — субъект вызывающего; выход — `view()` назначенных ему
+   * задач: чужие отсекает выборка по субъекту.
    */
   protected async execute(
     _: unknown,

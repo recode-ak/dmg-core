@@ -6,12 +6,14 @@ import { GetUserUcDef } from './get-user.uc';
 const USER = '5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6';
 
 describe('GetUserUcDef', () => {
-  it('query только для системы (другие модули через фасад), ошибка — нет пользователя', () => {
+  it('query для системы и человека, виден в UI, право canView, ошибка — нет пользователя', () => {
     expect(normalize(GetUserUcDef)).toMatchObject({
       name: 'getUser',
       type: 'query',
       aggregate: 'user',
-      callers: ['system'],
+      callers: ['system', 'user'],
+      visible: true,
+      policy: { name: 'canView', op: 'anyOf' },
       errors: ['USER_NOT_FOUND'],
       emits: [],
     });

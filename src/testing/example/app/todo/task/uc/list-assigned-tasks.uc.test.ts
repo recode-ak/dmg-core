@@ -10,7 +10,7 @@ import { TaskRepoFake } from '../task.repo.fake';
 import { ListAssignedTasksUc } from './list-assigned-tasks.uc';
 
 // Query субъекта: задачи, назначенные вызывающему (`userId` из вызывающего,
-// не из входа); выход — поля схемы output вместе с владельцем.
+// не из входа); выход — полный state назначенных задач (`view()`).
 
 const OWNER = '5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6';
 const ASSIGNEE = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
@@ -50,7 +50,7 @@ beforeEach(() => {
 });
 
 describe('ListAssignedTasksUc', () => {
-  it('задачи других владельцев, назначенные вызывающему, — uuid, title, status, ownerId', async () => {
+  it('задачи других владельцев, назначенные вызывающему, — полный state каждой', async () => {
     const open = row('Хлеб', ASSIGNEE);
     const done = row('Молоко', ASSIGNEE, 'done');
     tasks.seed(open, done);
@@ -64,8 +64,8 @@ describe('ListAssignedTasksUc', () => {
     const res = await uc.handle({}, as(ASSIGNEE), REQ);
 
     expect(expectOk(res)).toEqual([
-      { uuid: open.uuid, title: 'Хлеб', status: 'open', ownerId: OWNER },
-      { uuid: done.uuid, title: 'Молоко', status: 'done', ownerId: OWNER },
+      tasks.restoredOrThrow(open.uuid).view(),
+      tasks.restoredOrThrow(done.uuid).view(),
     ]);
   });
 

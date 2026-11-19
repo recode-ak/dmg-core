@@ -25,8 +25,8 @@ import {
 import type { ExampleUser } from '../shared/app-user';
 
 /**
- * Откуда вызов `users` при разборе вызывающего (D-51): `getUser` — только
- * для системы, резолвер — вход корня сборки.
+ * Откуда вызов `users` при разборе вызывающего (D-51, D-104): `getUser` от
+ * системы проходит без Policy, резолвер — вход корня сборки.
  */
 const RESOLVER: OperationRef = {
   kind: 'app',

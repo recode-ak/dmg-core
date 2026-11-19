@@ -32,7 +32,7 @@ covers:
 
 - `Facade<M>` и `SystemCallable<M>` (корень `dmg-core`) — UC модуля с `'system'` в `callers`.
 - `ModuleFacade` и `ModuleFacades` (`dmg-core/app`) — реализация над `dispatch` модуля и набор фасадов в `ModuleDeps.facades`.
-- [get-user.uc.ts (Def)](../../src/testing/example/users/user/uc/get-user.uc.ts): UC, открытый другим модулям, — `callers: ['system']`, ответ `{ userId, active }`, а не state.
+- [get-user.uc.ts (Def)](../../src/testing/example/users/user/uc/get-user.uc.ts): UC, открытый другим модулям и человеку, — `callers: ['system', 'user']`, Policy `canView` (сам или администратор; системный вызов — без Policy, `checkPolicy` в [реализации](../../src/testing/example/app/users/user/uc/get-user.uc.ts)), ответ `{ userId, active }`, а не state.
 - [todo.facade.test.ts](../../src/testing/example/app/todo/todo.facade.test.ts): учебный потребитель — `this.call(GetTaskUcDef, …)`, `TaskAr.readonly(res.value)`. Две стороны: вместе с владельцем через `ModuleFacade`; потребитель отдельно через `StubFacade` (ответ по Def, проверка `received`: вход, `caller.from`, `caller.person()`).
 - Потребитель в UC: [assign-task.uc.ts](../../src/testing/example/app/todo/task/uc/assign-task.uc.ts) — `this.call(GetUserUcDef, …)`; тест — [assign-task.uc.test.ts](../../src/testing/example/app/todo/task/uc/assign-task.uc.test.ts) на `StubFacade(UsersModuleDef)`.
 

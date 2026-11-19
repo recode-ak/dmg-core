@@ -51,7 +51,7 @@ describe('AppGraph', () => {
     expect(graph.node('shop')?.provider).toBe('toy');
   });
 
-  it('visible: true в графе учебного приложения — ровно у шести UC с callers user', () => {
+  it('visible: true в графе учебного приложения — ровно у семи UC с callers user', () => {
     const json = new AppGraph(ExampleGraph).document('1.0.0').toJSON();
     const visible = json.nodes.filter((n) => n.visible).map((n) => n.id);
     expect(visible.sort()).toEqual([
@@ -61,6 +61,7 @@ describe('AppGraph', () => {
       'example/todo/createTask',
       'example/todo/listAssignedTasks',
       'example/todo/listTasks',
+      'example/users/getUser',
     ]);
   });
 });

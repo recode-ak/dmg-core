@@ -10,7 +10,7 @@ import { TaskRepoFake } from '../task.repo.fake';
 import { ListTasksUc } from './list-tasks.uc';
 
 // Query субъекта: только свои данные (`userId` из вызывающего, не из
-// входа), выход — поля схемы output, ничего не пишется.
+// входа), выход — полный state задач (`view()`), ничего не пишется.
 
 const OWNER = '5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6';
 const OTHER = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
@@ -53,7 +53,7 @@ beforeEach(() => {
 });
 
 describe('ListTasksUc', () => {
-  it('неархивные задачи вызывающего — только uuid, title, status', async () => {
+  it('неархивные задачи вызывающего — полный state каждой', async () => {
     const open = row(OWNER, 'Хлеб');
     const done = row(OWNER, 'Молоко', 'done');
     tasks.seed(
@@ -72,9 +72,21 @@ describe('ListTasksUc', () => {
     const res = await uc.handle({}, as(OWNER), REQ);
 
     expect(expectOk(res)).toEqual([
-      { uuid: open.uuid, title: 'Хлеб', status: 'open' },
-      { uuid: done.uuid, title: 'Молоко', status: 'done' },
+      tasks.restoredOrThrow(open.uuid).view(),
+      tasks.restoredOrThrow(done.uuid).view(),
     ]);
+  });
+
+  it('порт спрошен по вызывающему: чужие задачи не запрашиваются', async () => {
+    const asked: string[] = [];
+    tasks.findActiveByOwner = async (ownerId) => {
+      asked.push(ownerId);
+      return [];
+    };
+
+    expectOk(await uc.handle({}, as(OTHER), REQ));
+
+    expect(asked).toEqual([OTHER]);
   });
 
   it('задач нет — пустой список, ничего не записано', async () => {

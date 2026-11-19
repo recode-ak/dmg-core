@@ -27,7 +27,7 @@ flowchart TD
 ## Как это работает
 
 1. **Паспорт** — [todo.module.ts](../../src/testing/example/todo/todo.module.ts): от кого модуль зависит, какие операции и реакции у него есть. Это оглавление: всё остальное — расшифровка его строк.
-2. **Контракт** — [contract.ts](../../src/testing/example/todo/contract.ts): Def UC, события и ошибки, которые видит остальной код, с пометкой «кто и зачем». Чего нет в контракте, снаружи не используют.
+2. **Контракт** — [contract.ts](../../src/testing/example/todo/contract.ts): Def UC, события и ошибки, которые видит остальной код, и Ar, Policy, правила — по нужде адаптеров (D-69, D-104), с пометкой «кто и зачем». Чего нет в контракте, снаружи не используют.
 3. **Данные** — [task.state.ts](../../src/testing/example/todo/task/task.state.ts) и Def агрегата (`TaskArDef` в начале `task.ar.ts`): поля, статусы и разрешённые переходы с отказами. Жизненный цикл читается из Def, а не из кода методов.
 4. **Правила** — [task.ar.ts](../../src/testing/example/todo/task/task.ar.ts) (операции и методы-вопросы), [task.policy.ts](../../src/testing/example/todo/task/task.policy.ts) (кто может), [task.rules.ts](../../src/testing/example/todo/task/task.rules.ts) (что допустимо при текущих состояниях). Решения модуля — только здесь и в DCS/DQS.
 5. **Операции домена** — `todo/task/uc/*.uc.ts`: Def UC — вход, выход, ошибки, вызывающие, Policy, правила, события. Этого хватает, чтобы понять операцию без реализации.
