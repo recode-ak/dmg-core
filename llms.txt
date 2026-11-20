@@ -25,7 +25,7 @@
 
 - [Каталог правил](docs/reference/rules.md): ID правил (ARC, DOM, MAN, ERR, API, CODE, TST), способ проверки, карта линтера «правило → каталоги слоёв»; учёт долга — ARC-12 (`DebtChecker` из `dmg-core/arch`: реестры долга кода, тестов и продукта сверены с кодом)
 - [Решения](docs/decisions.md): реестр решений платформы D-NN
-- [Тестирование](docs/reference/testing.md): принципы, пирамида, правило на одном уровне (TST-08), тест проверяет код модуля (TST-09), тесты типов (TST-10) (UC/ER/Job — фейк порта `MemoryRepo`, репозиторий и smoke модуля — временный каталог), хелперы `dmg-core/testing` (`MemoryRepo.where`/`unanswered`, `TEST_TRACE`/`testTrace`, `testUuid`, `TempDir`/`useTempDir`), фикстуры владельца `<domain>/<m>/testing` (только тестовому коду, TST-07)
+- [Тестирование](docs/reference/testing.md): принципы, пирамида, польза на тест (TST-08), тест проверяет код модуля (TST-09), тесты типов (TST-10) (UC/ER/Job — фейк порта `MemoryRepo`, репозиторий и smoke модуля — временный каталог), хелперы `dmg-core/testing` (`MemoryRepo.where`/`unanswered`, `TEST_TRACE`/`testTrace`, `testUuid`, `TempDir`/`useTempDir`), фикстуры владельца `<domain>/<m>/testing` (только тестовому коду, TST-07)
 - [Стиль TypeScript](docs/reference/typescript.md)
 
 ## Гайды по видам артефактов
