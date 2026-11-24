@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
-import type { ResolvedImport } from './source-scan.types';
+import type { ResolvedImport, SourceImport } from './source-scan.types';
 
 /** Суффиксы тестового кода: тесты, фикстуры, наборы клиентов, фейки портов. */
 const TEST_FILE = /\.(test|fixture|test-kit|repo\.fake)\.ts$/;
@@ -43,15 +43,25 @@ export class SourceScan {
       .sort();
   }
 
-  /** Импорты файла с абсолютной целью; неразрешимые пакеты пропускаются. */
-  imports(file: string): ResolvedImport[] {
+  /**
+   * Все импорты файла в порядке записи (D-108): неразрешимый пакет — с
+   * `target: undefined`, а не пропущен. Относительный путь разрешается без
+   * проверки файла и без расширения.
+   */
+  specifiers(file: string): SourceImport[] {
     const text = readFileSync(file, 'utf8');
     return [...text.matchAll(IMPORT)].flatMap((m) => {
       const spec = m[1] ?? m[2];
       if (spec === undefined) return [];
-      const target = this.resolve(spec, dirname(file));
-      return target === undefined ? [] : [{ spec, target }];
+      return [{ spec, target: this.resolve(spec, dirname(file)) }];
     });
+  }
+
+  /** Импорты файла с абсолютной целью; неразрешимые пакеты пропускаются. */
+  imports(file: string): ResolvedImport[] {
+    return this.specifiers(file).flatMap(({ spec, target }) =>
+      target === undefined ? [] : [{ spec, target }],
+    );
   }
 
   inside(path: string, dir: string): boolean {

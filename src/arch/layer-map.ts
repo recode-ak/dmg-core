@@ -2,7 +2,7 @@ import { relative, resolve, sep } from 'node:path';
 import type { AnyModuleDef } from '../domain/contracts/module-def';
 import type { DefIndex } from '../graph/def-index';
 import type { GraphProvider } from '../graph/graph-provider';
-import type { SourceLayer } from '../graph/source-layer.types';
+import type { LayerAxis, SourceLayer } from '../graph/source-layer.types';
 import { FRAMEWORK_LAYERS, IMPLEMENTATION_LAYERS } from './framework-layers';
 import type { LayerPlaces } from './layer-checker.types';
 import type { LayerPlace } from './layer-map.types';
@@ -45,6 +45,21 @@ export class LayerMap {
   /** Каталог слоя, которому принадлежит путь, или `undefined` — вне слоёв. */
   placeOf(path: string): LayerPlace | undefined {
     return this.places.find((place) => this.scan.inside(path, place.dir));
+  }
+
+  /**
+   * Оси слоёв каталога (D-108): каталоги слоёв внутри `dir` и содержащие его.
+   * Ось — по слою, не по имени каталога.
+   */
+  axesIn(dir: string): ReadonlySet<LayerAxis> {
+    const at = resolve(dir);
+    return new Set(
+      this.places
+        .filter(
+          (p) => this.scan.inside(p.dir, at) || this.scan.inside(at, p.dir),
+        )
+        .map((p) => p.layer.axis),
+    );
   }
 
   // Имена слоёв поставщиков — до проверки рёбер: `sees` может вести к слою
