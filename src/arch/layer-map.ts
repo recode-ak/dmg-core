@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import type { AnyModuleDef } from '../domain/contracts/module-def';
 import type { DefIndex } from '../graph/def-index';
@@ -13,7 +14,8 @@ const MODULE = '{m}';
 
 /**
  * Каталоги слоёв приложения и слои поставщиков (D-107): чей файл и какой
- * слой. Ошибка раскладки или слоя поставщика — отказ в конструкторе.
+ * слой. Ошибка раскладки или слоя поставщика, нет каталога `project` — отказ
+ * в конструкторе: проверки не проходят молча по пустому обходу.
  * @see src/arch/layer-checker.test.ts
  */
 export class LayerMap {
@@ -34,6 +36,9 @@ export class LayerMap {
     providers: readonly GraphProvider[],
   ) {
     this.project = resolve(app.project);
+    if (!existsSync(this.project)) {
+      throw new Error(`ArchApp.project — нет каталога: ${this.project}`);
+    }
     for (const layer of FRAMEWORK_LAYERS) this.layers.set(layer.name, layer);
     this.declare(providers);
     this.issues = this.undeclared();

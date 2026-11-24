@@ -23,7 +23,12 @@ beforeAll(() => {
     writeFileSync(join(root, dir, 'draft', 'draft.module.ts'), '');
   }
 });
-afterAll(() => rmSync(root, { recursive: true, force: true }));
+/** Пустой проект: каталогов слоёв нет. */
+const none = mkdtempSync(join(tmpdir(), 'arch-report-none-'));
+afterAll(() => {
+  rmSync(root, { recursive: true, force: true });
+  rmSync(none, { recursive: true, force: true });
+});
 
 /** Модуль-заготовка без нарушений: label и description не заполнены. */
 const draft: ArchApp = {
@@ -86,23 +91,23 @@ describe('reportArchCheck', () => {
           description: 'Приложение с модулем без названия.',
           modules: [broken],
         }),
-        project: '/нет',
+        project: none,
         layout: {
-          kernel: '/нет/kernel',
-          domain: '/нет/домена/{m}',
-          backend: '/нет/пакета/{m}',
-          assembly: '/нет/сборки',
+          kernel: join(none, 'kernel'),
+          domain: join(none, 'домена', '{m}'),
+          backend: join(none, 'пакета', '{m}'),
+          assembly: join(none, 'сборки'),
         },
         runners: [],
-        graphEntry: '/нет/broken.graph.ts',
+        graphEntry: join(none, 'broken.graph.ts'),
       },
     ]);
     expect(code).toBe(1);
     expect(lines).toEqual([
       'arch:check broken: нарушений — 3',
       'MAN-01: модуль broken: пустой label',
-      'ARC-06: модуль broken: нет /нет/домена/broken/broken.module.ts',
-      'ARC-06: модуль broken: нет /нет/пакета/broken/broken.module.ts',
+      `ARC-06: модуль broken: нет ${none}/домена/broken/broken.module.ts`,
+      `ARC-06: модуль broken: нет ${none}/пакета/broken/broken.module.ts`,
       'arch:check: нарушений — 3',
       `Правила по ID: ${RULES_DOC}`,
     ]);

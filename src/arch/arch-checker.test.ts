@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'bun:test';
+import { afterAll, describe, expect, it } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { AppDef } from '../domain/contracts/app-def';
 import { ModuleDef } from '../domain/contracts/module-def';
 import { DefIndex } from '../graph/def-index';
@@ -18,7 +21,11 @@ const broken = ModuleDef.define({
   reactions: [],
   jobs: [],
 });
-/** Приложение с модулем `broken`; каталогов слоёв нет — проверять импорты нечего. */
+/** Пустой проект: каталогов слоёв нет — проверять импорты нечего. */
+const none = mkdtempSync(join(tmpdir(), 'arch-checker-'));
+afterAll(() => rmSync(none, { recursive: true, force: true }));
+
+/** Приложение с модулем `broken` в пустом проекте. */
 const nowhere: ArchApp = {
   def: AppDef.define({
     name: 'broken',
@@ -26,15 +33,15 @@ const nowhere: ArchApp = {
     description: 'Приложение с модулем без названия.',
     modules: [broken],
   }),
-  project: '/нет',
+  project: none,
   layout: {
-    kernel: '/нет/kernel',
-    domain: '/нет/домена/{m}',
-    backend: '/нет/пакета/{m}',
-    assembly: '/нет/сборки',
+    kernel: join(none, 'kernel'),
+    domain: join(none, 'домена', '{m}'),
+    backend: join(none, 'пакета', '{m}'),
+    assembly: join(none, 'сборки'),
   },
   runners: [],
-  graphEntry: '/нет/broken.graph.ts',
+  graphEntry: join(none, 'broken.graph.ts'),
 };
 
 describe('ArchChecker', () => {
@@ -55,8 +62,8 @@ describe('ArchChecker', () => {
     const checker = new ArchChecker(DefIndex.from([broken]), nowhere);
     expect(checker.check().map((v) => v.format())).toEqual([
       'MAN-01: модуль broken: пустой label',
-      'ARC-06: модуль broken: нет /нет/домена/broken/broken.module.ts',
-      'ARC-06: модуль broken: нет /нет/пакета/broken/broken.module.ts',
+      `ARC-06: модуль broken: нет ${none}/домена/broken/broken.module.ts`,
+      `ARC-06: модуль broken: нет ${none}/пакета/broken/broken.module.ts`,
     ]);
   });
 

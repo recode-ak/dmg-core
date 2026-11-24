@@ -710,6 +710,13 @@ describe('LayerChecker: каталоги слоёв', () => {
     );
   });
 
+  it('ArchApp.project не существует — отказ, а не пустой обход', () => {
+    rmSync(root, { recursive: true });
+    expect(refusal(() => check())).toBe(
+      `ArchApp.project — нет каталога: ${root}`,
+    );
+  });
+
   it('шаблон слоя по модулям без {m} — отказ', () => {
     const layout = { ...dirs(), domain: join(root, 'domain') };
     expect(refusal(() => check({ layout }))).toBe(
