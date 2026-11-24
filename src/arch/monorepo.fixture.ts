@@ -13,24 +13,15 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import type { FixtureManifest, FixtureSection } from './monorepo.fixture.types';
 
 /** Секции зависимостей `package.json`: имена пакетов, версии ставит фикстура. */
-const SECTIONS = [
+const SECTIONS: readonly FixtureSection[] = [
   'dependencies',
   'devDependencies',
   'peerDependencies',
   'optionalDependencies',
-] as const;
-
-/** `package.json` фикстуры; зависимости — имена: vendor → `file:`, иначе `workspace:*`. */
-export type FixtureManifest = {
-  readonly name?: string;
-  readonly exports?: Readonly<Record<string, string>>;
-  readonly imports?: Readonly<Record<string, string>>;
-  readonly workspaces?:
-    | readonly string[]
-    | { readonly packages: readonly string[] };
-} & { readonly [S in (typeof SECTIONS)[number]]?: readonly string[] };
+];
 
 export class Monorepo {
   /** Абсолютный путь проекта (`ArchApp.project`), без ссылок. */

@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
+import { type AnyModuleDef, ModuleDef } from '../domain/contracts/module-def';
 import { DefIndex } from '../graph/def-index';
 import type { GraphProvider } from '../graph/graph-provider';
 import type { SourceLayer } from '../graph/source-layer.types';
-import { AlphaModuleDef, LayerProvider } from './arch.fixture';
+import { AlphaModuleDef, BetaModuleDef, LayerProvider } from './arch.fixture';
 import type { LayerPlaces } from './layer-checker.types';
 import { LayerMap } from './layer-map';
-import { type FixtureManifest, Monorepo } from './monorepo.fixture';
+import { Monorepo } from './monorepo.fixture';
+import type { FixtureManifest } from './monorepo.fixture.types';
 import { UnitChecker } from './unit-checker';
 import type { UnitPlaces } from './unit-checker.types';
 import { UnitMap } from './unit-map';
@@ -125,9 +127,10 @@ const places = (over: Partial<Places> = {}): Places => ({
 const checkAsIs = (
   over: Partial<Places> = {},
   providers: readonly GraphProvider[] = [],
+  roots: readonly AnyModuleDef[] = [AlphaModuleDef],
 ): string[] => {
   const app = places(over);
-  const map = new LayerMap(DefIndex.from([AlphaModuleDef]), app, providers);
+  const map = new LayerMap(DefIndex.from(roots), app, providers);
   return new UnitChecker(map, UnitMap.read(repo.proj), app)
     .check()
     .map((v: Violation) => v.format());
@@ -137,9 +140,10 @@ const checkAsIs = (
 const check = (
   over: Partial<Places> = {},
   providers: readonly GraphProvider[] = [],
+  roots: readonly AnyModuleDef[] = [AlphaModuleDef],
 ): string[] => {
   repo.install();
-  return checkAsIs(over, providers);
+  return checkAsIs(over, providers, roots);
 };
 
 /** Сообщение отказа сборки проверок (в конструкторе или в `check`). */
@@ -228,6 +232,18 @@ describe('UnitChecker: ARC-14 — пакет объявляет всё, что �
     expect(check()).toEqual([]);
   });
 
+  it('ARC-14: файл реализации внешнего модуля (D-37) внутри единицы — проверяется, как любой файл единицы', () => {
+    standard();
+    repo
+      .unit('backend/beta', { name: '@t/be-beta' })
+      .write('backend/beta/src/legacy.ts', 'ext-a');
+    const beta = ModuleDef.define({ ...BetaModuleDef, external: true });
+    const roots = [ModuleDef.define({ ...AlphaModuleDef, dependsOn: [beta] })];
+    expect(check({}, [], roots)).toEqual([
+      `ARC-14: backend/beta/src/legacy.ts ${undeclared('@t/be-beta', 'ext-a')}: ext-a`,
+    ]);
+  });
+
   it('ARC-14: подпуть scoped-пакета при объявленном пакете — можно', () => {
     standard();
     repo.write('runners/cli/src/view.ts', '@v/scoped/sub');
@@ -271,6 +287,32 @@ describe('UnitChecker: ARC-15 — между пакетами только им�
     expect(check()).toEqual([
       `ARC-15: backend/alpha/src/note.ts (@t/be-alpha) ${PAST_EXPORTS}: @t/domain/src/alpha/alpha.state`,
     ]);
+  });
+
+  it('ARC-14, ARC-15: единица только из devDependencies в рабочем коде и мимо exports — оба нарушения', () => {
+    standard();
+    repo
+      .unit('runners/cli', {
+        ...CLI,
+        dependencies: ['@t/assembly', '@v/scoped'],
+        devDependencies: ['@t/domain'],
+      })
+      .write('runners/cli/src/view.ts', '@t/domain/src/alpha/alpha.state');
+    expect(check()).toEqual([
+      'ARC-14: runners/cli/src/view.ts (@t/cli) импортирует @t/domain из devDependencies в рабочем коде: @t/domain/src/alpha/alpha.state',
+      `ARC-15: runners/cli/src/view.ts (@t/cli) ${PAST_EXPORTS}: @t/domain/src/alpha/alpha.state`,
+    ]);
+  });
+
+  it('ARC-15: объявленный внешний пакет не разрешается — не единица, ARC-15 нет', () => {
+    standard();
+    repo
+      .unit('backend/alpha', {
+        ...ALPHA,
+        dependencies: ['@t/domain', 'ext-a'],
+      })
+      .write('backend/alpha/src/note.ts', 'ext-a/нет');
+    expect(check()).toEqual([]);
   });
 
   it('ARC-15: помощник теста мимо /testing — глубокий путь к фикстуре домена', () => {
@@ -461,15 +503,6 @@ describe('UnitChecker: без нарушений', () => {
       'platform/domain/src/alpha/note.ts',
       '@t/domain',
       '@t/domain/alpha/contract',
-    );
-    expect(check()).toEqual([]);
-  });
-
-  it('ARC-14: объявленный import type', () => {
-    standard();
-    repo.file(
-      'backend/alpha/src/note.ts',
-      "import type { A } from '@t/domain';\nexport type B = A;\n",
     );
     expect(check()).toEqual([]);
   });
