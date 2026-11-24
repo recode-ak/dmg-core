@@ -2,6 +2,7 @@
 covers:
   - src/graph/**
   - src/cli/graph-command.ts
+verified: 4ab3899
 ---
 
 # Граф приложения

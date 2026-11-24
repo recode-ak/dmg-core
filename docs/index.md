@@ -53,7 +53,7 @@
 - [caller.md](./reference/caller.md) — кто вызывает: `guest`, `user`, `delegate`, `system`; след `Trace`
 - [transport.md](./reference/transport.md) — HTTP (JSON-команда), отсев повторов, MCP, in-proc
 - [oplog.md](./reference/oplog.md) — лог операций: запись, патч полей, маскирование `F.sensitive`, срок хранения, чтение (`dmg-core oplog`)
-- [testing.md](./reference/testing.md) — тестирование; хелперы `dmg-core/testing` (фейк `MemoryRepo`, `testTrace`, `testUuid`, `TempDir`)
+- [testing.md](./reference/testing.md) — тестирование; хелперы `dmg-core/testing` (фейк `MemoryRepo`, `testTrace`, `testUuid`, `TempDir`, мини-монорепо `Monorepo`)
 - [typescript.md](./reference/typescript.md) — стиль TypeScript
 
 ## Как устроена документация

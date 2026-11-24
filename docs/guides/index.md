@@ -2,7 +2,7 @@
 
 **Назначение:** как написать артефакт DMG по образцу — учебному модулю пакета ([src/testing/example](../../src/testing/example/example.arch.ts): `todo` — задачи, `users` — пользователи). Один файл на вид, формат — [_template.md](./_template.md). Ссылки и ID правил во всей документации пакета проверяет `scripts/docs-check.test.ts` (в `check` пакета).
 
-Раскладка примера: kernel — `example/platform/kernel/`, домен — `example/platform/domain/<m>/`, реализации — `example/backend/<m>/`, сборка — `example/runners/assembly/example-app.ts`, раннер — `example/runners/cli/`, `AppDef` — `example/platform/domain/example.app.ts`, вход графа (`dmg-core graph`) — `example.graph.ts`, `ArchApp` — `example.arch.ts`; расширение графа и проверок — `example/screen/`. В проекте корни задаёт секция `gen` `dmg-core.json` ([naming.md](../reference/naming.md) §5). Заготовки создаёт генератор `dmg-core gen <вид> …` (раздел «Команда» каждого гайда).
+Раскладка примера: kernel — `example/platform/kernel/`, домен — `example/platform/domain/<m>/`, реализации — `example/backend/<m>/`, сборка — `example/runners/assembly/example-app.ts`, раннер — `example/runners/cli/`, `AppDef` — `example/platform/domain/example.app.ts`, вход графа (`dmg-core graph`) — `example.graph.ts`, `ArchApp` — `example.arch.ts`; расширение графа и проверок — `example/screen/` (описание) и `example/screen-code/` (исполнение). В проекте корни задаёт секция `gen` `dmg-core.json` ([naming.md](../reference/naming.md) §5). Заготовки создаёт генератор `dmg-core gen <вид> …` (раздел «Команда» каждого гайда).
 
 ---
 
