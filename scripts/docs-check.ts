@@ -29,7 +29,7 @@ const SEE_RE = /@see\s+(\S+?)[.,;:)]*(?=\s|$)/g;
 const SEE_PATH_RE = /\.(?:md|ts)$/;
 const RULE_RE = /\b(?:ARC|DOM|MAN|ERR|API|CODE|TST)-\d{2}\b/g;
 /** ID сценария пакета; у поставщика — с суффиксом репо (`GR-UI-01`), он не сверяется. */
-const SCENARIO_RE = /\bGR-\d{2}\b/g;
+const SCENARIO_RE = /\bGR-\d{2,}\b/g;
 const EXTERNAL = /^[a-z]+:/i;
 
 type Kind =
@@ -157,7 +157,7 @@ export function scenariosOf(text: string): Set<string> {
       inside = line.slice(3).trim() === SCENARIOS_HEADING;
       continue;
     }
-    const row = inside ? /^\| (GR-\d{2}) \|/.exec(line) : null;
+    const row = inside ? /^\| (GR-\d{2,}) \|/.exec(line) : null;
     if (row?.[1]) ids.add(row[1]);
   }
   return ids;

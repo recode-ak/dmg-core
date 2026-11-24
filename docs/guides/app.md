@@ -23,7 +23,7 @@ verified: 269f105
 
 ## 2. Команда
 
-`dmg-core init --profile single|monorepo` создаёт сборку (`runners/assembly`: `app.ts`, `app.types.ts`, резолвер `Caller`, тест) и раннер CLI (`runners/cli` : окружение, `runner-cli.ts`, `main.ts`, тесты) — [project.md](./project.md). Модули к сборке подключает генератор по маркерам (`gen module`, `gen aggregate`). Раннер CLI вызывает любой UC командой `call <module>.<operation>` (`api.dispatchByName`); в каркасе остаётся `TODO` — резолвер с пользователями вместо заглушки (`--user <uuid>` → `UserCaller` без ролей, только канал `cli`; [project.md](./project.md) §3).
+`dmg-core init --profile single|monorepo` создаёт сборку (`runners/assembly`: `app.ts`, `app.types.ts`, резолвер `Caller`, тест) и раннер CLI (`runners/cli`: окружение, `runner-cli.ts`, `main.ts`, тесты) — [project.md](./project.md). Модули к сборке подключает генератор по маркерам (`gen module`, `gen aggregate`). Раннер CLI вызывает любой UC командой `call <module>.<operation>` (`api.dispatchByName`); в каркасе остаётся `TODO` — резолвер с пользователями вместо заглушки (`--user <uuid>` → `UserCaller` без ролей, только канал `cli`; [project.md](./project.md) §3).
 
 ## 3. Образец
 
