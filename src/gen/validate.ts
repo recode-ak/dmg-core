@@ -4,6 +4,9 @@ import { join } from 'node:path';
 import { type GenArgs, GenError } from './cli';
 import { isKebab, kindNames, type NamedKind } from './naming';
 
+/** Имя модуля, занятое общим реализаций `backend/app` (D-106). */
+const RESERVED_MODULE = 'app';
+
 function requireKebab(label: string, value: string | undefined) {
   if (value !== undefined && !isKebab(value)) {
     throw new GenError(
@@ -27,6 +30,13 @@ export function validate(args: GenArgs): void {
   const moduleExists = existsSync(join(moduleDir, `${args.module}.module.ts`));
 
   if (args.kind === 'module') {
+    // `backend/app` — общее реализаций (D-106): модуль с этим именем лёг бы
+    // в тот же каталог. Отказ и при adopt — каталог тот же.
+    if (args.module === RESERVED_MODULE) {
+      throw new GenError(
+        `Имя модуля «${RESERVED_MODULE}» зарезервировано: backend/app — общее реализаций (D-106)`,
+      );
+    }
     // adopt: legacy-каталог есть, паспорта ещё нет.
     if (args.adopt ? moduleExists : existsSync(moduleDir)) {
       throw new GenError(

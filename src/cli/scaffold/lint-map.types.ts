@@ -43,8 +43,4 @@ export type LintDirs = {
   readonly sources: readonly string[];
   /** Точка входа раннера — единственное место чтения окружения (ARC-09). */
   readonly main: string;
-  /** Каталоги вне домена, куда домен не выходит относительным путём. */
-  readonly escapes: readonly string[];
-  /** Что за каталоги `escapes` — в сообщение ARC-02. */
-  readonly escapesTitle: string;
 };

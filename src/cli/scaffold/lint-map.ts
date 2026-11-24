@@ -49,8 +49,6 @@ export class LintMap {
     app: ['src/backend', 'src/runners/assembly'],
     sources: ['src'],
     main: 'src/runners/cli/main.ts',
-    escapes: ['backend', 'runners'],
-    escapesTitle: 'реализации и раннеры (src/backend, src/runners)',
   });
 
   /**
@@ -66,8 +64,6 @@ export class LintMap {
       app: ['backend/*/src', 'runners/assembly/src'],
       sources: ['platform/*/src', 'backend/*/src', 'runners/*/src'],
       main: 'runners/*/src/main.ts',
-      escapes: ['backend', 'runners'],
-      escapesTitle: 'реализации и раннеры (backend, runners)',
     });
   }
 
@@ -80,7 +76,7 @@ export class LintMap {
     return new LintMap([
       {
         // Относительного выхода kernel линтер не ловит (`../**` в белом
-        // списке): выход по пути увидит проверяющий слоёв (D-107).
+        // списке): выход kernel по пути — `arch:check` (D-107).
         id: 'ARC-02',
         includes: [`${dirs.kernel}/**`],
         imports: [
@@ -97,24 +93,13 @@ export class LintMap {
         imports: [
           {
             // Kernel — только его вход, без подпутей: вход у kernel один.
+            // Выход домена по пути, как и у kernel, — `arch:check` (D-107).
             group: [
               ...PLATFORM_ONLY,
               ...dirs.kernelImports.map((name) => `!${name}`),
             ],
             message:
               'ARC-02: домен импортирует только корень dmg-core (ядро и Def-классы), valibot и kernel приложения',
-          },
-          {
-            // Относительный выход из домена в реализации и раннеры:
-            // `arch:check` его не видит (проверяет домен только между
-            // модулями). Имена модулей домена из `escapes` зарезервированы:
-            // импорт соседа `../backend/…` даёт ложное ARC-02 (глоб видит
-            // спецификатор, а не путь).
-            group: dirs.escapes.flatMap((dir) => [
-              `**/../${dir}`,
-              `**/../${dir}/**`,
-            ]),
-            message: `ARC-02: домен не импортирует ${dirs.escapesTitle}`,
           },
         ],
       },

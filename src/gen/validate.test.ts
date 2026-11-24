@@ -46,6 +46,14 @@ test('имена не в kebab-case отклоняются', () => {
   );
 });
 
+test('module: имя app зарезервировано — отказ, и с --adopt', () => {
+  const reserved =
+    'Имя модуля «app» зарезервировано: backend/app — общее реализаций (D-106)';
+
+  expect(message(['module', 'app'])).toBe(reserved);
+  expect(message(['module', 'app', '--adopt'])).toBe(reserved);
+});
+
 test('module: модуль не должен существовать', () => {
   validate(args(['module', 'stream']));
   touch('stream/stream.module.ts');

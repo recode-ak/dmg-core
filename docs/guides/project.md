@@ -113,6 +113,6 @@ APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e '
 
 - Генератор напечатал «Вставь вручную» и это пропустили — модуль не подключён: UC отвечает `OPERATION_NOT_FOUND`, `arch:check` модуль не проверяет.
 - monorepo: после `gen module` не выполнен `bun install` — `tsc` не находит `@<scope>/be-<m>`.
-- Модуль домена назван зарезервированным именем — ложное ARC-02: single — `backend`, `runners`; monorepo — `backend`, `runners` ([rules.md](../reference/rules.md#карта-линтера)).
+- Модуль назван `app` — `gen module` отказывает («Имя модуля «app» зарезервировано»): имя занято общим реализаций `backend/app` (D-106).
 - `call` без `--user` — гость: UC с `callers: ['user']` отвечает `UNAUTHORIZED` (код 2). Нужен `--user <uuid>` или `'guest'` в `callers`.
 - UC не-create сгенерирован раньше UC создания — `arch:check` красный по MAN-06 (`created` никто не публикует): `gen uc <m>.<a> create`.

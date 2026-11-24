@@ -64,15 +64,23 @@ describe('LintMap: ARC-02 kernel приложения', () => {
     expect(group).not.toContain('!@acme/kernel');
   });
 
-  it('домен: сообщение называет kernel приложения', () => {
+  // Выход домена по пути (и относительный) — arch:check, D-107: группы
+  // выходов и резерва имён модулей домена в линтере нет.
+  it('домен: одна секция — белый список с kernel приложения, без группы выходов', () => {
     const rule = LintMap.single.rules.find(
       (r) => r.id === 'ARC-02' && r.includes.includes('src/platform/domain/**'),
     );
 
-    expect(rule !== undefined && 'imports' in rule && rule.imports[0]).toEqual({
-      group: KERNEL_ONLY,
-      message:
-        'ARC-02: домен импортирует только корень dmg-core (ядро и Def-классы), valibot и kernel приложения',
+    expect(rule).toEqual({
+      id: 'ARC-02',
+      includes: ['src/platform/domain/**'],
+      imports: [
+        {
+          group: KERNEL_ONLY,
+          message:
+            'ARC-02: домен импортирует только корень dmg-core (ядро и Def-классы), valibot и kernel приложения',
+        },
+      ],
     });
   });
 });
