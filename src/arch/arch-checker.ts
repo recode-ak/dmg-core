@@ -38,7 +38,13 @@ export class ArchChecker {
   private readonly layers: LayerChecker | undefined;
   private readonly units: UnitChecker | undefined;
   private readonly providers: ProviderRuleChecker | undefined;
-  private readonly deviations: DeviationRegistry | undefined;
+  /** Реестр отступлений и ID, которые он вправе снять (`ProviderRuleChecker.debtIds`). */
+  private readonly deviations:
+    | {
+        readonly registry: DeviationRegistry;
+        readonly debtIds: ReadonlySet<string>;
+      }
+    | undefined;
 
   /**
    * Исключения: неверный ID правила или слоя поставщика — ARC-13
@@ -50,7 +56,8 @@ export class ArchChecker {
     this.defs = new DefChecker(index);
     if (app === undefined) return;
     this.app = new AppDefChecker(app.def);
-    this.providers = new ProviderRuleChecker(app);
+    const providers = new ProviderRuleChecker(app);
+    this.providers = providers;
     if (app.layout !== undefined) {
       this.files = new FileChecker(index, ArchChecker.modules(app.layout));
     }
@@ -59,7 +66,10 @@ export class ArchChecker {
     this.layers = new LayerChecker(map, app);
     this.units = new UnitChecker(map, UnitMap.read(map.project), app);
     if (app.debt !== undefined) {
-      this.deviations = DeviationRegistry.read(app.debt, map.project);
+      this.deviations = {
+        registry: DeviationRegistry.read(app.debt, map.project),
+        debtIds: providers.debtIds,
+      };
     }
   }
 
@@ -97,10 +107,9 @@ export class ArchChecker {
       ...(this.units?.check() ?? []),
       ...(this.providers?.check() ?? []),
     ];
-    if (this.deviations === undefined || this.providers === undefined) {
-      return found;
-    }
-    return this.deviations.apply(found, this.providers.debtIds);
+    if (this.deviations === undefined) return found;
+    const { registry, debtIds } = this.deviations;
+    return registry.apply(found, debtIds);
   }
 
   /**

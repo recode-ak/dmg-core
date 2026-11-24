@@ -1,6 +1,6 @@
-// Разбор реестра долга (D-84): общий для учёта долга (`DebtChecker`) и
-// отступлений от правил слоёв (`DeviationRegistry`, D-111). Внутри пакета,
-// не из `dmg-core/arch`.
+// Разбор реестра долга (D-84, D-111): общий для учёта долга (`DebtChecker`) и
+// отступлений от правил слоёв (`DeviationRegistry`). Внутри пакета, не из
+// `dmg-core/arch`.
 import type { DebtEntry } from './debt-checker.types';
 
 const HEADING = /^#{1,3}\s/;

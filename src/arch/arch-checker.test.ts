@@ -18,6 +18,7 @@ import { dirname, join } from 'node:path';
 import { AppDef } from '../domain/contracts/app-def';
 import { type AnyModuleDef, ModuleDef } from '../domain/contracts/module-def';
 import { DefIndex } from '../graph/def-index';
+import type { SourceLayer } from '../graph/source-layer.types';
 import { ExampleArch } from '../testing/example/example.arch';
 import { ExampleAppDef } from '../testing/example/platform/domain/example.app';
 import { TodoModuleDef } from '../testing/example/platform/domain/todo';
@@ -26,7 +27,12 @@ import { UsersModuleDef } from '../testing/example/platform/domain/users';
 import { ScreenDef } from '../testing/example/screen/screen-def';
 import { ScreenProvider } from '../testing/example/screen/screen-provider';
 import { TasksScreenDef } from '../testing/example/screen/tasks.screen';
-import { RuleProvider, StubRule, toyRuleProvider } from './arch.fixture';
+import {
+  LayerProvider,
+  RuleProvider,
+  StubRule,
+  toyRuleProvider,
+} from './arch.fixture';
 import { type ArchApp, ArchChecker } from './arch-checker';
 
 const broken = ModuleDef.define({
@@ -347,6 +353,42 @@ describe('ArchChecker: отступление через долг', () => {
       'ARC-06: backend/a/x.ts (backend) импортирует backend b: ../b/b.module',
       'ARC-12: DEBT-1: правило ARC-06 отступления не допускает — нарушение остаётся',
     ]);
+  });
+
+  it("others: 'none' с debt и записью Правило — нарушение «виден только свой модуль» снято", () => {
+    // Слои игрушечного поставщика по его модулям home и cart; pages видит logic
+    // только своего модуля, доступ TOY-03 допускает отступление.
+    const logic: SourceLayer = {
+      name: 'logic',
+      axis: 'runner',
+      rule: 'TOY-02',
+      perModule: ['home', 'cart'],
+      sees: [],
+    };
+    const pages: SourceLayer = {
+      ...logic,
+      name: 'pages',
+      sees: [{ layer: 'logic', others: 'none', rule: 'TOY-03', debt: true }],
+    };
+    put('logic/cart/public.ts');
+    put('pages/home/page.ts', '../../logic/cart/public');
+    registry('proj/pages/home/**', 'TOY-03');
+    const app = (over: Partial<ArchApp> = {}): ArchApp => ({
+      def: ExampleAppDef,
+      providers: [new LayerProvider('toy', [logic, pages])],
+      project: proj,
+      runners: [],
+      layers: {
+        logic: [join(proj, 'logic', '{m}')],
+        pages: [join(proj, 'pages', '{m}')],
+      },
+      graphEntry: join(proj, 'app.graph.ts'),
+      ...over,
+    });
+    expect(ArchChecker.of(app()).report()).toEqual([
+      'TOY-03: pages/home/page.ts (pages) импортирует logic cart — виден только свой модуль: ../../logic/cart/public',
+    ]);
+    expect(ArchChecker.of(app({ debt: debt() })).report()).toEqual([]);
   });
 });
 
