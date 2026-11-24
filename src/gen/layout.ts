@@ -57,18 +57,18 @@ type DirKey = 'assembly' | 'kernel';
 const SRC = '/src';
 
 /**
- * Где генератор создаёт файлы модуля и как реализация импортирует
- * домен — из настроек, по умолчанию `src/domain/{m}`, `src/app/{m}`. Гибки
- * только корни: форма внутри модуля фиксирована (MAN-10, ARC-06). Один
- * источник путей для `gen` и `ArchApp.layout`.
+ * Где генератор создаёт файлы модуля и как реализация импортирует домен
+ * (D-106): из настроек, по умолчанию — `single`, `src/platform/domain/{m}`,
+ * `src/backend/{m}`. Гибки только корни: форма внутри модуля фиксирована
+ * (MAN-10, ARC-06). Один источник путей для `gen` и `ArchApp.layout`.
  */
 export class GenLayout {
   /** Файл настроек проекта; раскладка — его секция `gen` */
   static readonly configFile = 'dmg-core.json';
 
   static readonly defaults: GenLayoutSettings = {
-    domain: 'src/domain/{m}',
-    backend: 'src/app/{m}',
+    domain: 'src/platform/domain/{m}',
+    backend: 'src/backend/{m}',
   };
 
   /**
@@ -76,10 +76,10 @@ export class GenLayout {
    * раскладке без `gen.assembly` она неизвестна, и генератор не подключает
    * модуль сам, а печатает общую подсказку.
    */
-  static readonly defaultAssembly = 'src/app';
+  static readonly defaultAssembly = 'src/runners/assembly';
 
   /** Kernel по умолчанию — как сборка, только при раскладке по умолчанию */
-  static readonly defaultKernel = 'src/domain/shared';
+  static readonly defaultKernel = 'src/platform/kernel';
 
   /** Раскладка проекта из `dmg-core.json`; нет файла или секции — по умолчанию */
   static async read(root: string): Promise<GenLayout> {
@@ -183,15 +183,15 @@ export class GenLayout {
   }
 
   /**
-   * Каталог сборки (`gen.assembly`); не задан — `src/app` при раскладке по
-   * умолчанию, иначе undefined
+   * Каталог сборки (`gen.assembly`); не задан — `src/runners/assembly` при
+   * раскладке по умолчанию, иначе undefined
    */
   assemblyDir(): string | undefined {
     return this.dirOf('assembly');
   }
 
   /**
-   * Каталог kernel (`gen.kernel`); не задан — `src/domain/shared` при
+   * Каталог kernel (`gen.kernel`); не задан — `src/platform/kernel` при
    * раскладке по умолчанию, иначе undefined
    */
   kernelDir(): string | undefined {

@@ -30,8 +30,8 @@ test('абсолютный шаблон не зависит от корня', ()
 
 test('корень «.» оставляет пути относительными', () => {
   const rel = new GenLayout(GenLayout.defaults, '.');
-  expect(rel.domainDir('todo')).toBe('src/domain/todo');
-  expect(rel.backendDir('todo')).toBe('src/app/todo');
+  expect(rel.domainDir('todo')).toBe('src/platform/domain/todo');
+  expect(rel.backendDir('todo')).toBe('src/backend/todo');
 });
 
 test('domainImport задан — спецификатор по шаблону', () => {
@@ -39,17 +39,17 @@ test('domainImport задан — спецификатор по шаблону',
     new GenLayout(
       { ...GenLayout.defaults, domainImport: '@acme/domain/{m}' },
       '.',
-    ).domainImport('stream', 'src/app/stream/student/uc'),
+    ).domainImport('stream', 'src/backend/stream/student/uc'),
   ).toBe('@acme/domain/stream');
 });
 
 test('domainImport не задан — относительный путь к каталогу домена', () => {
   const rel = new GenLayout(GenLayout.defaults, '/repo');
-  expect(rel.domainImport('todo', '/repo/src/app/todo')).toBe(
-    '../../domain/todo',
+  expect(rel.domainImport('todo', '/repo/src/backend/todo')).toBe(
+    '../../platform/domain/todo',
   );
-  expect(rel.domainImport('todo', '/repo/src/app/todo/task/uc')).toBe(
-    '../../../../domain/todo',
+  expect(rel.domainImport('todo', '/repo/src/backend/todo/task/uc')).toBe(
+    '../../../../platform/domain/todo',
   );
 });
 
@@ -73,13 +73,13 @@ test('describe — применяемая раскладка одной стро
     'Раскладка: домен — packages/domain/src/{m}, реализация — packages/{m}/src, импорт домена — @acme/domain/{m}, сборка — не задана (gen.assembly), kernel — не задан (gen.kernel), манифест приложения — не задан (gen.appDef)',
   );
   expect(new GenLayout(GenLayout.defaults, '.').describe()).toBe(
-    'Раскладка: домен — src/domain/{m}, реализация — src/app/{m}, импорт домена — относительный, сборка — src/app, kernel — src/domain/shared, манифест приложения — не задан (gen.appDef)',
+    'Раскладка: домен — src/platform/domain/{m}, реализация — src/backend/{m}, импорт домена — относительный, сборка — src/runners/assembly, kernel — src/platform/kernel, манифест приложения — не задан (gen.appDef)',
   );
 });
 
 test('settingsFrom — шаблоны поверх значений по умолчанию', () => {
   expect(GenLayout.settingsFrom({ backend: 'p/{m}' })).toEqual({
-    domain: 'src/domain/{m}',
+    domain: 'src/platform/domain/{m}',
     backend: 'p/{m}',
   });
 });
@@ -103,7 +103,7 @@ test('settingsFrom — ошибки с полем', () => {
 
 test('settingsFrom — старые ключи: ошибка с новым именем, раньше неизвестного поля', () => {
   const error = (json: unknown) => () => GenLayout.settingsFrom(json);
-  expect(error({ app: 'src/app/{m}' })).toThrow(
+  expect(error({ app: 'src/backend/{m}' })).toThrow(
     'dmg-core.json: gen.app переименован в gen.backend',
   );
   expect(error({ compositionRoot: 'src/app' })).toThrow(
@@ -127,24 +127,24 @@ test('read — раскладка из секции gen dmg-core.json проек
   );
   expect((await GenLayout.read(root)).module('todo')).toEqual({
     domain: join(root, 'd/todo'),
-    backend: join(root, 'src/app/todo'),
+    backend: join(root, 'src/backend/todo'),
   });
 });
 
 test('read — без файла или без секции gen значения по умолчанию', async () => {
   expect((await GenLayout.read(root)).domainDir('todo')).toBe(
-    join(root, 'src/domain/todo'),
+    join(root, 'src/platform/domain/todo'),
   );
   writeFileSync(join(root, 'dmg-core.json'), '{}');
   expect((await GenLayout.read(root)).backendDir('todo')).toBe(
-    join(root, 'src/app/todo'),
+    join(root, 'src/backend/todo'),
   );
 });
 
 test('read — старый ключ в dmg-core.json проекта: ошибка с новым именем', async () => {
   writeFileSync(
     join(root, 'dmg-core.json'),
-    JSON.stringify({ gen: { app: 'src/app/{m}' } }),
+    JSON.stringify({ gen: { app: 'src/backend/{m}' } }),
   );
   await expect(GenLayout.read(root)).rejects.toThrow(
     'dmg-core.json: gen.app переименован в gen.backend',
@@ -241,15 +241,17 @@ test('сборка: app.ts и package.json её пакета; appDefFile без 
   expect(mono.appDefFile()).toBe(undefined);
   expect(mono.assemblyPackage()).toBe('/repo/app/package.json');
   const single = new GenLayout(
-    { ...GenLayout.defaults, assembly: 'src/app' },
+    { ...GenLayout.defaults, assembly: 'src/runners/assembly' },
     '/repo',
   );
-  expect(single.assemblyDir()).toBe('/repo/src/app');
+  expect(single.assemblyDir()).toBe('/repo/src/runners/assembly');
   expect(single.assemblyPackage()).toBe(undefined);
 });
 
-test('сборка не задана: раскладка по умолчанию — src/app', () => {
-  expect(new GenLayout(GenLayout.defaults, '.').assemblyDir()).toBe('src/app');
+test('сборка не задана: раскладка по умолчанию — src/runners/assembly', () => {
+  expect(new GenLayout(GenLayout.defaults, '.').assemblyDir()).toBe(
+    'src/runners/assembly',
+  );
 });
 
 test('сборка не задана при своей раскладке — неизвестна (не угадываем)', () => {
@@ -258,7 +260,7 @@ test('сборка не задана при своей раскладке — н
   expect(custom.assemblyPackage()).toBe(undefined);
 });
 
-test('kernelDir — от корня проекта; не задан — src/domain/shared при раскладке по умолчанию, иначе неизвестен', () => {
+test('kernelDir — от корня проекта; не задан — src/platform/kernel при раскладке по умолчанию, иначе неизвестен', () => {
   expect(
     new GenLayout(
       { ...MONOREPO, kernel: 'platform/kernel' },
@@ -266,7 +268,7 @@ test('kernelDir — от корня проекта; не задан — src/doma
     ).kernelDir(),
   ).toBe('/repo/platform/kernel');
   expect(new GenLayout(GenLayout.defaults, '.').kernelDir()).toBe(
-    'src/domain/shared',
+    'src/platform/kernel',
   );
   expect(new GenLayout(MONOREPO, '.').kernelDir()).toBe(undefined);
 });
@@ -308,10 +310,10 @@ test('appDefFile — файл AppDef от корня проекта; не зад
 test('describe — манифест приложения, если задан gen.appDef', () => {
   expect(
     new GenLayout(
-      { ...GenLayout.defaults, appDef: 'src/domain/acme.app.ts' },
+      { ...GenLayout.defaults, appDef: 'src/platform/domain/acme.app.ts' },
       '.',
     ).describe(),
   ).toBe(
-    'Раскладка: домен — src/domain/{m}, реализация — src/app/{m}, импорт домена — относительный, сборка — src/app, kernel — src/domain/shared, манифест приложения — src/domain/acme.app.ts',
+    'Раскладка: домен — src/platform/domain/{m}, реализация — src/backend/{m}, импорт домена — относительный, сборка — src/runners/assembly, kernel — src/platform/kernel, манифест приложения — src/platform/domain/acme.app.ts',
   );
 });

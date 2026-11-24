@@ -14,13 +14,13 @@
 
 | ID | Чем | Слой | single | monorepo |
 |---|---|---|---|---|
-| ARC-02 | `noRestrictedImports`: только `dmg-core`, `valibot` и свои файлы; без относительного выхода в корень сборки, раннеры и прикладной слой | домен | `src/domain` | `domain/src` |
-| DOM-01 | `noRestrictedImports`: без `…/state` (плюс запреты ARC-02) | домен: `*.policy.ts`, `*.rules.ts`, `*.dcs.ts` | `src/domain` | `domain/src` |
-| DOM-14 | `dom-14-no-clock.grit` | домен | `src/domain` | `domain/src` |
-| DOM-11 | `dom-11-base-fields.grit` | домен: `*.state.ts` | `src/domain` | `domain/src` |
-| DOM-01 | `noRestrictedImports`: без `…/state` | прикладной слой и корень сборки, кроме `infra/` | `src/app` | `app/src`, `modules/*/src` |
-| TST-07 | `noRestrictedImports`: без `*.repo.fake` и `dmg-core/testing` (плюс запреты DOM-01) | файлы DOM-01 выше, кроме `*.repo.fake.ts` | `src/app` | `app/src`, `modules/*/src` |
-| ARC-09 | `arc-09-no-env.grit` | все исходники, кроме точки входа раннера | `src`, кроме `src/runner/main.ts` | все `src`, кроме `runners/*/src/main.ts` |
+| ARC-02 | `noRestrictedImports`: только `dmg-core`, `valibot` и свои файлы; без относительного выхода в корень сборки, раннеры и прикладной слой | домен | `src/platform/domain` | `domain/src` |
+| DOM-01 | `noRestrictedImports`: без `…/state` (плюс запреты ARC-02) | домен: `*.policy.ts`, `*.rules.ts`, `*.dcs.ts` | `src/platform/domain` | `domain/src` |
+| DOM-14 | `dom-14-no-clock.grit` | домен | `src/platform/domain` | `domain/src` |
+| DOM-11 | `dom-11-base-fields.grit` | домен: `*.state.ts` | `src/platform/domain` | `domain/src` |
+| DOM-01 | `noRestrictedImports`: без `…/state` | прикладной слой и корень сборки, кроме `infra/` | `src/backend`, `src/runners/assembly` | `app/src`, `modules/*/src` |
+| TST-07 | `noRestrictedImports`: без `*.repo.fake` и `dmg-core/testing` (плюс запреты DOM-01) | файлы DOM-01 выше, кроме `*.repo.fake.ts` | `src/backend`, `src/runners/assembly` | `app/src`, `modules/*/src` |
+| ARC-09 | `arc-09-no-env.grit` | все исходники, кроме точки входа раннера | `src`, кроме `src/runners/cli/main.ts` | все `src`, кроме `runners/*/src/main.ts` |
 | CODE-02 | `code-02-class-members.grit` | все исходники | `src` | `domain/src`, `app/src`, `modules/*/src`, `runners/*/src` |
 | DOM-12 | `dom-12-no-iso-dates.grit` | все исходники | то же | то же |
 | DOM-17 | `dom-17-snapshot-repo-only.grit` | все исходники, кроме репозиториев (`*.repo.ts`, `*-repo.ts`, `*.json-repo.ts`, `*.memory-repo.ts`) | то же | то же |
@@ -32,7 +32,7 @@
 
 **Известный пробел DOM-01.** Импорт чужого state по относительному пути (`../../users/user/user.state`) lint ловит только в `*.policy.ts`, `*.rules.ts`, `*.dcs.ts`. В остальных файлах домена (Ar, DQS) — только `arch:check` (ARC-04) и только для модулей из `AppDef` приложения (и их замыкания по `dependsOn`); из `<domain>/shared` — никто, остаётся review.
 
-Имена модулей домена `app`, `runner` (single) и `app`, `runners`, `modules` (monorepo) зарезервированы: глоб запрета ARC-02 видит спецификатор `../app/…`, а не путь, и импорт такого соседа даёт ложное нарушение.
+Имена модулей домена `backend`, `runners` (single) и `app`, `runners`, `modules` (monorepo) зарезервированы: глоб запрета ARC-02 видит спецификатор `../app/…`, а не путь, и импорт такого соседа даёт ложное нарушение.
 
 ## ARC — пакеты и границы
 

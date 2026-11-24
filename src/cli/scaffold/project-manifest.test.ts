@@ -44,11 +44,11 @@ describe('ProjectManifest: слияние', () => {
     const result = merge({
       name: 'acme',
       version: '0.0.1',
-      scripts: { start: 'bun src/runner/main.ts' },
+      scripts: { start: 'bun src/runners/cli/main.ts' },
     });
     expect(result.version).toBe('0.0.1');
     expect(result.scripts).toEqual({
-      start: 'bun src/runner/main.ts',
+      start: 'bun src/runners/cli/main.ts',
       check: 'bun test',
       lint: 'biome check .',
     });

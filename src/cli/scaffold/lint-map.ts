@@ -27,14 +27,17 @@ const FAKES = '**/*.repo.fake.ts';
  * а не россыпь в шаблонах.
  */
 export class LintMap {
-  /** Профиль single: домен `src/domain`, прикладной слой и корень сборки `src/app`, раннер `src/runner`. */
+  /**
+   * Профиль single: домен `src/platform/domain`, реализации модулей
+   * `src/backend` и сборка `src/runners/assembly`, раннер `src/runners/cli`.
+   */
   static readonly single = LintMap.of({
-    domain: 'src/domain',
-    app: ['src/app'],
+    domain: 'src/platform/domain',
+    app: ['src/backend', 'src/runners/assembly'],
     sources: ['src'],
-    main: 'src/runner/main.ts',
-    escapes: ['app', 'runner'],
-    escapesTitle: 'приложение и раннер (src/app, src/runner)',
+    main: 'src/runners/cli/main.ts',
+    escapes: ['backend', 'runners'],
+    escapesTitle: 'реализации и раннеры (src/backend, src/runners)',
   });
 
   /**

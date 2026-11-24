@@ -30,20 +30,20 @@ const SINGLE_FILES = [
   'dmg-core.json',
   'scripts/arch-check.ts',
   'scripts/acme.graph.ts',
-  'src/domain/acme.app.ts',
-  'src/domain/shared/app-user.ts',
-  'src/app/app.ts',
-  'src/app/app.types.ts',
-  'src/app/app-caller-resolver.ts',
-  'src/app/app.test.ts',
-  'src/runner/main.ts',
-  'src/runner/main.test.ts',
-  'src/runner/runner-cli.ts',
-  'src/runner/runner-cli.types.ts',
-  'src/runner/runner-cli.test.ts',
-  'src/runner/runner-env.ts',
-  'src/runner/runner-env.types.ts',
-  'src/runner/runner-env.test.ts',
+  'src/platform/domain/acme.app.ts',
+  'src/platform/kernel/app-user.ts',
+  'src/runners/assembly/app.ts',
+  'src/runners/assembly/app.types.ts',
+  'src/runners/assembly/app-caller-resolver.ts',
+  'src/runners/assembly/app.test.ts',
+  'src/runners/cli/main.ts',
+  'src/runners/cli/main.test.ts',
+  'src/runners/cli/runner-cli.ts',
+  'src/runners/cli/runner-cli.types.ts',
+  'src/runners/cli/runner-cli.test.ts',
+  'src/runners/cli/runner-env.ts',
+  'src/runners/cli/runner-env.types.ts',
+  'src/runners/cli/runner-env.test.ts',
 ];
 
 let pkg: PackageSource;
@@ -83,7 +83,7 @@ describe('ProjectScaffold single: состав плана', () => {
   it('пути — от переданного root', () => {
     const paths = plan('/work/acme').files.map((f) => f.path);
 
-    expect(paths).toContain('/work/acme/src/app/app.ts');
+    expect(paths).toContain('/work/acme/src/runners/assembly/app.ts');
     expect(paths.every((p) => p.startsWith('/work/acme/'))).toBe(true);
   });
 
@@ -167,7 +167,7 @@ describe('ProjectScaffold single: прочие конфиги', () => {
 
     expect(src).toContain("import type { GraphApp } from 'dmg-core/graph';");
     expect(src).toContain(
-      "import { AcmeAppDef } from '../src/domain/acme.app';",
+      "import { AcmeAppDef } from '../src/platform/domain/acme.app';",
     );
     expect(src).toContain(
       'export default { def: AcmeAppDef } satisfies GraphApp;',
@@ -188,25 +188,20 @@ describe('ProjectScaffold single: прочие конфиги', () => {
     });
   });
 
-  it('dmg-core.json — значения CliConfig по умолчанию с корнем сборки, разбирается parse', () => {
+  it('dmg-core.json — все ключи осей gen в порядке полей, разбирается parse', () => {
     const config = new CliConfig(pkg);
     const data = json('dmg-core.json');
+    const gen = {
+      domain: 'src/platform/domain/{m}',
+      backend: 'src/backend/{m}',
+      kernel: 'src/platform/kernel',
+      assembly: 'src/runners/assembly',
+      appDef: 'src/platform/domain/acme.app.ts',
+    };
 
-    const defaults = config.defaults();
-    expect(data).toEqual({
-      ...defaults,
-      gen: {
-        ...defaults.gen,
-        assembly: 'src/app',
-        appDef: 'src/domain/acme.app.ts',
-      },
-    });
-    expect(config.parse(data).gen).toEqual({
-      domain: 'src/domain/{m}',
-      backend: 'src/app/{m}',
-      assembly: 'src/app',
-      appDef: 'src/domain/acme.app.ts',
-    });
+    expect(data).toEqual({ ...config.defaults(), gen });
+    expect(Object.keys(data.gen)).toEqual(Object.keys(gen));
+    expect(config.parse(data).gen).toEqual(gen);
   });
 
   it('arch-check.ts — раскладка из GenLayout, корень сборки и раннер', () => {
@@ -221,15 +216,15 @@ describe('ProjectScaffold single: прочие конфиги', () => {
     expect(src).not.toContain('AcmeAppDef');
     expect(src).not.toContain("ArchApp['modules']");
     expect(src).not.toContain('gen:');
-    expect(src).toContain("root: join(root, 'src/app')");
-    expect(src).toContain("runners: [join(root, 'src/runner')]");
+    expect(src).toContain("root: join(root, 'src/runners/assembly')");
+    expect(src).toContain("runners: [join(root, 'src/runners/cli')]");
     expect(src).not.toContain('name:');
     expect(src).toContain('reportArchCheck(');
     expect(src).toContain("strict: process.argv.includes('--strict')");
   });
 
   it('acme.app.ts — AppDef с маркерами подключения модулей и TODO в текстах', () => {
-    const src = file('src/domain/acme.app.ts');
+    const src = file('src/platform/domain/acme.app.ts');
 
     expect(src).toContain(
       "import { AppDef } from 'dmg-core';\n// gen:imports\n",
@@ -242,12 +237,19 @@ describe('ProjectScaffold single: прочие конфиги', () => {
   });
 
   it('app.ts — маркеры подключения модулей для gen module/aggregate', () => {
-    const src = file('src/app/app.ts');
+    const src = file('src/runners/assembly/app.ts');
 
     expect(src).toContain("from './app-caller-resolver';\n// gen:imports\n");
     expect(src).toContain(
       'const modules: ModuleFactory<AppUser>[] = [\n      // gen:modules\n    ];',
     );
+  });
+
+  it('сборка импортирует AppUser из kernel, раннер — App из сборки', () => {
+    expect(file('src/runners/assembly/app.ts')).toContain(
+      "import type { AppUser } from '../../platform/kernel/app-user';",
+    );
+    expect(file('src/runners/cli/main.ts')).toContain("from '../assembly/app'");
   });
 
   it('biome.json — каталог данных вне проверки: запуск раннера не ломает check', () => {
@@ -260,14 +262,6 @@ describe('ProjectScaffold single: прочие конфиги', () => {
   it('biome.json — схема версии biome пакета', () => {
     expect(json('biome.json').$schema).toBe(
       `https://biomejs.dev/schemas/${pkg.devDependencies['@biomejs/biome']}/schema.json`,
-    );
-  });
-});
-
-describe('ProjectScaffold single: делегирование (D-89)', () => {
-  it('CallerResolver — результат с отказом делегирования', () => {
-    expect(file('src/app/app.types.ts')).toContain(
-      'Result<PersonCaller<AppUser>, DelegationDenied>',
     );
   });
 });
@@ -296,9 +290,9 @@ describe('ProjectScaffold single: применение', () => {
 
   it('повтор — ошибка коллизии, ничего не записано', () => {
     applyPlan(plan(dir), { write: true });
-    rmSync(join(dir, 'src/runner'), { recursive: true });
+    rmSync(join(dir, 'src/runners/cli'), { recursive: true });
 
     expect(() => applyPlan(plan(dir), { write: true })).toThrow(GenError);
-    expect(existsSync(join(dir, 'src/runner'))).toBe(false);
+    expect(existsSync(join(dir, 'src/runners/cli'))).toBe(false);
   });
 });

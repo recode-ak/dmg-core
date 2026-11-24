@@ -114,7 +114,7 @@ test('без gen.package (single): относительные импорты, з
     parseArgs(
       ['module', 'stream'],
       new GenLayout(
-        { ...GenLayout.defaults, appDef: 'src/domain/acme.app.ts' },
+        { ...GenLayout.defaults, appDef: 'src/platform/domain/acme.app.ts' },
         '/r',
       ),
     ),
@@ -123,17 +123,17 @@ test('без gen.package (single): относительные импорты, з
   expect(p.notes ?? []).toEqual([]);
   expect(p.edits.filter((e) => e.marker === '// gen:imports')).toEqual([
     {
-      path: '/r/src/app/app.ts',
+      path: '/r/src/runners/assembly/app.ts',
       marker: '// gen:imports',
-      line: "import { StreamModuleDef } from '../domain/stream/contract';",
+      line: "import { StreamModuleDef } from '../../platform/domain/stream/contract';",
     },
     {
-      path: '/r/src/app/app.ts',
+      path: '/r/src/runners/assembly/app.ts',
       marker: '// gen:imports',
-      line: "import { createStreamModule } from './stream';",
+      line: "import { createStreamModule } from '../../backend/stream';",
     },
     {
-      path: '/r/src/domain/acme.app.ts',
+      path: '/r/src/platform/domain/acme.app.ts',
       marker: '// gen:imports',
       line: "import { StreamModuleDef } from './stream/contract';",
     },

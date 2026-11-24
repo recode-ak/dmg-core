@@ -217,7 +217,7 @@ export class ProjectFiles {
   }
 
   private archCheck(): string {
-    const { app, runner, appDef } = this.layout;
+    const { assembly, runner, appDef } = this.layout;
     const graph = `${appDef.constant.replace(/AppDef$/, '')}Graph`;
     // Порядок biome: пакеты раньше относительных путей.
     const imports = sortImports([
@@ -242,7 +242,7 @@ const app: ArchApp = {
   ...${graph},
   entry: 'contract',
   layout: (m) => layout.module(m),
-  root: join(root, '${app}'),
+  root: join(root, '${assembly}'),
   runners: [join(root, '${runner}')],
 };
 

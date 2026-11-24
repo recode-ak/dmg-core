@@ -96,7 +96,7 @@ describe('ProjectInit: имя проекта', () => {
 describe('ProjectInit: dry-run', () => {
   it('план с путями от корня, ничего не записано', async () => {
     const lines = await run({ dryRun: true });
-    expect(lines).toContain('Будет создан: src/app/app.ts');
+    expect(lines).toContain('Будет создан: src/runners/assembly/app.ts');
     expect(lines).toContain('Будет создан: package.json');
     expect(lines.at(-1)).toContain('dry-run');
     expect((await snapshot()).size).toBe(0);
@@ -112,9 +112,9 @@ describe('ProjectInit: запись', () => {
   it('пишет план, пути в выводе — от корня', async () => {
     const lines = await run({ name: 'acme' });
     expect(lines[0]).toBe('Каркас single: acme');
-    expect(lines).toContain('Создан: src/runner/main.ts');
+    expect(lines).toContain('Создан: src/runners/cli/main.ts');
     expect(JSON.parse(await read('package.json')).name).toBe('acme');
-    expect(await read('src/app/app.ts')).toContain('class App');
+    expect(await read('src/runners/assembly/app.ts')).toContain('class App');
   });
 
   it('коллизия (dmg-core.json) — GenError, каталог как до запуска', async () => {

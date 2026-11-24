@@ -44,7 +44,9 @@ test('неизвестная команда — код 2 и справка', () 
 test('gen: план по умолчанию — dry-run, пути от корня проекта', () => {
   const result = run('gen', 'module', 'todo');
   expect(result.code).toBe(0);
-  expect(result.stdout).toContain('Будет создан: src/app/todo/todo.module.ts');
+  expect(result.stdout).toContain(
+    'Будет создан: src/backend/todo/todo.module.ts',
+  );
   expect(result.stdout).toContain('Это dry-run.');
 });
 
@@ -66,7 +68,7 @@ describe('init --profile', () => {
   }
 
   for (const [profile, entry] of [
-    ['single', 'src/runner/main.ts'],
+    ['single', 'src/runners/cli/main.ts'],
     ['monorepo', 'runners/cli/src/main.ts'],
   ] as const) {
     test(`${profile}: каркас записан, sync выполнен, подсказка`, async () => {

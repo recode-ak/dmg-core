@@ -12,7 +12,7 @@ verified: 5302112
 
 ## 1. Когда применять
 
-- **single** — один пакет, всё в `src/`: домен `src/domain`, прикладной слой и корень сборки `src/app`, раннер `src/runner`. Для старта, учебных и небольших проектов; раскладка как у учебного модуля пакета.
+- **single** — один пакет, всё в `src/` по осям D-106: kernel `src/platform/kernel`, домен `src/platform/domain`, прикладной слой `src/backend/<m>`, корень сборки `src/runners/assembly`, раннер `src/runners/cli`. Для старта, учебных и небольших проектов; раскладка как у учебного приложения пакета.
 - **monorepo** — пакеты workspaces `@<scope>/*`: домен `domain`, корень сборки `app`, прикладной пакет на модуль `modules/<m>`, раннеры `runners/<r>`. Когда модулей несколько и границы должны держаться на уровне пакетов; `scope` — из имени проекта (`@acme/school` → `acme`).
 - Профиль выбирается один раз: переход между ними — перенос каталогов и правка секции `gen` `dmg-core.json`, генератора для него нет.
 - Уже есть проект — `dmg-core init` без профиля (только `dmg-core.json`, скилы и роли) и раскладка в секции `gen` ([naming.md](../reference/naming.md) §5).
@@ -34,16 +34,16 @@ bun install && bun run check
 |---|---|---|
 | `package.json` | `version` `0.1.0` (есть в проекте — остаётся), скрипты `check`, `lint`, `format`, `arch:check`, `graph`; версии из пакета | то же + `workspaces`, домен в `devDependencies` корня |
 | `tsconfig.json`, `biome.json` | строгий TS; `overrides` по [карте линтера](../reference/rules.md#карта-линтера); `data/` biome не проверяет | то же; у каждого пакета свой `tsconfig.json` поверх корневого |
-| `dmg-core.json` | секция `gen`: `assembly: src/app`, `appDef` | `gen` с `domainImport`, `package`, `assembly: app/src`, `appDef` |
+| `dmg-core.json` | секция `gen` — все ключи осей: `domain`, `backend`, `kernel`, `assembly: src/runners/assembly`, `appDef` | `gen` с `domainImport`, `package`, `assembly: app/src`, `appDef` |
 | `scripts/arch-check.ts` | `ArchApp` собирается из входа графа: `{ ...<Имя>Graph, entry, layout, root, runners }` — состав приложения (`AppDef`, поставщики с правилами) берётся из `scripts/<имя>.graph.ts`; раскладка из `GenLayout`, `root` и `runners` — для ARC-07/08; маркеров генератора нет | то же; `AppDef` — из `@<scope>/domain` (через вход графа) |
 | `scripts/<имя>.graph.ts` (D-96) | вход `dmg-core graph`: `export default { def: <Имя>AppDef } satisfies GraphApp`; `bun run graph` пишет `graph.json` — документ графа приложения (версия — из `version` в `package.json`); `graph.json` в `.gitignore`, не коммитится; поставщиков графа сверх домена добавляй в `providers` — их правила попадут и в `arch:check` ([graph-extension.md](./graph-extension.md)) | то же; `AppDef` — из `@<scope>/domain` |
-| `AppDef` (D-93) | `src/domain/<имя>.app.ts` — `<Имя>AppDef` (имя пакета без scope) с маркерами `gen:imports`, `gen:modules`, `TODO` в `label` и `description`; путь — `gen.appDef` | `domain/src/<имя>.app.ts`, экспорт из `domain/src/index.ts` |
-| домен | `src/domain/shared/app-user.ts` — тип пользователя | `domain/` — пакет с `exports` `./*/contract`, `./*/testing`, `./*` |
-| корень сборки | `src/app/app.ts`, резолвер `Caller`, тест | `app/` — пакет `@<scope>/app` |
-| раннер | `src/runner/`: окружение, CLI, `main.ts`, тесты | `runners/cli/` |
+| `AppDef` (D-93) | `src/platform/domain/<имя>.app.ts` — `<Имя>AppDef` (имя пакета без scope) с маркерами `gen:imports`, `gen:modules`, `TODO` в `label` и `description`; путь — `gen.appDef` | `domain/src/<имя>.app.ts`, экспорт из `domain/src/index.ts` |
+| kernel и домен | `src/platform/kernel/app-user.ts` — тип пользователя (без `index.ts`, сборка импортирует файл); домен — `src/platform/domain` | `domain/` — пакет с `exports` `./*/contract`, `./*/testing`, `./*` |
+| корень сборки | `src/runners/assembly/app.ts`, резолвер `Caller`, тест | `app/` — пакет `@<scope>/app` |
+| раннер | `src/runners/cli/`: окружение, CLI, `main.ts`, тесты | `runners/cli/` |
 | `.gitignore`; агенты (`init` выполняет `dmg-core sync`) | `.gitignore` (`node_modules/`, `data/`, `graph.json`); скилы и роли (`.claude/`), ссылка на `llms.txt` в `AGENTS.md` | то же |
 
-Раннер сразу работает (`<раннер>` — `src/runner` | `runners/cli/src`):
+Раннер сразу работает (`<раннер>` — `src/runners/cli` | `runners/cli/src`):
 
 ```sh
 APP_DATA_DIR=data bun <раннер>/main.ts whoami [--user <uuid>]
@@ -90,7 +90,7 @@ APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e '
    - Нет маркера (своя раскладка, правленый `app.ts`) или конфликт имён импортов (агрегаты с одним именем в двух модулях) — генератор печатает «Вставь вручную в <файл> перед <маркер>» с причиной и не падает. Без `gen.assembly` при своей раскладке корень сборки не правится, без `gen.appDef` не правится `AppDef` — подсказка называет поле.
 2. **UC.** `gen uc <m>.<a> create` (или `create-*`) — рабочий: `<A>Ar.create`, `uow.register`, `emits: [created]`, выход `<a>Id`; остаётся перенести поля входа. Остальные — `load` агрегата по `<a>Id` с `NOT_FOUND`, `execute` с `TODO` для операции домена, `emits: []` ([use-case.md](./use-case.md) §2). Событие `created` должен кто-то публиковать (MAN-06): генератор напоминает, пока UC создания нет.
 3. **Вызов.** Любой UC — `call` раннера; отдельный e2e-тест `call` проекту не нужен: раннер покрыт тестами каркаса, сценарии — тестами Ar и UC. Своя команда в `runner-cli.ts` нужна только для удобного интерфейса (образец — [app.md](./app.md) §3). Видимость для транспорта задают `callers` и Policy, а не `contract.ts` (D-54): контракт — граница импортов между модулями.
-4. **Модуль пользователей** — резолвер `Caller` вместо заглушки (TODO в `app-caller-resolver.ts`, образец — [app.md](./app.md) §3); роли приложения — сузить `role` в типе пользователя (TODO в `app-user.ts` домена, D-53). Эти `TODO` в комментариях `arch:check --strict` не ловит: он проверяет только тексты Def.
+4. **Модуль пользователей** — резолвер `Caller` вместо заглушки (TODO в `app-caller-resolver.ts`, образец — [app.md](./app.md) §3); роли приложения — сузить `role` в типе пользователя (TODO в `app-user.ts` kernel приложения, D-53, D-106). Эти `TODO` в комментариях `arch:check --strict` не ловит: он проверяет только тексты Def.
 5. После ручных правок — `bun run format` (порядок импортов biome), затем `bun run check`. Код генератора проходит `check` без правок.
 
 ## 5. Кто что правит руками
@@ -113,6 +113,6 @@ APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e '
 
 - Генератор напечатал «Вставь вручную» и это пропустили — модуль не подключён: UC отвечает `OPERATION_NOT_FOUND`, `arch:check` модуль не проверяет.
 - monorepo: после `gen module` не выполнен `bun install` — `tsc` не находит `@<scope>/<m>`.
-- Модуль домена назван зарезервированным именем — ложное ARC-02: single — `app`, `runner`; monorepo — `app`, `runners`, `modules` ([rules.md](../reference/rules.md#карта-линтера)).
+- Модуль домена назван зарезервированным именем — ложное ARC-02: single — `backend`, `runners`; monorepo — `app`, `runners`, `modules` ([rules.md](../reference/rules.md#карта-линтера)).
 - `call` без `--user` — гость: UC с `callers: ['user']` отвечает `UNAUTHORIZED` (код 2). Нужен `--user <uuid>` или `'guest'` в `callers`.
 - UC не-create сгенерирован раньше UC создания — `arch:check` красный по MAN-06 (`created` никто не публикует): `gen uc <m>.<a> create`.

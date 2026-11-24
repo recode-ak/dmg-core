@@ -105,7 +105,7 @@ describe('init', () => {
         targets: [{ dir: '.claude/agents', format: 'claude' }],
       },
       instructions: 'AGENTS.md',
-      gen: { domain: 'src/domain/{m}', backend: 'src/app/{m}' },
+      gen: { domain: 'src/platform/domain/{m}', backend: 'src/backend/{m}' },
     });
     const skill = await read('.claude/skills/demo/SKILL.md');
     expect(Marker.versionOf(skill)).toBe('1.0.0');
@@ -269,13 +269,13 @@ describe('gen', () => {
     const result = await (await cli()).gen(root, ['module', 'todo', '--write']);
     expect(result.ok).toBe(true);
     expect(result.messages).toContain(
-      `Создан: ${join(root, 'src/app/todo/todo.module.ts')}`,
+      `Создан: ${join(root, 'src/backend/todo/todo.module.ts')}`,
     );
-    expect(await read('src/domain/todo/todo.module.ts')).toContain(
+    expect(await read('src/platform/domain/todo/todo.module.ts')).toContain(
       "name: 'todo'",
     );
-    expect(await read('src/app/todo/todo.module.ts')).toContain(
-      "import { TodoModuleDef } from '../../domain/todo';",
+    expect(await read('src/backend/todo/todo.module.ts')).toContain(
+      "import { TodoModuleDef } from '../../platform/domain/todo';",
     );
   });
 

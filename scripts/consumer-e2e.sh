@@ -244,6 +244,6 @@ graph_e2e() {
   fi
 }
 
-profile_e2e single src/runner/main.ts acme src/domain/acme.app.ts
+profile_e2e single src/runners/cli/main.ts acme src/platform/domain/acme.app.ts
 profile_e2e monorepo runners/cli/src/main.ts @acme/school domain/src/school.app.ts
 echo "e2e: ok"

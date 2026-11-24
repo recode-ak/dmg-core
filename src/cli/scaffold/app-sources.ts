@@ -32,17 +32,17 @@ export class AppSources {
   }
 
   files(): ScaffoldFile[] {
-    const { domain, app, runner, appDef } = this.layout;
+    const { kernel, assembly, runner, appDef } = this.layout;
     return [
       { path: appDef.file, content: this.appDef() },
-      { path: `${domain}/shared/app-user.ts`, content: this.appUser() },
-      { path: `${app}/app.types.ts`, content: this.appTypes() },
-      { path: `${app}/app.ts`, content: this.app() },
+      { path: `${kernel}/app-user.ts`, content: this.appUser() },
+      { path: `${assembly}/app.types.ts`, content: this.appTypes() },
+      { path: `${assembly}/app.ts`, content: this.app() },
       {
-        path: `${app}/app-caller-resolver.ts`,
+        path: `${assembly}/app-caller-resolver.ts`,
         content: this.callerResolver(),
       },
-      { path: `${app}/app.test.ts`, content: this.appTest() },
+      { path: `${assembly}/app.test.ts`, content: this.appTest() },
       { path: `${runner}/runner-env.types.ts`, content: this.envTypes() },
       { path: `${runner}/runner-env.ts`, content: this.env() },
       { path: `${runner}/runner-env.test.ts`, content: this.envTest() },
@@ -58,7 +58,7 @@ export class AppSources {
   /** Входы пакетов workspaces; в проекте из одного пакета их нет. */
   private entries(): ScaffoldFile[] {
     if (this.layout.workspaces === undefined) return [];
-    const { domain, app, appDef } = this.layout;
+    const { domain, kernel, assembly, appDef } = this.layout;
     return [
       {
         path: `${domain}/index.ts`,
@@ -72,13 +72,13 @@ export type { AppUser } from './shared';
 `,
       },
       {
-        path: `${domain}/shared/index.ts`,
+        path: `${kernel}/index.ts`,
         content: `/** Общий домен приложения (D-53): типы, общие для модулей и приложения. */
 export type { AppUser } from './app-user';
 `,
       },
       {
-        path: `${app}/index.ts`,
+        path: `${assembly}/index.ts`,
         content: `/** Вход корня сборки: приложение и его типы — для раннеров. */
 export { App } from './app';
 export type { AppEnv, AppPorts, CallerResolver } from './app.types';
@@ -135,9 +135,9 @@ export const ${constant} = AppDef.define({
 
   private appUser(): string {
     return `/**
- * Пользователь приложения (D-04) — им приложение замыкает дженерик
- * \`Caller\`. Общий домен: тип импортируют прикладной слой модулей, корень
- * сборки и раннер; реализации здесь нет.
+ * Пользователь приложения (D-04, D-53, D-106) — им приложение замыкает
+ * дженерик \`Caller\`. Kernel приложения: тип импортируют прикладной слой
+ * модулей, корень сборки и раннер; реализации здесь нет.
  */
 export type AppUser = {
   readonly uuid: string;
@@ -162,7 +162,7 @@ export type AppUser = {
           'type Trace',
         ],
       },
-      { from: this.from.appUser, names: ['type AppUser'] },
+      { from: this.from.kernel, names: ['type AppUser'] },
     ])}
 
 /**
@@ -218,7 +218,7 @@ export type CallerResolver = {
           'systemClock',
         ],
       },
-      { from: this.from.appUser, names: ['type AppUser'] },
+      { from: this.from.kernel, names: ['type AppUser'] },
       {
         from: './app.types',
         names: ['type AppEnv', 'type AppPorts', 'type CallerResolver'],
@@ -290,7 +290,7 @@ export class App {
         from: 'dmg-core/app',
         names: ['type DelegationClaim', 'type DelegationDenied', 'type Trace'],
       },
-      { from: this.from.appUser, names: ['type AppUser'] },
+      { from: this.from.kernel, names: ['type AppUser'] },
       { from: './app.types', names: ['type CallerResolver'] },
     ])}
 

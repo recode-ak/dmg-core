@@ -3,9 +3,9 @@ import type { PackageSource } from '../package-source';
 import type { LintMap } from './lint-map';
 
 /**
- * Профиль каркаса: `single` — один пакет (домен, прикладной слой,
- * приложение и раннер в `src/`); `monorepo` — пакеты workspaces `domain`,
- * `app`, `modules/*`, `runners/*`.
+ * Профиль каркаса: `single` — один пакет, оси раскладки D-106 в `src/`
+ * (`platform/{kernel,domain}`, `backend/<m>`, `runners/{assembly,cli}`);
+ * `monorepo` — пакеты workspaces `domain`, `app`, `modules/*`, `runners/*`.
  */
 export type ScaffoldProfile = 'single' | 'monorepo';
 
@@ -40,8 +40,8 @@ export type ScaffoldPackage = {
 
 /** Спецификаторы импортов между частями каркаса. */
 export type ScaffoldImports = {
-  /** Тип пользователя `AppUser` — из корня сборки. */
-  readonly appUser: string;
+  /** Тип пользователя `AppUser` из kernel — из сборки. */
+  readonly kernel: string;
   /** Класс `App` — из раннера. */
   readonly app: string;
   /** Типы `AppEnv` и др. корня сборки — из раннера. */
@@ -64,10 +64,12 @@ export type ScaffoldAppDef = {
 
 /** Данные раскладки профиля (`ScaffoldLayout`); пути — от корня проекта. */
 export type ScaffoldLayoutData = {
-  /** Исходники домена: тип пользователя — в `<domain>/shared`. */
+  /** Исходники домена: `AppDef` приложения и модули домена. */
   readonly domain: string;
-  /** Корень сборки. */
-  readonly app: string;
+  /** Kernel приложения: тип пользователя `AppUser` (D-53, D-106). */
+  readonly kernel: string;
+  /** Сборка (корень сборки, D-50). */
+  readonly assembly: string;
   /** Раннер CLI. */
   readonly runner: string;
   /** `include` корневого tsconfig.json. */

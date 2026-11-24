@@ -13,7 +13,7 @@ const SCOPE = /^@([^/]+)\//;
 const BARE = /^@[^/]+\//;
 
 /**
- * Раскладка профиля каркаса: каталоги домена, корня сборки и раннера,
+ * Раскладка профиля каркаса: каталоги домена, kernel, сборки и раннера,
  * спецификаторы импортов между ними, `gen` для `dmg-core.json`, пакеты
  * workspaces и карта линтера. Шаблоны (`AppSources`, `ProjectFiles`)
  * одни на все профили и берут отличия только отсюда.
@@ -30,16 +30,23 @@ export class ScaffoldLayout {
     }
   }
 
-  /** Один пакет: всё в `src/` (как учебный пример пакета). */
+  /**
+   * Один пакет: оси в `src/` — `platform/{kernel,domain}`, `backend/<m>`,
+   * `runners/{assembly,cli}` (как учебное приложение пакета). В `gen` —
+   * все ключи осей: проект не зависит от значений по умолчанию.
+   */
   private static single(appName: string): ScaffoldLayout {
-    const file = `src/domain/${appName}.app.ts`;
+    const domain = 'src/platform/domain';
+    const file = `${domain}/${appName}.app.ts`;
     return new ScaffoldLayout({
-      domain: 'src/domain',
-      app: 'src/app',
-      runner: 'src/runner',
+      domain,
+      kernel: GenLayout.defaultKernel,
+      assembly: GenLayout.defaultAssembly,
+      runner: 'src/runners/cli',
       include: ['src', 'scripts'],
       gen: {
         ...GenLayout.defaults,
+        kernel: GenLayout.defaultKernel,
         assembly: GenLayout.defaultAssembly,
         appDef: file,
       },
@@ -47,15 +54,15 @@ export class ScaffoldLayout {
         name: appName,
         constant: `${toPascal(appName)}AppDef`,
         file,
-        scriptImport: `../src/domain/${appName}.app`,
+        scriptImport: `../${domain}/${appName}.app`,
         graphFile: `scripts/${appName}.graph.ts`,
       },
       imports: {
-        appUser: '../domain/shared/app-user',
-        app: '../app/app',
-        appTypes: '../app/app.types',
+        kernel: '../../platform/kernel/app-user',
+        app: '../assembly/app',
+        appTypes: '../assembly/app.types',
       },
-      moduleEntry: 'src/app/<m>/index.ts',
+      moduleEntry: 'src/backend/<m>/index.ts',
       rootWorkspace: [],
       packages: [],
       lint: LintMap.single,
@@ -63,9 +70,10 @@ export class ScaffoldLayout {
   }
 
   /**
-   * Пакеты workspaces `@<scope>/*`: домен `domain`, корень сборки `app`,
-   * прикладные пакеты `modules/*` (создаёт `gen module`), раннеры
-   * `runners/*`. Домен и корень сборки импортируются по имени пакета.
+   * Пакеты workspaces `@<scope>/*`: домен `domain` (kernel — его
+   * `src/shared`), корень сборки `app`, прикладные пакеты `modules/*`
+   * (создаёт `gen module`), раннеры `runners/*`. Домен и корень сборки
+   * импортируются по имени пакета.
    */
   private static monorepo(scope: string, appName: string): ScaffoldLayout {
     const file = `domain/src/${appName}.app.ts`;
@@ -73,7 +81,8 @@ export class ScaffoldLayout {
     const app = `@${scope}/app`;
     return new ScaffoldLayout({
       domain: 'domain/src',
-      app: 'app/src',
+      kernel: 'domain/src/shared',
+      assembly: 'app/src',
       runner: 'runners/cli/src',
       include: [
         'domain/src',
@@ -97,7 +106,7 @@ export class ScaffoldLayout {
         scriptImport: domain,
         graphFile: `scripts/${appName}.graph.ts`,
       },
-      imports: { appUser: `${domain}/shared`, app, appTypes: app },
+      imports: { kernel: `${domain}/shared`, app, appTypes: app },
       moduleEntry: `@${scope}/<m> (modules/<m>/src/index.ts)`,
       workspaces: ['domain', 'app', 'modules/*', 'runners/*'],
       rootWorkspace: [domain],

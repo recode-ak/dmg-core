@@ -16,7 +16,10 @@ const MONO: Gen = {
   assembly: 'app/src',
   appDef: '/d/acme.app.ts',
 };
-const SINGLE: Gen = { ...GenLayout.defaults, appDef: 'src/domain/acme.app.ts' };
+const SINGLE: Gen = {
+  ...GenLayout.defaults,
+  appDef: 'src/platform/domain/acme.app.ts',
+};
 const CUSTOM: Gen = {
   domain: '/d/{m}',
   backend: '/p/{m}/src',
@@ -47,11 +50,11 @@ describe('AppWiring.moduleEdits', () => {
     ]);
   });
 
-  it('single: правки AppDef — src/domain/acme.app.ts', () => {
+  it('single: правки AppDef — src/platform/domain/acme.app.ts', () => {
     const edits = wiring(SINGLE).moduleEdits();
     expect(
       edits
-        .filter((e) => e.path === 'src/domain/acme.app.ts')
+        .filter((e) => e.path === 'src/platform/domain/acme.app.ts')
         .map((e) => e.marker),
     ).toEqual([WIRING_MARKERS.imports, WIRING_MARKERS.modules]);
   });
@@ -81,11 +84,11 @@ describe('AppWiring.moduleEdits', () => {
     );
   });
 
-  it('single: импорты относительные, корень сборки — src/app', () => {
+  it('single: импорты относительные, сборка — src/runners/assembly', () => {
     const edits = wiring(SINGLE).moduleEdits();
-    expect(edits.map((e) => e.path)).toContain('src/app/app.ts');
+    expect(edits.map((e) => e.path)).toContain('src/runners/assembly/app.ts');
     expect(edits.map((e) => e.line)).toContain(
-      "import { createStreamModule } from './stream';",
+      "import { createStreamModule } from '../../backend/stream';",
     );
   });
 

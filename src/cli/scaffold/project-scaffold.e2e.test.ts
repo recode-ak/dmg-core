@@ -135,113 +135,118 @@ for (const profile of ['single', 'monorepo'] as const) {
 type Violations = Record<string, { code: string; ids: string[] }>;
 
 const SINGLE_VIOLATIONS: Violations = {
-  'src/domain/v/clock.ts': {
+  'src/platform/domain/v/clock.ts': {
     code: 'export const now = (): number => Date.now();\n',
     ids: ['DOM-14'],
   },
-  'src/domain/v/io.ts': {
+  'src/platform/domain/v/io.ts': {
     code: "import { readFileSync } from 'node:fs';\nexport const read = readFileSync;\n",
     ids: ['ARC-02'],
   },
-  'src/domain/v/platform.ts': {
+  'src/platform/domain/v/platform.ts': {
     code: "import { ApiApp } from 'dmg-core/app';\nexport const api = ApiApp;\n",
     ids: ['ARC-02'],
   },
-  'src/domain/v/escape.ts': {
-    code: "import { App } from '../../app/app';\nimport { RunnerCli } from '../../runner/runner-cli';\nexport { App, RunnerCli };\n",
+  'src/platform/domain/v/escape.ts': {
+    code: "import { App } from '../../../runners/assembly/app';\nimport { RunnerCli } from '../../../runners/cli/runner-cli';\nimport { M } from '../../../backend/v/m';\nexport { App, M, RunnerCli };\n",
     ids: ['ARC-02'],
   },
-  'src/domain/v/dates.ts': {
+  'src/platform/domain/v/dates.ts': {
     code: "import * as v from 'valibot';\nexport const D = v.pipe(v.string(), v.isoDateTime());\n",
     ids: ['DOM-12'],
   },
-  'src/domain/v/a/a.state.ts': {
+  'src/platform/domain/v/a/a.state.ts': {
     code: 'export const S = { uuid: 1 };\n',
     ids: ['DOM-11'],
   },
   // Policy: ARC-02 и DOM-01 в одной секции — biome не сливает их.
-  'src/domain/v/a/a.policy.ts': {
+  'src/platform/domain/v/a/a.policy.ts': {
     code: "import { readFileSync } from 'node:fs';\nimport { S } from './a.state';\nexport { readFileSync, S };\n",
     ids: ['ARC-02', 'DOM-01'],
   },
-  'src/domain/v/a/a.rules.ts': {
+  'src/platform/domain/v/a/a.rules.ts': {
     code: "import { S } from './a.state';\nexport { S };\n",
     ids: ['DOM-01'],
   },
-  'src/domain/v/a/a.dcs.ts': {
+  'src/platform/domain/v/a/a.dcs.ts': {
     code: "import type { S } from './a.state';\nexport type D = typeof S;\n",
     ids: ['DOM-01'],
   },
   // Белый список домена: корень dmg-core и valibot.
-  'src/domain/v/allowed.ts': {
+  'src/platform/domain/v/allowed.ts': {
     code: "import { F } from 'dmg-core';\nimport * as v from 'valibot';\nexport const A = v.object({ id: F.uuid('id') });\n",
     ids: [],
   },
   // Ar видит свой state; штатный отказ — не исключение.
-  'src/domain/v/a/a.ar.ts': {
+  'src/platform/domain/v/a/a.ar.ts': {
     code: "import { S } from './a.state';\nexport const f = () => {\n  throw new Error(String(S));\n};\n",
     ids: ['ERR-01'],
   },
-  'src/app/v/a/uc/do.uc.ts': {
-    code: "import { S } from '../../../../domain/v/a/a.state';\nexport const f = (bus: { publish(x: unknown): void }) => bus.publish(S);\n",
+  'src/backend/v/a/uc/do.uc.ts': {
+    code: "import { S } from '../../../../platform/domain/v/a/a.state';\nexport const f = (bus: { publish(x: unknown): void }) => bus.publish(S);\n",
     ids: ['API-02', 'DOM-01'],
   },
-  'src/app/v/a/job/sweep.job.ts': {
+  'src/backend/v/a/job/sweep.job.ts': {
     code: 'export const f = (bus: { publish(x: unknown): void }) => bus.publish(1);\n',
     ids: ['API-02'],
   },
-  'src/app/v/view.ts': {
+  'src/backend/v/view.ts': {
     code: 'export const f = (ar: { snapshot(): unknown }) => ar.snapshot();\n',
     ids: ['DOM-17'],
   },
   // Состояния для патча (D-86) — только UoW пакета; репозиторию тоже нельзя.
-  'src/app/v/patch.ts': {
+  'src/backend/v/patch.ts': {
     code: 'export const f = (ar: { currentState: unknown }) => ar.currentState;\n',
     ids: ['DOM-17'],
   },
-  'src/app/v/infra/b.json-repo.ts': {
+  'src/backend/v/infra/b.json-repo.ts': {
     code: 'export const f = (ar?: { baselineState: unknown }) => ar?.baselineState;\n',
     ids: ['DOM-17'],
   },
-  'src/app/v/env.ts': {
+  'src/backend/v/env.ts': {
     code: 'export const mode = process.env.APP_MODE;\n',
     ids: ['ARC-09'],
   },
-  'src/app/v/members.ts': {
+  'src/backend/v/members.ts': {
     code: 'export class K {\n  public x = 1;\n}\n',
     ids: ['CODE-02'],
   },
   // TST-07: фейк и dmg-core/testing — только тестам и самим фейкам;
   // DOM-01 на тех же файлах действует (одна секция noRestrictedImports).
-  'src/app/v/a/uc/fake.uc.ts': {
-    code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { S } from '../../../../domain/v/a/a.state';\nimport { FakeRepo } from '../a.repo.fake';\nexport { FakeRepo, MemoryRepo, S };\n",
+  'src/backend/v/a/uc/fake.uc.ts': {
+    code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { S } from '../../../../platform/domain/v/a/a.state';\nimport { FakeRepo } from '../a.repo.fake';\nexport { FakeRepo, MemoryRepo, S };\n",
     ids: ['DOM-01', 'TST-07'],
   },
-  'src/app/v/wire.ts': {
+  'src/backend/v/wire.ts': {
+    code: "import { StubFacade } from 'dmg-core/testing';\nexport { StubFacade };\n",
+    ids: ['TST-07'],
+  },
+  // Сборка — в каталогах DOM-01/TST-07, как реализации модулей.
+  'src/runners/assembly/wire.ts': {
     code: "import { StubFacade } from 'dmg-core/testing';\nexport { StubFacade };\n",
     ids: ['TST-07'],
   },
   // Фейку dmg-core/testing можно, entity — нет (DOM-01 не ослаб).
-  'src/app/v/a/a.repo.fake.ts': {
-    code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { S } from '../../../domain/v/a/a.state';\nexport { MemoryRepo, S };\n",
+  'src/backend/v/a/a.repo.fake.ts': {
+    code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { S } from '../../../platform/domain/v/a/a.state';\nexport { MemoryRepo, S };\n",
     ids: ['DOM-01'],
   },
-  'src/app/v/a/uc/fake.uc.test.ts': {
+  'src/backend/v/a/uc/fake.uc.test.ts': {
     code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { FakeRepo } from '../a.repo.fake';\nexport { FakeRepo, MemoryRepo };\n",
     ids: [],
   },
   // Вне includes: infra видит state, репозиторий берёт снимок.
-  'src/app/v/infra/a.json-repo.ts': {
-    code: "import { S } from '../../../domain/v/a/a.state';\nexport const f = (ar: { snapshot(): unknown }) => [S, ar.snapshot()];\n",
+  'src/backend/v/infra/a.json-repo.ts': {
+    code: "import { S } from '../../../platform/domain/v/a/a.state';\nexport const f = (ar: { snapshot(): unknown }) => [S, ar.snapshot()];\n",
     ids: [],
   },
   // Тесты вне всех правил слоёв.
-  'src/domain/v/a/a.policy.test.ts': {
+  'src/platform/domain/v/a/a.policy.test.ts': {
     code: "import { readFileSync } from 'node:fs';\nimport { S } from './a.state';\nexport const f = () => [readFileSync, S, Date.now(), process.env.X];\n",
     ids: [],
   },
-  'src/app/v/a/uc/do.uc.test.ts': {
-    code: "import { S } from '../../../../domain/v/a/a.state';\nexport const f = (bus: { publish(x: unknown): void }) => {\n  bus.publish(S);\n  throw new Error('x');\n};\n",
+  'src/backend/v/a/uc/do.uc.test.ts': {
+    code: "import { S } from '../../../../platform/domain/v/a/a.state';\nexport const f = (bus: { publish(x: unknown): void }) => {\n  bus.publish(S);\n  throw new Error('x');\n};\n",
     ids: [],
   },
 };

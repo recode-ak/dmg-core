@@ -124,7 +124,9 @@ test('тест репозитория: сохранить и найти', () => 
 test('правки: порт попадает в Deps модуля, репозиторий — во вход пакета', () => {
   const mod = '/p/stream/src/stream.module.ts';
   const index = '/p/stream/src/index.ts';
-  expect(plan.edits.filter((e) => e.path !== 'src/app/app.ts')).toEqual([
+  expect(
+    plan.edits.filter((e) => e.path !== 'src/runners/assembly/app.ts'),
+  ).toEqual([
     {
       path: mod,
       marker: '// gen:defs:imports',
@@ -186,16 +188,16 @@ test('длинный репозиторий в app.ts — аргумент на 
   const single = new GenLayout(GenLayout.defaults, '/r');
   const edits = planAppAggregate(
     parseArgs(['aggregate', 'stream.attendance-record'], single),
-  ).edits.filter((e) => e.path === '/r/src/app/app.ts');
+  ).edits.filter((e) => e.path === '/r/src/runners/assembly/app.ts');
   expect(edits).toEqual([
     {
-      path: '/r/src/app/app.ts',
+      path: '/r/src/runners/assembly/app.ts',
       marker: '// gen:imports',
-      line: "import { AttendanceRecordJsonRepo } from './stream';",
+      line: "import { AttendanceRecordJsonRepo } from '../../backend/stream';",
       group: 'repo:stream.attendance-record',
     },
     {
-      path: '/r/src/app/app.ts',
+      path: '/r/src/runners/assembly/app.ts',
       marker: '// gen:repos:stream',
       line: [
         '            attendanceRecordRepo: new AttendanceRecordJsonRepo(',

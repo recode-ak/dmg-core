@@ -76,11 +76,11 @@ test('uc/er/job/dcs/dqs --write', () => {
   expect(existsSync(join(root, 'd/stream/navigation.dqs.ts'))).toBe(true);
 });
 
-/** Раскладка с корнем сборки `src/app` (как у single). */
+/** Раскладка с корнем сборки `src/runners/assembly` (как у single). */
 const WIRED = {
   domain: 'd/{m}',
   backend: 'p/{m}/src',
-  assembly: 'src/app',
+  assembly: 'src/runners/assembly',
   appDef: 'd/acme.app.ts',
 };
 const genWired = (...argv: string[]) =>
@@ -90,7 +90,7 @@ test('module без каркаса: «Вставь вручную» с точн�
   expect(genWired('module', 'stream', '--write')).toBe(0);
   const text = out.join('\n');
   expect(text).toContain(
-    `Вставь вручную в ${join(root, 'src/app/app.ts')} перед // gen:modules:`,
+    `Вставь вручную в ${join(root, 'src/runners/assembly/app.ts')} перед // gen:modules:`,
   );
   expect(text).toContain('createStreamModule({');
   expect(text).toContain(
@@ -102,7 +102,7 @@ test('своя раскладка без gen.assembly: общая подсказ
   expect(gen('module', 'stream', '--write')).toBe(0);
   const text = out.join('\n');
   expect(text).toContain('Корень сборки не задан (gen.assembly');
-  expect(text).not.toContain('src/app/app.ts');
+  expect(text).not.toContain('src/runners/assembly/app.ts');
 });
 
 /** Корень сборки и файл AppDef с маркерами — как после `dmg-core init`. */
@@ -129,16 +129,16 @@ function wiringFiles(app: string): void {
 }
 
 test('module и aggregate по маркерам: фабрика с репозиторием, Def в AppDef', () => {
-  wiringFiles('src/app');
+  wiringFiles('src/runners/assembly');
   genWired('module', 'stream', '--write');
   genWired('aggregate', 'stream.student', '--write');
   expect(out.join('\n')).not.toContain('Вставь вручную');
-  const app = readFileSync(join(root, 'src/app/app.ts'), 'utf8');
+  const app = readFileSync(join(root, 'src/runners/assembly/app.ts'), 'utf8');
   expect(app).toContain(
-    "import { createStreamModule, StudentJsonRepo } from '../../p/stream/src';",
+    "import { createStreamModule, StudentJsonRepo } from '../../../p/stream/src';",
   );
   expect(app).toContain(
-    "import { StreamModuleDef } from '../../d/stream/contract';",
+    "import { StreamModuleDef } from '../../../d/stream/contract';",
   );
   expect(app).toContain(
     "studentRepo: new StudentJsonRepo(\n              join(env.dataDir, 'stream.student.json'),\n            ),\n            // gen:repos:stream",
@@ -149,14 +149,14 @@ test('module и aggregate по маркерам: фабрика с репози�
 });
 
 test('агрегат task в двух модулях: у каждого свой репозиторий и файл данных', () => {
-  wiringFiles('src/app');
+  wiringFiles('src/runners/assembly');
   for (const m of ['alpha', 'beta']) {
     genWired('module', m, '--write');
   }
   out = [];
   genWired('aggregate', 'alpha.task', '--write');
   genWired('aggregate', 'beta.task', '--write');
-  const app = readFileSync(join(root, 'src/app/app.ts'), 'utf8');
+  const app = readFileSync(join(root, 'src/runners/assembly/app.ts'), 'utf8');
   expect(app).toContain(
     "taskRepo: new TaskJsonRepo(join(env.dataDir, 'alpha.task.json')),\n            // gen:repos:alpha",
   );
@@ -164,10 +164,10 @@ test('агрегат task в двух модулях: у каждого свой
   expect(app.match(/TaskJsonRepo/g)?.length).toBe(2);
   const text = out.join('\n');
   expect(text).toContain(
-    "имя TaskJsonRepo уже импортировано из '../../p/alpha/src' — нужен алиас",
+    "имя TaskJsonRepo уже импортировано из '../../../p/alpha/src' — нужен алиас",
   );
   expect(text).toContain(
-    `Вставь вручную в ${join(root, 'src/app/app.ts')} перед // gen:repos:beta`,
+    `Вставь вручную в ${join(root, 'src/runners/assembly/app.ts')} перед // gen:repos:beta`,
   );
   expect(text).toContain("join(env.dataDir, 'beta.task.json')");
 });
