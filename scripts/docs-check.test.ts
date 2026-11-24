@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
-import { checkDocs, checkSee, type DocFile, readDocs } from './docs-check';
+import {
+  checkDocs,
+  checkScenarios,
+  checkSee,
+  type DocFile,
+  readDocs,
+  scenariosOf,
+} from './docs-check';
 
 const RULES = new Set(['DOM-02', 'API-01']);
 const EXISTING = new Set([
@@ -190,6 +197,41 @@ describe('checkSee: @see в JSDoc', () => {
   });
 });
 
+describe('checkScenarios: ID сценариев роста', () => {
+  const SCENARIOS = new Set(['GR-01', 'GR-02']);
+
+  it('объявленные GR-NN — без нарушений; ID поставщика с суффиксом не сверяется', () => {
+    const files = [doc('Сценарии GR-01 и GR-02; у поставщика — GR-UI-01.')];
+    expect(checkScenarios(files, SCENARIOS)).toEqual([]);
+  });
+
+  it('необъявленный GR-99 — нарушение с путём, один раз на файл', () => {
+    const files = [
+      doc('GR-01, GR-99 и снова GR-99'),
+      doc('// GR-99', 'src/arch/unit-checker.ts'),
+    ];
+    expect(checkScenarios(files, SCENARIOS)).toEqual([
+      'docs/guides/aggregate.md: сценарий GR-99 не объявлен в docs/concepts/layers.md («Сценарии роста»)',
+      'src/arch/unit-checker.ts: сценарий GR-99 не объявлен в docs/concepts/layers.md («Сценарии роста»)',
+    ]);
+  });
+
+  it('реестр — строки таблицы раздела «Сценарии роста», не упоминания вне его', () => {
+    const text = [
+      '## Как это работает',
+      '| GR-07 | не реестр |',
+      '## Сценарии роста',
+      '| ID | Сценарий |',
+      '|---|---|',
+      '| GR-01 | модуль в сервис |',
+      '| GR-02 | другой язык |',
+      '## Почему так',
+      '| GR-08 | не реестр |',
+    ].join('\n');
+    expect([...scenariosOf(text)]).toEqual(['GR-01', 'GR-02']);
+  });
+});
+
 describe('@see в src пакета (контракт)', () => {
   it('пути живые, якоря — на заголовки', () => {
     const { files, sources, exists } = readDocs(join(import.meta.dir, '..'));
@@ -208,5 +250,11 @@ describe('документация пакета (контракт)', () => {
     expect(paths).toContain('agents/roles/dmg-reviewer.md');
     expect(rules.size).toBeGreaterThan(50);
     expect(checkDocs(files, exists, rules)).toEqual([]);
+  });
+
+  it('сценарии GR-NN в документах и src объявлены в «Сценариях роста»', () => {
+    const { files, sources, scenarios } = readDocs(join(import.meta.dir, '..'));
+    expect([...scenarios]).toEqual(['GR-01', 'GR-02']);
+    expect(checkScenarios([...files, ...sources], scenarios)).toEqual([]);
   });
 });

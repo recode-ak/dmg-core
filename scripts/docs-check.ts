@@ -2,8 +2,9 @@
  * Контрактная проверка документации пакета (`docs/`, `skills/`, `agents/`,
  * `llms.txt`): ссылки на файлы живые, не выходят за пределы пакета и идут по
  * направлению D-59, якоря ведут на заголовки, ID правил есть в
- * `docs/reference/rules.md`; пути в `@see` JSDoc `src/` живые. Запускается тестом
- * `docs-check.test.ts`.
+ * `docs/reference/rules.md`, ID сценариев роста `GR-NN` — в реестре
+ * `docs/concepts/layers.md` (D-109); пути в `@see` JSDoc `src/` живые.
+ * Запускается тестом `docs-check.test.ts`.
  *
  * Чистые функции над файлами в памяти; чтение диска — в `readDocs`.
  */
@@ -21,10 +22,14 @@ const DOC_DIRS = ['docs', 'skills', 'agents'];
 const DOC_FILES = ['llms.txt', 'README.md'];
 const SOURCE_GLOB = 'src/**/*.ts';
 const RULES_PATH = 'docs/reference/rules.md';
+const SCENARIOS_PATH = 'docs/concepts/layers.md';
+const SCENARIOS_HEADING = 'Сценарии роста';
 const LINK_RE = /\]\(([^)\s]+)\)/g;
 const SEE_RE = /@see\s+(\S+?)[.,;:)]*(?=\s|$)/g;
 const SEE_PATH_RE = /\.(?:md|ts)$/;
 const RULE_RE = /\b(?:ARC|DOM|MAN|ERR|API|CODE|TST)-\d{2}\b/g;
+/** ID сценария пакета; у поставщика — с суффиксом репо (`GR-UI-01`), он не сверяется. */
+const SCENARIO_RE = /\bGR-\d{2}\b/g;
 const EXTERNAL = /^[a-z]+:/i;
 
 type Kind =
@@ -143,6 +148,36 @@ export function checkDocs(
   return violations;
 }
 
+/** Реестр сценариев: ID из строк таблиц раздела «Сценарии роста» (до следующего `## `). */
+export function scenariosOf(text: string): Set<string> {
+  const ids = new Set<string>();
+  let inside = false;
+  for (const line of text.split('\n')) {
+    if (line.startsWith('## ')) {
+      inside = line.slice(3).trim() === SCENARIOS_HEADING;
+      continue;
+    }
+    const row = inside ? /^\| (GR-\d{2}) \|/.exec(line) : null;
+    if (row?.[1]) ids.add(row[1]);
+  }
+  return ids;
+}
+
+/** Каждый `GR-NN` в файлах объявлен в реестре сценариев (D-109); нарушение — раз на файл и ID. */
+export function checkScenarios(
+  files: readonly DocFile[],
+  scenarios: ReadonlySet<string>,
+): string[] {
+  return files.flatMap((file) =>
+    [...new Set([...file.text.matchAll(SCENARIO_RE)].map((m) => m[0]))]
+      .filter((id) => !scenarios.has(id))
+      .map(
+        (id) =>
+          `${file.path}: сценарий ${id} не объявлен в ${SCENARIOS_PATH} («${SCENARIOS_HEADING}»)`,
+      ),
+  );
+}
+
 /** Пути в `@see` (от корня пакета, `*.md` и `*.ts`) живые, якоря — на заголовки `docs` */
 export function checkSee(
   sources: readonly DocFile[],
@@ -167,7 +202,7 @@ export function checkSee(
   return violations;
 }
 
-/** Документация, исходники, проверка существования и ID правил пакета с корнем `root`. */
+/** Документация, исходники, проверка существования, ID правил и сценариев пакета с корнем `root`. */
 export function readDocs(root: string) {
   const read = (path: string): DocFile => ({
     path,
@@ -197,5 +232,6 @@ export function readDocs(root: string) {
     sources,
     exists: (path: string) => existsSync(join(root, path)),
     rules,
+    scenarios: scenariosOf(readFileSync(join(root, SCENARIOS_PATH), 'utf8')),
   };
 }
