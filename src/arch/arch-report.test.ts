@@ -15,13 +15,12 @@ function run(apps: readonly ArchApp[], options?: { strict?: boolean }) {
   return { code, lines };
 }
 
-/** Каталог модуля-заготовки: только файлы модуля в домене и пакете. */
-let root: string;
+/** Проект модуля-заготовки: только файлы модуля в домене и реализации. */
+const root = mkdtempSync(join(tmpdir(), 'arch-report-'));
 beforeAll(() => {
-  root = mkdtempSync(join(tmpdir(), 'arch-report-'));
   for (const dir of ['domain', 'app']) {
-    mkdirSync(join(root, dir));
-    writeFileSync(join(root, dir, 'draft.module.ts'), '');
+    mkdirSync(join(root, dir, 'draft'), { recursive: true });
+    writeFileSync(join(root, dir, 'draft', 'draft.module.ts'), '');
   }
 });
 afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -45,7 +44,14 @@ const draft: ArchApp = {
       }),
     ],
   }),
-  layout: () => ({ domain: join(root, 'domain'), backend: join(root, 'app') }),
+  project: root,
+  layout: {
+    kernel: join(root, 'kernel'),
+    domain: join(root, 'domain', '{m}'),
+    backend: join(root, 'app', '{m}'),
+    assembly: join(root, 'assembly'),
+  },
+  runners: [],
 };
 
 describe('reportArchCheck', () => {
@@ -79,15 +85,22 @@ describe('reportArchCheck', () => {
           description: 'Приложение с модулем без названия.',
           modules: [broken],
         }),
-        layout: () => ({ domain: '/нет/домена', backend: '/нет/пакета' }),
+        project: '/нет',
+        layout: {
+          kernel: '/нет/kernel',
+          domain: '/нет/домена/{m}',
+          backend: '/нет/пакета/{m}',
+          assembly: '/нет/сборки',
+        },
+        runners: [],
       },
     ]);
     expect(code).toBe(1);
     expect(lines).toEqual([
       'arch:check broken: нарушений — 3',
       'MAN-01: модуль broken: пустой label',
-      'ARC-06: модуль broken: нет /нет/домена/broken.module.ts',
-      'ARC-06: модуль broken: нет /нет/пакета/broken.module.ts',
+      'ARC-06: модуль broken: нет /нет/домена/broken/broken.module.ts',
+      'ARC-06: модуль broken: нет /нет/пакета/broken/broken.module.ts',
       'arch:check: нарушений — 3',
       `Правила по ID: ${RULES_DOC}`,
     ]);

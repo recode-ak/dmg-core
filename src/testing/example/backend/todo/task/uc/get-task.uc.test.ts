@@ -8,9 +8,9 @@ import {
 import { Trace } from '#core/kernel/trace/trace';
 import {
   TaskAr,
+  type TaskState,
   TodoModuleDef,
 } from '#core/testing/example/platform/domain/todo/index';
-import type { TaskState } from '#core/testing/example/platform/domain/todo/state';
 import type { ExampleUser } from '#core/testing/example/platform/kernel/app-user';
 import { expectErr, expectOk, testAppContext } from '#core/testing/index';
 import { TaskRepoFake } from '../task.repo.fake';

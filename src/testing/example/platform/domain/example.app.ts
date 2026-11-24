@@ -1,6 +1,6 @@
 import { AppDef } from '#core/domain/contracts/app-def';
-import { TodoModuleDef } from './todo';
-import { UsersModuleDef } from './users';
+import { TodoModuleDef } from './todo/contract';
+import { UsersModuleDef } from './users/contract';
 
 /** Манифест учебного приложения (D-93): полный состав модулей. */
 export const ExampleAppDef = AppDef.define({

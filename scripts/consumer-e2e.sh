@@ -67,7 +67,7 @@ cat >smoke.ts <<'TS'
 import { ArchChecker } from 'dmg-core/arch';
 import { ExampleArch } from 'dmg-core/testing';
 import { ExampleApp } from 'dmg-core/testing/example';
-import { ScreenArch } from 'dmg-core/testing/example/screen/screen.arch';
+import { ScreenArch } from 'dmg-core/testing/example/screen.arch';
 
 const violations = [
   ...ArchChecker.of(ExampleArch).check(),

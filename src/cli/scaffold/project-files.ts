@@ -217,7 +217,7 @@ export class ProjectFiles {
   }
 
   private archCheck(): string {
-    const { assembly, runner, appDef } = this.layout;
+    const { runner, appDef } = this.layout;
     const graph = `${appDef.constant.replace(/AppDef$/, '')}Graph`;
     // Порядок biome: пакеты раньше относительных путей.
     const imports = sortImports([
@@ -228,9 +228,9 @@ export class ProjectFiles {
     ]);
     return `/**
  * \`bun run arch:check\` — контрактные проверки архитектуры (\`ArchChecker\`):
- * состав приложения (\`AppDef\`, поставщики с правилами) — из входа графа
- * \`${appDef.name}.graph.ts\`, раскладка модулей — из \`dmg-core.json\`
- * (\`GenLayout\`), корень сборки и раннер. Выход 1 — есть нарушения.
+ * состав приложения (\`AppDef\`, поставщики с правилами и слоями) — из входа
+ * графа \`${appDef.name}.graph.ts\`, каталоги слоёв — из \`dmg-core.json\`
+ * (\`GenLayout.dirs()\`), раннеры-процессы — списком. Выход 1 — есть нарушения.
  * \`--strict\` — незаполненные \`TODO\` в описаниях Def тоже нарушения (MAN-01).
  */
 ${imports}
@@ -241,8 +241,8 @@ const layout = await GenLayout.read(root);
 const app: ArchApp = {
   ...${graph},
   entry: 'contract',
-  layout: (m) => layout.module(m),
-  root: join(root, '${assembly}'),
+  project: root,
+  layout: layout.dirs(),
   runners: [join(root, '${runner}')],
 };
 

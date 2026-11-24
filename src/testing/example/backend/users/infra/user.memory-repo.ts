@@ -5,8 +5,8 @@ import {
 import {
   UserAr,
   UserArDef,
+  type UserState,
 } from '#core/testing/example/platform/domain/users/index';
-import type { UserState } from '#core/testing/example/platform/domain/users/user/user.state';
 import type { UserRepo } from '../user/user.repo';
 
 /** Пользователи в памяти: снапшоты по uuid. */

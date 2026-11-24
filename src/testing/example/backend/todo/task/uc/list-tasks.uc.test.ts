@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it } from 'bun:test';
 import { ModuleFacades } from '#core/app/facade/module-facades';
 import { SystemCaller, UserCaller } from '#core/kernel/caller/caller';
 import { Trace } from '#core/kernel/trace/trace';
-import { TodoModuleDef } from '#core/testing/example/platform/domain/todo/index';
-import type { TaskState } from '#core/testing/example/platform/domain/todo/state';
+import {
+  type TaskState,
+  TodoModuleDef,
+} from '#core/testing/example/platform/domain/todo/index';
 import type { ExampleUser } from '#core/testing/example/platform/kernel/app-user';
 import { expectErr, expectOk, testAppContext } from '#core/testing/index';
 import { TaskRepoFake } from '../task.repo.fake';

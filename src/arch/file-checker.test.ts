@@ -38,7 +38,6 @@ function cleanTree(): void {
     write(`${side}/beta/item/uc/create-item.uc.ts`);
     write(`${side}/beta/item/uc/get-item.uc.ts`);
   }
-  write('domain/beta/index.ts');
 }
 
 const report = (): string[] =>
@@ -88,12 +87,9 @@ describe('FileChecker.todos — тексты Policy (вне графа Def)', ()
 });
 
 describe('FileChecker', () => {
+  // Импорты между модулями — не дело `FileChecker`: их проверяет `LayerChecker`.
   it('чистая раскладка — без нарушений', () => {
     cleanTree();
-    write(
-      'domain/alpha/note/er/add-note.er.ts',
-      "import { ItemEvents } from '../../../beta';\n",
-    );
     write('domain/alpha/note/er/add-note.er.test.ts');
     expect(report()).toEqual([]);
   });
@@ -122,189 +118,7 @@ describe('FileChecker', () => {
     });
   });
 
-  describe('ARC-04 — импорт другого модуля домена', () => {
-    it('мимо index.ts', () => {
-      cleanTree();
-      write(
-        'domain/alpha/note/er/add-note.er.ts',
-        "import { ItemEvents } from '../../../beta/item/item.events';\n",
-      );
-      expect(report()).toEqual([
-        'ARC-04: alpha/note/er/add-note.er.ts импортирует beta мимо index.ts: ../../../beta/item/item.events',
-      ]);
-    });
-
-    it('вход модуля задаёт приложение: contract.ts вместо index.ts', () => {
-      cleanTree();
-      write('domain/beta/contract.ts');
-      write(
-        'domain/alpha/note/er/add-note.er.ts',
-        "import { ItemEvents } from '../../../beta/contract';\n",
-      );
-      write(
-        'domain/alpha/note/job/purge-notes.job.ts',
-        "import { ItemEvents } from '../../../beta';\n",
-      );
-      expect(
-        new FileChecker(DefIndex.from([AlphaModuleDef]), layout, 'contract')
-          .check()
-          .map((v) => v.format()),
-      ).toEqual([
-        'ARC-04: alpha/note/job/purge-notes.job.ts импортирует beta мимо contract.ts: ../../../beta',
-      ]);
-    });
-
-    describe('мимо входа между внешними модулями', () => {
-      const legacyImport = (): void => {
-        cleanTree();
-        write('domain/beta/contract.ts');
-        write(
-          'domain/alpha/note/er/add-note.er.ts',
-          "import { ItemEvents } from '../../../beta';\n",
-        );
-      };
-      const run = (alphaExternal: boolean, betaExternal: boolean): string[] => {
-        const beta = ModuleDef.define({
-          ...BetaModuleDef,
-          external: betaExternal,
-        });
-        const alpha = ModuleDef.define({
-          ...AlphaModuleDef,
-          external: alphaExternal,
-          dependsOn: [beta],
-        });
-        return new FileChecker(DefIndex.from([alpha]), layout, 'contract')
-          .check()
-          .map((v) => v.format());
-      };
-      const violation =
-        'ARC-04: alpha/note/er/add-note.er.ts импортирует beta мимо contract.ts: ../../../beta';
-
-      it('external → external: не проверяется', () => {
-        legacyImport();
-        expect(run(true, true)).toEqual([]);
-      });
-
-      it('external → модуль на Def: нарушение', () => {
-        legacyImport();
-        expect(run(true, false)).toEqual([violation]);
-      });
-
-      it('модуль на Def → external: нарушение', () => {
-        legacyImport();
-        expect(run(false, true)).toEqual([violation]);
-      });
-
-      it('dependsOn проверяется и между внешними', () => {
-        legacyImport();
-        write(
-          'domain/beta/item/uc/create-item.uc.ts',
-          "import type { X } from '../../../alpha';\n",
-        );
-        expect(run(true, true)).toEqual([
-          'ARC-04: beta/item/uc/create-item.uc.ts импортирует alpha, которого нет в dependsOn beta',
-        ]);
-      });
-    });
-
-    it('модуль вне dependsOn', () => {
-      cleanTree();
-      write(
-        'domain/beta/item/uc/create-item.uc.ts',
-        "import type { X } from '../../../alpha';\n",
-      );
-      write('domain/alpha/index.ts');
-      expect(report()).toEqual([
-        'ARC-04: beta/item/uc/create-item.uc.ts импортирует alpha, которого нет в dependsOn beta',
-      ]);
-    });
-  });
-
-  describe('TST-07 — вход testing (фикстуры владельца, D-70)', () => {
-    const run = (testing?: string): string[] =>
-      new FileChecker(
-        DefIndex.from([AlphaModuleDef]),
-        layout,
-        'contract',
-        testing,
-      )
-        .check()
-        .map((v) => v.format());
-    const fixturesTree = (): void => {
-      cleanTree();
-      write('domain/beta/contract.ts');
-      write('domain/beta/testing.ts');
-    };
-    const use = (spec: string): string => `import { itemOf } from '${spec}';\n`;
-
-    it('тестовый код домена и прикладного слоя импортирует testing', () => {
-      fixturesTree();
-      write('domain/alpha/note/note.ar.test.ts', use('../../beta/testing'));
-      write('domain/alpha/testing.ts', use('../beta/testing'));
-      write(
-        'app/alpha/note/er/add-note.fixture.ts',
-        use('../../../../domain/beta/testing'),
-      );
-      write(
-        'app/alpha/note/er/add-note.test-kit.ts',
-        use('../../../../domain/beta/testing'),
-      );
-      write(
-        'app/alpha/note/note.repo.fake.ts',
-        use('../../../domain/beta/testing'),
-      );
-      write('app/alpha/tests/notes.ts', use('../../../domain/beta/testing'));
-      expect(run()).toEqual([]);
-    });
-
-    it('рабочий код импортирует testing — нарушение', () => {
-      fixturesTree();
-      write(
-        'domain/alpha/note/er/add-note.er.ts',
-        use('../../../beta/testing'),
-      );
-      write(
-        'app/alpha/note/job/purge-notes.job.ts',
-        use('../../../../domain/beta/testing'),
-      );
-      expect(run()).toEqual([
-        'TST-07: alpha/note/er/add-note.er.ts импортирует testing.ts модуля beta — вход только для тестового кода: ../../../beta/testing',
-        'TST-07: alpha/note/job/purge-notes.job.ts импортирует testing.ts модуля beta — вход только для тестового кода: ../../../../domain/beta/testing',
-      ]);
-    });
-
-    it('тестовый код мимо contract и testing — ARC-04, как рабочий', () => {
-      fixturesTree();
-      write(
-        'domain/alpha/note/note.ar.test.ts',
-        use('../../beta/item/item.ar'),
-      );
-      expect(run()).toEqual([
-        'ARC-04: alpha/note/note.ar.test.ts импортирует beta мимо contract.ts: ../../beta/item/item.ar',
-      ]);
-    });
-
-    it('имя входа задаёт приложение: при другом имени testing.ts — не вход', () => {
-      fixturesTree();
-      write('domain/alpha/note/note.ar.test.ts', use('../../beta/testing'));
-      expect(run('fixtures')).toEqual([
-        'ARC-04: alpha/note/note.ar.test.ts импортирует beta мимо contract.ts: ../../beta/testing',
-      ]);
-    });
-  });
-
   describe('ARC-06 — прикладные пакеты', () => {
-    it('импорт прикладного пакета другого модуля', () => {
-      cleanTree();
-      write(
-        'app/alpha/note/er/add-note.er.ts',
-        "export { x } from '../../../beta/beta.module';\n",
-      );
-      expect(report()).toEqual([
-        'ARC-06: alpha/note/er/add-note.er.ts импортирует прикладной пакет beta: ../../../beta/beta.module',
-      ]);
-    });
-
     it('у модуля нет прикладного пакета', () => {
       cleanTree();
       rmSync(join(root, 'app/beta'), { recursive: true });
@@ -318,21 +132,6 @@ describe('FileChecker', () => {
     it('внешний модуль: только контракт в домене, прикладного пакета нет (D-37, D-42)', () => {
       cleanTree();
       rmSync(join(root, 'app/beta'), { recursive: true });
-      const beta = ModuleDef.define({ ...BetaModuleDef, external: true });
-      const alpha = ModuleDef.define({ ...AlphaModuleDef, dependsOn: [beta] });
-      expect(
-        new FileChecker(DefIndex.from([alpha]), layout)
-          .check()
-          .map((v) => v.format()),
-      ).toEqual([]);
-    });
-
-    it('внешний модуль: прикладной слой не проверяется, и импорты в нём тоже', () => {
-      cleanTree();
-      write(
-        'app/beta/legacy.ts',
-        "import { x } from '../alpha/alpha.module';\nimport { y } from '../../domain/alpha/note/er/add-note.er';\n",
-      );
       const beta = ModuleDef.define({ ...BetaModuleDef, external: true });
       const alpha = ModuleDef.define({ ...AlphaModuleDef, dependsOn: [beta] });
       expect(

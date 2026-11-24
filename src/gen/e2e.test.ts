@@ -104,8 +104,10 @@ test('тесты заготовок зелёные', async () => {
   expect(res.code).toBe(0);
 }, 120_000);
 
+const layoutOf = () => new GenLayout(GenLayout.defaults, project);
+
 async function probeApp(): Promise<ArchApp> {
-  const layout = new GenLayout(GenLayout.defaults, project);
+  const layout = layoutOf();
   const domain = await import(layout.domainDir(MODULE));
   const long = await import(layout.domainDir(LONG));
   return {
@@ -118,10 +120,9 @@ async function probeApp(): Promise<ArchApp> {
         long.LearningProgressAnalyticsModuleDef,
       ],
     }),
-    layout: (m) => ({
-      domain: layout.domainDir(m),
-      backend: layout.backendDir(m),
-    }),
+    project,
+    layout: layout.dirs(),
+    runners: [],
   };
 }
 
@@ -134,7 +135,7 @@ test('TODO заготовок — все в предупреждениях MAN-0
   const field = /\b(?:label|description|denyMessage):\s*'TODO/g;
   let written = 0;
   for (const m of [MODULE, LONG]) {
-    const dir = app.layout(m).domain;
+    const dir = layoutOf().domainDir(m);
     for (const f of new Bun.Glob('**/*.ts').scanSync({ cwd: dir })) {
       if (f.endsWith('.test.ts')) continue;
       const text = await Bun.file(join(dir, f)).text();

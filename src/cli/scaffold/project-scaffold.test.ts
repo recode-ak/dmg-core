@@ -204,20 +204,24 @@ describe('ProjectScaffold single: прочие конфиги', () => {
     expect(config.parse(data).gen).toEqual(gen);
   });
 
-  it('arch-check.ts — раскладка из GenLayout, корень сборки и раннер', () => {
+  it('arch-check.ts — каталоги слоёв из GenLayout.dirs(), проект и раннер', () => {
     const src = file('scripts/arch-check.ts');
 
     expect(src).toContain("import { GenLayout } from 'dmg-core/gen'");
     expect(src).toContain('await GenLayout.read(');
-    expect(src).toContain('layout: (m) => layout.module(m)');
     expect(src).toContain("import AcmeGraph from './acme.graph';");
     expect(src).toContain('...AcmeGraph,');
+    expect(src).toContain("entry: 'contract',");
+    expect(src).toContain('project: root,');
+    expect(src).toContain('layout: layout.dirs(),');
+    expect(src).toContain("runners: [join(root, 'src/runners/cli')]");
+    expect(src).not.toContain('layout.module');
+    expect(src).not.toContain('root: join(');
+    expect(src).not.toContain("'src/runners/assembly'");
     expect(src).not.toContain('def:');
     expect(src).not.toContain('AcmeAppDef');
     expect(src).not.toContain("ArchApp['modules']");
     expect(src).not.toContain('gen:');
-    expect(src).toContain("root: join(root, 'src/runners/assembly')");
-    expect(src).toContain("runners: [join(root, 'src/runners/cli')]");
     expect(src).not.toContain('name:');
     expect(src).toContain('reportArchCheck(');
     expect(src).toContain("strict: process.argv.includes('--strict')");

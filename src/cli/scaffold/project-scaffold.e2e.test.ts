@@ -471,10 +471,20 @@ describe('ArchChecker на monorepo видит спецификаторы пак
         "export { ProbeModuleDef } from '@acme/domain/probe/contract';\nexport { App } from '@acme/assembly';\n",
       'runners/cli/src/probe-runner-bad.ts':
         "export { ProbeModuleDef } from '@acme/domain/probe';\n",
+      // Пакет реализации модуля — раннеру нельзя (ARC-08).
+      'runners/cli/src/probe-runner-be.ts': "export * from '@acme/be-probe';\n",
+      // Выход домена в сборку по пути — линтер его не видит, ловят слои (ARC-02).
+      'platform/domain/src/probe/escape.ts':
+        "export { App } from '../../../../runners/assembly/src/app';\n",
     };
     for (const [path, code] of Object.entries(files)) {
       writeFileSync(join(project, path), code);
     }
+    // Как workspaces после `bun install`: пакет модуля — ссылка на его каталог.
+    symlinkSync(
+      join(project, 'backend/probe'),
+      join(project, 'node_modules/@acme/be-probe'),
+    );
     const domain = await import(layout.domainDir('probe'));
     const app: ArchApp = {
       def: AppDef.define({
@@ -484,8 +494,8 @@ describe('ArchChecker на monorepo видит спецификаторы пак
         modules: [domain.ProbeModuleDef],
       }),
       entry: 'contract',
-      layout: (m) => layout.module(m),
-      root: join(project, 'runners/assembly/src'),
+      project,
+      layout: layout.dirs(),
       runners: [join(project, 'runners/cli/src')],
     };
     violations = ArchChecker.of(app)
@@ -493,14 +503,16 @@ describe('ArchChecker на monorepo видит спецификаторы пак
       .map((v) => v.format());
   }, 60_000);
 
-  test('нарушения — только импорты мимо contract (ARC-07, ARC-08)', () => {
+  test('нарушения — выход домена по пути, мимо contract, пакет реализации из раннера', () => {
     expect(violations).toEqual([
+      'ARC-02: platform/domain/src/probe/escape.ts (domain) импортирует assembly: ../../../../runners/assembly/src/app',
       expect.stringMatching(
         /^ARC-07: .*probe-root-bad\.ts.*@acme\/domain\/probe$/,
       ),
       expect.stringMatching(
         /^ARC-08: .*probe-runner-bad\.ts.*@acme\/domain\/probe$/,
       ),
+      'ARC-08: runners/cli/src/probe-runner-be.ts (runner) импортирует backend probe: @acme/be-probe',
     ]);
   });
 });

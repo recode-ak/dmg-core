@@ -3,8 +3,10 @@ import { ModuleFacades } from '#core/app/facade/module-facades';
 import { UserCaller } from '#core/kernel/caller/caller';
 import { ok } from '#core/kernel/result/result';
 import { Trace } from '#core/kernel/trace/trace';
-import { TodoModuleDef } from '#core/testing/example/platform/domain/todo/index';
-import type { TaskState } from '#core/testing/example/platform/domain/todo/state';
+import {
+  type TaskState,
+  TodoModuleDef,
+} from '#core/testing/example/platform/domain/todo/index';
 import {
   GetUserUcDef,
   type UserActivity,

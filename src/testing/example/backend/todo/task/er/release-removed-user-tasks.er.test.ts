@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { ModuleFacades } from '#core/app/facade/module-facades';
 import { testAppContext } from '#core/testing/app-context';
-import { TodoModuleDef } from '#core/testing/example/platform/domain/todo/index';
-import type { TaskState } from '#core/testing/example/platform/domain/todo/state';
+import {
+  type TaskState,
+  TodoModuleDef,
+} from '#core/testing/example/platform/domain/todo/index';
 import { UserEvents } from '#core/testing/example/platform/domain/users/contract';
 import { expectOk } from '#core/testing/expect-result';
 import { expectIdempotentReaction } from '#core/testing/reaction-idempotency';

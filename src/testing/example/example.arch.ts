@@ -3,18 +3,20 @@ import type { ArchApp } from '#core/arch/arch-checker';
 import { ExampleGraph } from './example.graph';
 
 /**
- * Учебное приложение для `arch:check` (D-45, D-97): домен —
- * `example/platform/domain/<m>`, прикладной слой — `example/backend/<m>`, вход
- * модуля — `contract.ts`. Корень сборки — `example/runners/assembly`, раннер —
- * `example/runners/cli`; состав — из входа графа (`ExampleGraph`).
+ * Учебное приложение для `arch:check` (D-45, D-97, D-107): проект —
+ * `example/`, слои — `platform/{kernel,domain/<m>}`, `backend/<m>`,
+ * `runners/{assembly,cli}`; вход модуля — `contract.ts`. Состав — из входа
+ * графа (`ExampleGraph`). Файл лежит вне слоёв.
  */
 export const ExampleArch: ArchApp = {
   ...ExampleGraph,
   entry: 'contract',
-  layout: (m) => ({
-    domain: join(import.meta.dir, 'platform', 'domain', m),
-    backend: join(import.meta.dir, 'backend', m),
-  }),
-  root: join(import.meta.dir, 'runners', 'assembly'),
+  project: import.meta.dir,
+  layout: {
+    kernel: join(import.meta.dir, 'platform', 'kernel'),
+    domain: join(import.meta.dir, 'platform', 'domain', '{m}'),
+    backend: join(import.meta.dir, 'backend', '{m}'),
+    assembly: join(import.meta.dir, 'runners', 'assembly'),
+  },
   runners: [join(import.meta.dir, 'runners', 'cli')],
 };

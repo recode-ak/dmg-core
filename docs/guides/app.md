@@ -31,8 +31,8 @@ verified: 06429f5
 - [example-caller-resolver.ts](../../src/testing/example/runners/assembly/example-caller-resolver.ts): `getUser` через `api.dispatch`; нет пользователя → `GuestCaller`, прочие `Err` — исключение (ошибка конфигурации); с заявкой делегирования — `DelegateCaller` или `DELEGATION_DENIED` в `Result` ([delegation.md](./delegation.md)).
 - [example-cli.ts](../../src/testing/example/runners/cli/example-cli.ts): argv → `Result` разбора → `Trace` (канал `cli`) → резолвер → одна точка `dispatch`; коды выхода 0 / 1 (ввод) / 2 (отказ UC).
 - [example-env.ts](../../src/testing/example/runners/cli/example-env.ts) и [main.ts](../../src/testing/example/runners/cli/main.ts): `process.env` → `ExampleAppEnv` — единственное место чтения окружения.
-- [example.arch.ts](../../src/testing/example/example.arch.ts): `root` и `runners` в `ArchApp` — их импорты проверяет `arch:check`.
-- [example.app.ts](../../src/testing/example/platform/domain/example.app.ts): `AppDef` — манифест состава приложения; в конфиг проверок `ArchApp` поле `def` приходит через вход графа (`{ ...ExampleGraph, entry, layout, root, runners }`).
+- [example.arch.ts](../../src/testing/example/example.arch.ts): каталоги слоёв в `ArchApp` — сборка, kernel, домен и реализации из `layout`, раннеры-процессы — `runners`; их импорты проверяет `arch:check` (D-107).
+- [example.app.ts](../../src/testing/example/platform/domain/example.app.ts): `AppDef` — манифест состава приложения; в конфиг проверок `ArchApp` поле `def` приходит через вход графа (`{ ...ExampleGraph, entry, project, layout, runners }`).
 
 ## 4. Чеклист правил
 

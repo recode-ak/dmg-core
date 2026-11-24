@@ -3,10 +3,12 @@ import { AppDef } from '../domain/contracts/app-def';
 import { ModuleDef } from '../domain/contracts/module-def';
 import { DefIndex } from '../graph/def-index';
 import { ExampleArch } from '../testing/example/example.arch';
+import { ExampleAppDef } from '../testing/example/platform/domain/example.app';
 import { TodoModuleDef } from '../testing/example/platform/domain/todo';
 import { UsersModuleDef } from '../testing/example/platform/domain/users';
+import { ScreenProvider } from '../testing/example/screen/screen-provider';
 import { RuleProvider, StubRule, toyRuleProvider } from './arch.fixture';
-import { ArchChecker } from './arch-checker';
+import { type ArchApp, ArchChecker } from './arch-checker';
 
 const broken = ModuleDef.define({
   name: 'broken',
@@ -18,7 +20,23 @@ const broken = ModuleDef.define({
   reactions: [],
   jobs: [],
 });
-const nowhere = () => ({ domain: '/нет/домена', backend: '/нет/пакета' });
+/** Приложение с модулем `broken`; каталогов слоёв нет — проверять импорты нечего. */
+const nowhere: ArchApp = {
+  def: AppDef.define({
+    name: 'broken',
+    label: 'Сломанное',
+    description: 'Приложение с модулем без названия.',
+    modules: [broken],
+  }),
+  project: '/нет',
+  layout: {
+    kernel: '/нет/kernel',
+    domain: '/нет/домена/{m}',
+    backend: '/нет/пакета/{m}',
+    assembly: '/нет/сборки',
+  },
+  runners: [],
+};
 
 describe('ArchChecker', () => {
   it('без раскладки — только проверки по Def', () => {
@@ -34,12 +52,12 @@ describe('ArchChecker', () => {
     ]);
   });
 
-  it('с раскладкой — проверки по Def, затем по файлам', () => {
+  it('с приложением — проверки по Def, затем по файлам (каталоги из layout с {m})', () => {
     const checker = new ArchChecker(DefIndex.from([broken]), nowhere);
     expect(checker.check().map((v) => v.format())).toEqual([
       'MAN-01: модуль broken: пустой label',
-      'ARC-06: модуль broken: нет /нет/домена/broken.module.ts',
-      'ARC-06: модуль broken: нет /нет/пакета/broken.module.ts',
+      'ARC-06: модуль broken: нет /нет/домена/broken/broken.module.ts',
+      'ARC-06: модуль broken: нет /нет/пакета/broken/broken.module.ts',
     ]);
   });
 
@@ -66,53 +84,92 @@ describe('ArchChecker', () => {
   });
 
   it('пустой домен — без нарушений', () => {
-    const empty = {
+    // Каталоги без файлов: в дереве примера реализации todo и users при
+    // пустом составе — вне слоёв, и сборка, импортирующая их, нарушала бы ARC-07.
+    const empty: ArchApp = {
+      ...nowhere,
       def: AppDef.define({
         name: 'empty',
         label: 'Пустое',
         description: 'Приложение без модулей.',
         modules: [],
       }),
-      layout: ExampleArch.layout,
     };
     expect(ArchChecker.of(empty).check()).toEqual([]);
   });
 
   it('вход модуля для других — из приложения (`entry`, по умолчанию index)', () => {
     // Пример входит через `contract.ts`; при входе `index` тот же импорт —
-    // нарушение ARC-04 в домене и прикладном слое, ARC-07 в корне сборки и
-    // ARC-08 в раннере: `ExampleArch` охватывает их, и `users` — тоже
-    // (через `dependsOn` todo).
+    // нарушение с ID слоя-импортёра: ARC-04 в домене (и в `<имя>.app.ts`
+    // корня домена) и реализации, ARC-07 в сборке, ARC-08 в раннере, ARC-04
+    // у файлов вне слоёв (`index.ts`, `screen/*`, `screen.test.ts`). `users`
+    // проверяется через `dependsOn` todo.
     const app = { ...ExampleArch, entry: undefined };
-    const arc04 = (file: string) =>
-      `ARC-04: ${file} импортирует users мимо index.ts: #core/testing/example/platform/domain/users/contract`;
-    const root = (file: string, m: string) =>
-      `ARC-07: корень сборки assembly/${file} импортирует ${m} мимо index.ts: #core/testing/example/platform/domain/${m}/contract`;
+    const users = (file: string, layer: string, rule = 'ARC-04') =>
+      `${rule}: ${file} (${layer}) импортирует domain users мимо index.ts: #core/testing/example/platform/domain/users/contract`;
+    const todo = (file: string, layer: string, rule: string) =>
+      `${rule}: ${file} (${layer}) импортирует domain todo мимо index.ts: #core/testing/example/platform/domain/todo/contract`;
+    const outside = (file: string, m: string, spec: string) =>
+      `ARC-04: ${file} (вне слоёв) импортирует domain ${m} мимо index.ts: ${spec}`;
+    const app04 = (m: string) =>
+      `ARC-04: platform/domain/example.app.ts (domain) импортирует domain ${m} мимо index.ts: ./${m}/contract`;
     expect(
       ArchChecker.of(app)
         .check()
         .map((v) => v.format()),
     ).toEqual([
+      // реализация (`backend/`)
+      users(
+        'backend/todo/task/er/release-removed-user-tasks.er.test.ts',
+        'backend',
+      ),
+      users('backend/todo/task/uc/assign-task.uc.test.ts', 'backend'),
+      users('backend/todo/task/uc/assign-task.uc.ts', 'backend'),
+      users('backend/todo/todo.module.test.ts', 'backend'),
+      // вход пакета `example` — вне слоёв
+      outside('index.ts', 'todo', './platform/domain/todo/contract'),
+      outside('index.ts', 'users', './platform/domain/users/contract'),
+      // корень домена: AppDef
+      app04('todo'),
+      app04('users'),
       // домен
-      arc04('todo/task/er/release-removed-user-tasks.er.ts'),
-      arc04('todo/task/task.rules.ts'),
-      arc04('todo/task/uc/assign-task.uc.test.ts'),
-      arc04('todo/task/uc/assign-task.uc.ts'),
-      arc04('todo/todo.module.ts'),
-      // прикладной слой (`backend/`)
-      arc04('todo/task/er/release-removed-user-tasks.er.test.ts'),
-      arc04('todo/task/uc/assign-task.uc.test.ts'),
-      arc04('todo/task/uc/assign-task.uc.ts'),
-      arc04('todo/todo.module.test.ts'),
-      // корень сборки (`runners/assembly/`, ARC-07)
-      root('example-app.test.ts', 'todo'),
-      root('example-app.test.ts', 'users'),
-      root('example-app.ts', 'todo'),
-      root('example-app.ts', 'users'),
-      root('example-caller-resolver.ts', 'users'),
-      root('example-delegation.test.ts', 'users'),
-      // раннер (ARC-08)
-      'ARC-08: раннер cli/example-cli.ts импортирует todo мимо index.ts: #core/testing/example/platform/domain/todo/contract',
+      users(
+        'platform/domain/todo/task/er/release-removed-user-tasks.er.ts',
+        'domain',
+      ),
+      users('platform/domain/todo/task/task.rules.ts', 'domain'),
+      users('platform/domain/todo/task/uc/assign-task.uc.test.ts', 'domain'),
+      users('platform/domain/todo/task/uc/assign-task.uc.ts', 'domain'),
+      users('platform/domain/todo/todo.module.ts', 'domain'),
+      // сборка (`runners/assembly/`)
+      todo('runners/assembly/example-app.test.ts', 'assembly', 'ARC-07'),
+      users('runners/assembly/example-app.test.ts', 'assembly', 'ARC-07'),
+      todo('runners/assembly/example-app.ts', 'assembly', 'ARC-07'),
+      users('runners/assembly/example-app.ts', 'assembly', 'ARC-07'),
+      users(
+        'runners/assembly/example-caller-resolver.ts',
+        'assembly',
+        'ARC-07',
+      ),
+      users(
+        'runners/assembly/example-delegation.test.ts',
+        'assembly',
+        'ARC-07',
+      ),
+      // раннер (`runners/cli/`)
+      todo('runners/cli/example-cli.ts', 'runner', 'ARC-08'),
+      // образец «экран» — вне слоёв без ScreenArch
+      outside('screen.test.ts', 'todo', './platform/domain/todo/contract'),
+      outside(
+        'screen/tasks-screen.ts',
+        'todo',
+        '../platform/domain/todo/contract',
+      ),
+      outside(
+        'screen/tasks.screen.ts',
+        'todo',
+        '../platform/domain/todo/contract',
+      ),
     ]);
   });
 
@@ -183,6 +240,16 @@ describe('ArchChecker', () => {
     const app = { ...ExampleArch, providers: [plain] };
     expect(ArchChecker.of(app).check()).toEqual([]);
     expect(plain.contributed).toBe(0);
+  });
+
+  it('слой поставщика без каталога в ArchApp.layers — нарушение ARC-13 в of()', () => {
+    const app = {
+      ...ExampleArch,
+      providers: [new ScreenProvider(ExampleAppDef, [])],
+    };
+    expect(ArchChecker.of(app).report()).toEqual([
+      'ARC-13: слой screen поставщика example-screen без каталога в ArchApp.layers',
+    ]);
   });
 
   it('неверный ID правила поставщика — отказ ARC-13 из of()', () => {

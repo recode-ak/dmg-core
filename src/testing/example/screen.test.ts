@@ -7,26 +7,27 @@ import { ArchChecker, reportArchCheck } from '#core/arch/index';
 import { AppGraph } from '#core/graph/index';
 import { UserCaller } from '#core/index';
 import { AwaitingBus, expectOk, MemoryLogger } from '#core/testing/index';
-import { ExampleAppDef } from '../platform/domain/example.app';
+import { ExampleAppDef } from './platform/domain/example.app';
 import {
   CompleteTaskUcDef,
   CreateTaskUcDef,
   TaskEvents,
   TodoModuleDef,
-} from '../platform/domain/todo/contract';
-import { ExampleApp } from '../runners/assembly/example-app';
+} from './platform/domain/todo/contract';
+import { ExampleApp } from './runners/assembly/example-app';
+import { ScreenGraph } from './screen/screen.graph';
+import { ScreenDef } from './screen/screen-def';
+import { SCREEN_PROVIDER } from './screen/screen-kinds';
+import { ScreenProvider } from './screen/screen-provider';
+import { ScreenSession } from './screen/screen-session';
+import { TasksScreenDef } from './screen/tasks.screen';
+import { TasksScreen } from './screen/tasks-screen';
 import { ScreenArch } from './screen.arch';
-import { ScreenGraph } from './screen.graph';
-import { ScreenDef } from './screen-def';
-import { SCREEN_PROVIDER } from './screen-kinds';
-import { ScreenProvider } from './screen-provider';
-import { ScreenSession } from './screen-session';
-import { TasksScreenDef } from './tasks.screen';
-import { TasksScreen } from './tasks-screen';
 
 // Приёмочный тест расширения-образца «экран» (D-92…D-99): вид Def, поставщик
 // графа, правило SCR-01, сессия экрана. Данные — во временном каталоге, порты
-// подменены (`AwaitingBus`, `MemoryLogger`, часы).
+// подменены (`AwaitingBus`, `MemoryLogger`, часы). Тест и `screen.arch.ts`
+// лежат вне каталога слоя `screen`: файл слоя не видит файлов вне слоёв (D-107).
 
 const OWNER = '5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6';
 const OTHER = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';

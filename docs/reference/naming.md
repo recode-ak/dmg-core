@@ -128,14 +128,21 @@ infra/<aggregate>.json-repo.ts
 
 **Гибки только корни каталогов.** Форма внутри модуля (§2–§3) фиксирована: пары «контракт ↔ реализация» по одинаковому относительному пути (MAN-10), 1:1 домена и прикладного слоя (ARC-06). Третьей раскладки внутри модуля нет.
 
-Раскладка — один источник для генератора и `arch:check`: проект строит `ArchApp.layout` из `GenLayout` (`dmg-core/gen`), а не пишет пути вручную. Первая строка вывода `gen` — применяемая раскладка.
+Раскладка — один источник для генератора и `arch:check`: проект берёт каталоги слоёв `ArchApp.layout` из `GenLayout.dirs()` (`dmg-core/gen`), а не пишет пути вручную; раннеры-процессы — списком `runners`. Первая строка вывода `gen` — применяемая раскладка.
 
 ```ts
+import { join } from 'node:path';
 import { GenLayout } from 'dmg-core/gen';
 import SchoolGraph from './school.graph'; // вход dmg-core graph: { def: SchoolAppDef }
 
 const layout = await GenLayout.read(root); // секция gen dmg-core.json
-export const SchoolArch: ArchApp = { ...SchoolGraph, entry: 'contract', layout: (m) => layout.module(m) };
+export const SchoolArch: ArchApp = {
+  ...SchoolGraph,
+  entry: 'contract',
+  project: root,
+  layout: layout.dirs(), // kernel, domain/{m}, backend/{m}, assembly
+  runners: [join(root, 'runners/bot/src')],
+};
 ```
 
 Состав приложения и поставщики графа `ArchApp` берёт из входа графа (D-97): один список поставщиков для `dmg-core graph` и `arch:check`.

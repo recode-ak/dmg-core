@@ -49,7 +49,7 @@ flowchart LR
 5. **Между модулями.** Чужой модуль виден только через его `contract.ts` и только если он в `dependsOn`. Вызов идёт командой через фасад, а не импортом реализации; ответ — `ReadonlyAr`, без мутаций. Нижестоящий модуль вышестоящий не вызывает: если тому нужна реакция, нижестоящий публикует событие, а вышестоящий подписывается реакцией — подписчик зависит от публикатора, и граф `dependsOn` остаётся ациклическим.
 6. **Проверка.** Направления импортов и связи модулей проверяют линтер и `ArchChecker` (`arch:check`: состав `AppDef` — [MAN-15](../reference/rules.md), граф Def, файлы модулей, импорты корня сборки и раннеров, правила поставщиков графа — [ARC-13](../reference/rules.md)), а не ревью. Конфиг проверок собирается из входа графа: поставщик с правилами, добавленный в граф приложения, попадает и в `arch:check`. Рядом в `dmg-core/arch` — `DebtChecker`: реестры долга сверены с кодом — учёт отступлений ([ARC-12](../reference/rules.md)).
 
-Образец: [example.arch.ts](../../src/testing/example/example.arch.ts) — модули `todo` и `users`, `todo` зависит от `users`; адаптер с подпиской и правилом графа — [screen-session.ts](../../src/testing/example/screen/screen-session.ts), [screen.arch.ts](../../src/testing/example/screen/screen.arch.ts).
+Образец: [example.arch.ts](../../src/testing/example/example.arch.ts) — модули `todo` и `users`, `todo` зависит от `users`; адаптер с подпиской и правилом графа — [screen-session.ts](../../src/testing/example/screen/screen-session.ts), [screen.arch.ts](../../src/testing/example/screen.arch.ts).
 
 ## Почему так
 

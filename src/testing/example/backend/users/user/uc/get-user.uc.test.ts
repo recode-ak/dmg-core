@@ -9,8 +9,10 @@ import {
   UserCaller,
 } from '#core/kernel/caller/caller';
 import { Trace } from '#core/kernel/trace/trace';
-import { UsersModuleDef } from '#core/testing/example/platform/domain/users/index';
-import type { UserState } from '#core/testing/example/platform/domain/users/user/user.state';
+import {
+  type UserState,
+  UsersModuleDef,
+} from '#core/testing/example/platform/domain/users/index';
 import type { ExampleUser } from '#core/testing/example/platform/kernel/app-user';
 import { expectErr, expectOk, testAppContext } from '#core/testing/index';
 import { UserRepoFake } from '../user.repo.fake';

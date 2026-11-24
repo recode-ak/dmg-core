@@ -12,7 +12,7 @@ covers:
 
 ## 1. Ядро
 
-- **Поставщик** — порт `GraphProvider`: `name` (непустая строка), `version`, `kinds()` — виды узлов и рёбер (`GraphKinds`: `nodes`, `edges`; вид — `GraphKindSpec`: `kind`, `label`, `description`, необязательная схема `props` — valibot `v.GenericSchema<Record<string, unknown>>`), `contribute()` — вклад `GraphContribution` (`nodes`, `edges`), необязательный `rules?()` — правила для `arch:check` (ядро их не читает, в документ они не пишутся).
+- **Поставщик** — порт `GraphProvider`: `name` (непустая строка), `version`, `kinds()` — виды узлов и рёбер (`GraphKinds`: `nodes`, `edges`; вид — `GraphKindSpec`: `kind`, `label`, `description`, необязательная схема `props` — valibot `v.GenericSchema<Record<string, unknown>>`), `contribute()` — вклад `GraphContribution` (`nodes`, `edges`), необязательный `rules?()` — правила для `arch:check` (ядро их не читает, в документ они не пишутся), необязательный `layers?()` — слои исходников `SourceLayer` для `arch:check` (D-107; ядро не читает).
 - **Вклад.** Узел — `GraphNodeInput`: `kind`, `id`, `label`, `description`, `visible?`, `props?`; ребро — `GraphEdgeInput`: `kind`, `from`, `to`, `props?`. `parent` не передаётся — его выводит ядро из `id` (§2); `provider` не передаётся — его ставит сборщик по поставщику вклада.
 - **Сборка** — `new GraphBuilder().add(p1).add(p2).build()`: двухфазная (сначала виды всех поставщиков, затем вклад), порядок `add` на результат не влияет; падает на первой ошибке (`GraphError`, §6).
 - **Виды.** Вид регистрирует один поставщик; пространства видов узлов и рёбер раздельные; имя вида — по правилу сегмента `id` (§2). Элемент вида ставит любой поставщик: `provider` элемента — кто его поставил, а не кто объявил вид.

@@ -6,8 +6,8 @@ import {
 import {
   TaskAr,
   TaskArDef,
+  TaskState,
 } from '#core/testing/example/platform/domain/todo/index';
-import { TaskState } from '#core/testing/example/platform/domain/todo/state';
 import type { TaskRepo } from '../task/task.repo';
 
 const Rows = v.array(TaskState);

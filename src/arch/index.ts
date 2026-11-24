@@ -16,6 +16,7 @@ export type {
   SourceFile,
 } from './debt-checker.types';
 export type { ModuleLayout } from './file-checker';
+export type { FrameworkDirs } from './layer-checker.types';
 export {
   type ArchRule,
   PACKAGE_RULE_PREFIXES,

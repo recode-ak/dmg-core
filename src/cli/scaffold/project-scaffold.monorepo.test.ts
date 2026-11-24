@@ -260,11 +260,14 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
     expect(config.parse(data).gen).toEqual(gen);
   });
 
-  it('arch-check.ts — сборка runners/assembly/src, раннер runners/cli/src', () => {
+  it('arch-check.ts — каталоги слоёв из GenLayout.dirs(), раннер runners/cli/src', () => {
     const src = file('scripts/arch-check.ts');
 
-    expect(src).toContain("root: join(root, 'runners/assembly/src')");
+    expect(src).toContain('project: root,');
+    expect(src).toContain('layout: layout.dirs(),');
     expect(src).toContain("runners: [join(root, 'runners/cli/src')]");
+    expect(src).not.toContain('root: join(');
+    expect(src).not.toContain("'runners/assembly/src'");
   });
 
   it('acme.graph.ts — вход dmg-core graph: AppDef из @acme/domain', () => {

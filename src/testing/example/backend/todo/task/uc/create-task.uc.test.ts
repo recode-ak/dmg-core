@@ -3,10 +3,10 @@ import { ModuleFacades } from '#core/app/facade/module-facades';
 import { UserCaller } from '#core/kernel/caller/caller';
 import { Trace } from '#core/kernel/trace/trace';
 import {
+  OPEN_TASKS_LIMIT,
   TaskAr,
   TodoModuleDef,
 } from '#core/testing/example/platform/domain/todo/index';
-import { OPEN_TASKS_LIMIT } from '#core/testing/example/platform/domain/todo/task/task.rules';
 import type { ExampleUser } from '#core/testing/example/platform/kernel/app-user';
 import { expectErr, expectOk, testAppContext } from '#core/testing/index';
 import { TaskRepoFake } from '../task.repo.fake';

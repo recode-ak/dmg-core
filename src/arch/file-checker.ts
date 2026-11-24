@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AnyOperationDef, DefIndex } from '../graph/def-index';
-import { DomainEntries } from './domain-entries';
 import { SourceScan } from './source-scan';
 import { TODO_TEXT } from './todo-text';
 import { type ArchRule, Violation } from './violation';
@@ -17,25 +16,19 @@ export type ModuleLayout = {
 };
 
 /**
- * Проверки по файлам модулей: ARC-04, ARC-06, MAN-06, MAN-10, TST-07. `entry`
- * — вход модуля домена для других (имя файла без `.ts`, `index` — и сам
- * каталог), `testing` — его фикстуры, вход только тестового кода (D-70). У
- * внешнего модуля прикладной слой не проверяется, импорты между двумя
- * внешними — тоже.
+ * Проверки по файлам модулей: файл модуля (ARC-06), файлы операций (MAN-06,
+ * MAN-10), тексты Policy (MAN-01, предупреждения). У внешнего модуля
+ * реализации в приложении нет (D-37) — проверяется только домен. Импорты
+ * между слоями — `LayerChecker`.
  * @see src/arch/file-checker.test.ts
  */
 export class FileChecker {
   private readonly scan = new SourceScan();
-  private readonly entries: DomainEntries;
 
   constructor(
     private readonly index: DefIndex,
     private readonly layout: (module: string) => ModuleLayout,
-    entry = 'index',
-    testing = 'testing',
-  ) {
-    this.entries = new DomainEntries(entry, testing);
-  }
+  ) {}
 
   /**
    * Незаполненные тексты Policy (MAN-01, предупреждения): PolicyDef не входит
@@ -122,48 +115,6 @@ export class FileChecker {
             'MAN-06',
             `${m.name}/${f} — нет такой операции в модуле (Def вне модуля)`,
           );
-        }
-      }
-
-      const scanned: (readonly [string, boolean])[] = m.external
-        ? [[dir.domain, false]]
-        : [
-            [dir.domain, false],
-            [dir.backend, true],
-          ];
-      for (const [base, isApp] of scanned) {
-        for (const f of this.scan.files(base)) {
-          for (const { spec, target } of this.scan.imports(join(base, f))) {
-            for (const [x, xDir] of dirs) {
-              if (x === m) continue;
-              const where = `${m.name}/${f}`;
-              if (isApp && this.scan.inside(target, xDir.backend)) {
-                add(
-                  'ARC-06',
-                  `${where} импортирует прикладной пакет ${x.name}: ${spec}`,
-                );
-              }
-              if (!this.scan.inside(target, xDir.domain)) continue;
-              // Связи двух внешних модулей реализованы вне приложения:
-              // вход платформа не проверяет, `dependsOn` — проверяет.
-              const bothExternal = m.external === true && x.external === true;
-              const misuse = bothExternal
-                ? undefined
-                : this.entries.misuse(f, target, xDir.domain, x.name);
-              if (misuse !== undefined) {
-                add(
-                  misuse.testing ? 'TST-07' : 'ARC-04',
-                  `${where} ${misuse.message}: ${spec}`,
-                );
-              }
-              if (!m.dependsOn.includes(x)) {
-                add(
-                  'ARC-04',
-                  `${where} импортирует ${x.name}, которого нет в dependsOn ${m.name}`,
-                );
-              }
-            }
-          }
         }
       }
     }

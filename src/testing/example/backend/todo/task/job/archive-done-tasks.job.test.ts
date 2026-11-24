@@ -3,9 +3,9 @@ import { ModuleFacades } from '#core/app/facade/module-facades';
 import { Trace } from '#core/kernel/trace/trace';
 import {
   ArchiveDoneTasksJobDef,
+  type TaskState,
   TodoModuleDef,
 } from '#core/testing/example/platform/domain/todo/index';
-import type { TaskState } from '#core/testing/example/platform/domain/todo/state';
 import { expectOk, testAppContext } from '#core/testing/index';
 import { TaskRepoFake } from '../task.repo.fake';
 import { ArchiveDoneTasksJob } from './archive-done-tasks.job';

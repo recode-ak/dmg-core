@@ -3,8 +3,10 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { VersionConflict } from '#core/app/uow/repository';
-import { TaskAr } from '#core/testing/example/platform/domain/todo/index';
-import type { TaskState } from '#core/testing/example/platform/domain/todo/state';
+import {
+  TaskAr,
+  type TaskState,
+} from '#core/testing/example/platform/domain/todo/index';
 import { expectOk } from '#core/testing/index';
 import { TaskJsonRepo } from './task.json-repo';
 
