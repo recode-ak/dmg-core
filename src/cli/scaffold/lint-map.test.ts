@@ -57,20 +57,6 @@ describe('LintMap: ARC-02 kernel приложения', () => {
     });
   });
 
-  it('monorepo: kernel не видит домен', () => {
-    const group = allowed(LintMap.monorepo('acme'), 'platform/kernel/src/**');
-
-    expect(group).toEqual(KERNEL_ONLY);
-    expect(group).not.toContain('!@acme/domain');
-  });
-
-  it('monorepo: домен видит вход @<scope>/kernel, но не его подпути', () => {
-    const group = allowed(LintMap.monorepo('acme'), 'platform/domain/src/**');
-
-    expect(group).toContain('!@acme/kernel');
-    expect(group).not.toContain('!@acme/kernel/**');
-  });
-
   it('monorepo: scope из аргумента', () => {
     const group = allowed(LintMap.monorepo('other'), 'platform/domain/src/**');
 

@@ -3,7 +3,7 @@ import type { PackageSource } from '../package-source';
 import type { LintMap } from './lint-map';
 
 /**
- * Профиль каркаса: `single` — один пакет, оси раскладки D-106 в `src/`
+ * Профиль каркаса (D-106): `single` — один пакет, оси раскладки в `src/`
  * (`platform/{kernel,domain}`, `backend/<m>`, `runners/{assembly,cli}`);
  * `monorepo` — те же оси пакетами workspaces `platform/*`, `backend/*`,
  * `runners/*`.

@@ -21,7 +21,9 @@
 | Vo | Value Object | `TaskAssignmentVo` | — |
 | Entity | вложенная сущность агрегата: своя идентичность `uuid`, живёт только внутри Ar | `SubtaskEntity` | — |
 | Fqn | полное имя (`todo.task.completed`) | — | — |
-| be | backend — пакет реализации модуля в monorepo: имя `@<scope>/be-<m>`, каталог полным словом `backend/<m>` (D-106); своё имя — `gen.package` | пакет `@acme/be-todo` | — |
+| be | backend | пакет `@acme/be-todo` | — |
+
+`be` — только в имени пакета реализации модуля в monorepo: `@<scope>/be-<m>` (D-106); каталог — полным словом, `backend/<m>`. Своё имя пакета задаёт `gen.package` (§5).
 
 В тексте — заглавными (DCS, DQS), в коде — как слово (Google TS style): `TaskReleaseDcs`, не `TaskReleaseDCS`.
 

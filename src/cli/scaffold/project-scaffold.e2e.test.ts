@@ -148,8 +148,13 @@ const SINGLE_VIOLATIONS: Violations = {
     code: "import { ApiApp } from 'dmg-core/app';\nexport const api = ApiApp;\n",
     ids: ['ARC-02'],
   },
-  'src/platform/domain/v/escape.ts': {
-    code: "import { App } from '../../../runners/assembly/app';\nimport { RunnerCli } from '../../../runners/cli/runner-cli';\nimport { M } from '../../../backend/v/m';\nexport { App, M, RunnerCli };\n",
+  // Относительный выход домена — по файлу на группу выходов (escapes).
+  'src/platform/domain/v/escape-runners.ts': {
+    code: "import { App } from '../../../runners/assembly/app';\nimport { RunnerCli } from '../../../runners/cli/runner-cli';\nexport { App, RunnerCli };\n",
+    ids: ['ARC-02'],
+  },
+  'src/platform/domain/v/escape-backend.ts': {
+    code: "import { M } from '../../../backend/v/m';\nexport { M };\n",
     ids: ['ARC-02'],
   },
   'src/platform/domain/v/dates.ts': {
@@ -285,7 +290,7 @@ const MONOREPO_VIOLATIONS: Violations = {
     code: "import { App } from '@acme/assembly';\nexport { App };\n",
     ids: ['ARC-02'],
   },
-  // Относительный выход домена — по файлу на каждый каталог вне домена.
+  // Относительный выход домена — по файлу на группу выходов (escapes).
   'platform/domain/src/v/escape-runners.ts': {
     code: "import { App } from '../../../../runners/assembly/src/app';\nimport { RunnerCli } from '../../../../runners/cli/src/runner-cli';\nexport { App, RunnerCli };\n",
     ids: ['ARC-02'],
@@ -320,6 +325,12 @@ const MONOREPO_VIOLATIONS: Violations = {
     ids: ['ARC-02'],
   },
   'platform/domain/src/v/kernel.ts': {
+    code: "import type { AppUser } from '@acme/kernel';\nexport type U = AppUser;\n",
+    ids: [],
+  },
+  // Policy: DOM-01 повторяет ближайшую строку ARC-02 выше — домена, а не
+  // kernel; вход kernel в белом списке и здесь.
+  'platform/domain/src/v/b.policy.ts': {
     code: "import type { AppUser } from '@acme/kernel';\nexport type U = AppUser;\n",
     ids: [],
   },

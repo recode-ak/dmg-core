@@ -85,7 +85,7 @@ bunx dmg-core init
 4. **Lint-правила.** Правила DOM, ERR, API и CODE — GritQL-плагины biome в [`biome-plugins/`](biome-plugins). Подключи их в `biome.json` проекта на свои каталоги, например домен не читает часы:
 
    ```json
-   { "overrides": [{ "includes": ["src/domain/**", "!**/*.test.ts"], "plugins": ["./node_modules/dmg-core/biome-plugins/dom-14-no-clock.grit"] }] }
+   { "overrides": [{ "includes": ["src/platform/domain/**", "!**/*.test.ts"], "plugins": ["./node_modules/dmg-core/biome-plugins/dom-14-no-clock.grit"] }] }
    ```
 
    Какой плагин на какие пути — [карта линтера](docs/reference/rules.md#карта-линтера) в каталоге правил.

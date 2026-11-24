@@ -70,10 +70,10 @@ export class ScaffoldLayout {
   }
 
   /**
-   * Пакеты workspaces `@<scope>/*` по осям D-106: `platform/{kernel,domain}`,
-   * `backend/<m>` (`@<scope>/be-<m>`, создаёт `gen module`), `runners/*`.
-   * Импорт — по имени пакета; зависимость на kernel объявляет тот, кто его
-   * импортирует.
+   * Пакеты workspaces `@<scope>/*` (D-106) по осям:
+   * `platform/{kernel,domain}`, `backend/<m>` (`@<scope>/be-<m>`, создаёт
+   * `gen module`), `runners/*`. Импорт — по имени пакета; зависимость на
+   * kernel объявляет тот, кто его импортирует.
    */
   private static monorepo(scope: string, appName: string): ScaffoldLayout {
     const file = `platform/domain/src/${appName}.app.ts`;
