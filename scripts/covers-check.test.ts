@@ -212,6 +212,8 @@ describe('impactOf: документы по изменённым путям', ()
 });
 
 describe('covers пакета (контракт)', () => {
+  // Тест обходит реальную историю git пакета (`git log -p` на каждый шаблон
+  // covers): время растёт с историей, поэтому свой таймаут.
   it('каждый путь covers находит файлы', () => {
     const { docs, exists, changedAt, verifiedAt } = readCovers(
       join(import.meta.dir, '..'),
@@ -220,7 +222,7 @@ describe('covers пакета (контракт)', () => {
     expect(checkCovers(docs, exists, changedAt, verifiedAt).missing).toEqual(
       [],
     );
-  });
+  }, 30_000);
 
   it('у каждого гайда и concept, кроме index.md и шаблонов _*, есть covers', () => {
     const { files } = readDocs(join(import.meta.dir, '..'));
