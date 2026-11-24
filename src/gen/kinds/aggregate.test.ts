@@ -4,7 +4,7 @@ import { GenLayout } from '../layout';
 import { planDomainAggregate } from './aggregate';
 
 const layout = new GenLayout(
-  { domain: '/d/{m}', app: '/p/{m}/src', domainImport: '@acme/domain/{m}' },
+  { domain: '/d/{m}', backend: '/p/{m}/src', domainImport: '@acme/domain/{m}' },
   '.',
 );
 

@@ -58,7 +58,7 @@ export class AssemblyChecker {
         base: this.places.root,
         appEntry: true,
         skip: [
-          ...modules.flatMap(([, dir]) => [dir.domain, dir.app]),
+          ...modules.flatMap(([, dir]) => [dir.domain, dir.backend]),
           ...runners,
         ],
       });
@@ -67,7 +67,7 @@ export class AssemblyChecker {
     return [
       ...sides.flatMap((side) => this.checkSide(side, modules, from)),
       ...modules.flatMap(([m, dir]) =>
-        m.external === true ? [] : this.checkApp(m, dir.app, sides),
+        m.external === true ? [] : this.checkApp(m, dir.backend, sides),
       ),
     ];
   }
@@ -158,12 +158,12 @@ export class AssemblyChecker {
     if (this.scan.inside(target, dir.domain)) {
       return this.entries.misuse(file, target, dir.domain, m.name);
     }
-    if (m.external === true || !this.scan.inside(target, dir.app)) {
+    if (m.external === true || !this.scan.inside(target, dir.backend)) {
       return undefined;
     }
     const app = (message: string): EntryMisuse => ({ testing: false, message });
     if (!side.appEntry) return app(`импортирует прикладной пакет ${m.name}`);
-    return this.scan.isEntry(target, dir.app, 'index')
+    return this.scan.isEntry(target, dir.backend, 'index')
       ? undefined
       : app(`импортирует прикладной пакет ${m.name} мимо index.ts`);
   }

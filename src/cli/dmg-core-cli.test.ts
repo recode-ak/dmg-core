@@ -105,7 +105,7 @@ describe('init', () => {
         targets: [{ dir: '.claude/agents', format: 'claude' }],
       },
       instructions: 'AGENTS.md',
-      gen: { domain: 'src/domain/{m}', app: 'src/app/{m}' },
+      gen: { domain: 'src/domain/{m}', backend: 'src/app/{m}' },
     });
     const skill = await read('.claude/skills/demo/SKILL.md');
     expect(Marker.versionOf(skill)).toBe('1.0.0');
@@ -285,7 +285,7 @@ describe('gen', () => {
       JSON.stringify({
         gen: {
           domain: 'packages/domain/src/{m}',
-          app: 'packages/{m}/src',
+          backend: 'packages/{m}/src',
           domainImport: '@acme/domain/{m}',
         },
       }),
@@ -306,7 +306,7 @@ describe('gen', () => {
       JSON.stringify({
         gen: {
           domain: 'domain/src/{m}',
-          app: 'modules/{m}/src',
+          backend: 'modules/{m}/src',
           domainImport: '@acme/domain/{m}',
           package: '@acme/{m}',
         },
@@ -334,7 +334,7 @@ describe('gen', () => {
       JSON.stringify({
         gen: {
           domain: 'domain/src/{m}',
-          app: 'modules/{m}/src',
+          backend: 'modules/{m}/src',
           domainImport: '@acme/domain/{m}',
           package: '@acme/{m}',
         },

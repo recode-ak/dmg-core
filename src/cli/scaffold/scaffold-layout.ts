@@ -40,7 +40,7 @@ export class ScaffoldLayout {
       include: ['src', 'scripts'],
       gen: {
         ...GenLayout.defaults,
-        compositionRoot: GenLayout.defaultCompositionRoot,
+        assembly: GenLayout.defaultAssembly,
         appDef: file,
       },
       appDef: {
@@ -84,10 +84,10 @@ export class ScaffoldLayout {
       ],
       gen: {
         domain: 'domain/src/{m}',
-        app: 'modules/{m}/src',
+        backend: 'modules/{m}/src',
         domainImport: `${domain}/{m}`,
         package: `@${scope}/{m}`,
-        compositionRoot: 'app/src',
+        assembly: 'app/src',
         appDef: file,
       },
       appDef: {

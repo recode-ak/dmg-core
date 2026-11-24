@@ -642,7 +642,7 @@ function callNotes(args: GenArgs, kind: OpKind): string[] {
 function repoFake(args: GenArgs, kind: OpKind): PlannedFile[] {
   const { module: m, aggregate: a = '' } = args;
   if (kind !== 'uc') return [];
-  const path = join(args.layout.appDir(m), repoFakeRel(a));
+  const path = join(args.layout.backendDir(m), repoFakeRel(a));
   return existsSync(path) ? [] : [planRepoFake(args)];
 }
 
@@ -659,7 +659,7 @@ export function planOperation(args: GenArgs): GenPlan {
   const { module: m, aggregate: a = '', name = '' } = args;
   const names = kindNames(kind, name);
   const domainDir = args.layout.domainDir(m);
-  const appDir = args.layout.appDir(m);
+  const backendDir = args.layout.backendDir(m);
   const c: Ctx = {
     m,
     a,
@@ -670,7 +670,7 @@ export function planOperation(args: GenArgs): GenPlan {
     className: names.className,
     defName: names.defName,
     base: names.fileName.replace(/\.ts$/, ''),
-    domain: args.layout.domainImport(m, join(appDir, a, kind)),
+    domain: args.layout.domainImport(m, join(backendDir, a, kind)),
   };
   const t = new TEMPLATES[kind](c);
   const fake = repoFake(args, kind);
@@ -678,7 +678,7 @@ export function planOperation(args: GenArgs): GenPlan {
   const rel = join(a, kind, names.fileName);
   const relBase = `./${a}/${kind}/${c.base}`;
   const domainModule = join(domainDir, `${m}.module.ts`);
-  const appModule = join(appDir, `${m}.module.ts`);
+  const backendModule = join(backendDir, `${m}.module.ts`);
 
   const file = (
     root: string,
@@ -693,8 +693,8 @@ export function planOperation(args: GenArgs): GenPlan {
     files: [
       file(domainDir, '', t.contract()),
       file(domainDir, '.test', t.contractTest()),
-      file(appDir, '', t.implementation()),
-      file(appDir, '.test', t.implementationTest()),
+      file(backendDir, '', t.implementation()),
+      file(backendDir, '.test', t.implementationTest()),
       ...fake,
     ],
     edits: [
@@ -714,12 +714,12 @@ export function planOperation(args: GenArgs): GenPlan {
         line: `export { ${c.defName} } from '${relBase}';`,
       },
       {
-        path: appModule,
+        path: backendModule,
         marker: '// gen:defs:imports',
         line: `import { ${c.className} } from '${relBase}';`,
       },
       {
-        path: appModule,
+        path: backendModule,
         marker: `// gen:defs:${t.list}`,
         line: fit(
           `    ${toCamel(name)}: ${c.className},`,

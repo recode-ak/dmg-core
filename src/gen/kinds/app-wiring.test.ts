@@ -10,16 +10,16 @@ const wiring = (gen: Gen, target = 'module stream') =>
 
 const MONO: Gen = {
   domain: '/d/{m}',
-  app: '/p/{m}/src',
+  backend: '/p/{m}/src',
   domainImport: '@acme/domain/{m}',
   package: '@acme/{m}',
-  compositionRoot: 'app/src',
+  assembly: 'app/src',
   appDef: '/d/acme.app.ts',
 };
 const SINGLE: Gen = { ...GenLayout.defaults, appDef: 'src/domain/acme.app.ts' };
 const CUSTOM: Gen = {
   domain: '/d/{m}',
-  app: '/p/{m}/src',
+  backend: '/p/{m}/src',
   domainImport: '@acme/domain/{m}',
 };
 
@@ -56,7 +56,7 @@ describe('AppWiring.moduleEdits', () => {
     ).toEqual([WIRING_MARKERS.imports, WIRING_MARKERS.modules]);
   });
 
-  it('своя раскладка без compositionRoot, но с appDef — только правки AppDef', () => {
+  it('своя раскладка без assembly, но с appDef — только правки AppDef', () => {
     const edits = wiring({ ...CUSTOM, appDef: '/d/acme.app.ts' }).moduleEdits();
     expect(edits.map((e) => [e.path, e.marker])).toEqual([
       ['/d/acme.app.ts', WIRING_MARKERS.imports],
@@ -64,7 +64,7 @@ describe('AppWiring.moduleEdits', () => {
     ]);
   });
 
-  it('compositionRoot без appDef — только правки app.ts', () => {
+  it('assembly без appDef — только правки app.ts', () => {
     const { appDef: _, ...noApp } = MONO;
     const edits = wiring(noApp).moduleEdits();
     expect(new Set(edits.map((e) => e.path))).toEqual(
@@ -89,7 +89,7 @@ describe('AppWiring.moduleEdits', () => {
     );
   });
 
-  it('своя раскладка без compositionRoot и appDef — правок нет', () => {
+  it('своя раскладка без assembly и appDef — правок нет', () => {
     expect(wiring(CUSTOM).moduleEdits()).toEqual([]);
   });
 });
@@ -134,23 +134,23 @@ describe('AppWiring.moduleNotes', () => {
     expect(wiring(MONO).moduleNotes().join('\n')).not.toContain('gen.appDef');
   });
 
-  it('без compositionRoot и appDef — общая подсказка называет gen.appDef', () => {
+  it('без assembly и appDef — общая подсказка называет gen.appDef', () => {
     const notes = wiring(CUSTOM).moduleNotes().join('\n');
-    expect(notes).toContain('gen.compositionRoot');
+    expect(notes).toContain('gen.assembly');
     expect(notes).toContain(
       'манифест приложения (gen.appDef в dmg-core.json), modules: StreamModuleDef',
     );
   });
 
-  it('без compositionRoot — подсказка без правок, с именем пакета', () => {
+  it('без assembly — подсказка без правок, с именем пакета', () => {
     const notes = wiring({ ...CUSTOM, package: '@acme/{m}' }).moduleNotes();
-    expect(notes[0]).toContain('gen.compositionRoot');
+    expect(notes[0]).toContain('gen.assembly');
     expect(notes.join('\n')).toContain('"@acme/stream": "workspace:*"');
     expect(notes.at(-1)).toContain('bun install');
   });
 
   it('корень сборки не на /src — зависимость вручную с каталогом', () => {
-    const notes = wiring({ ...MONO, compositionRoot: 'app' }).moduleNotes();
+    const notes = wiring({ ...MONO, assembly: 'app' }).moduleNotes();
     expect(notes[0]).toContain('Вставь вручную в package.json');
     expect(notes[0]).toContain('"@acme/stream": "workspace:*"');
   });
@@ -173,7 +173,7 @@ describe('AppWiring.aggregateEdits', () => {
     );
   });
 
-  it('без compositionRoot — правок нет', () => {
+  it('без assembly — правок нет', () => {
     const w = wiring(CUSTOM, 'aggregate stream.student');
     expect(w.aggregateEdits('student')).toEqual([]);
   });

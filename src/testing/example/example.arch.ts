@@ -13,7 +13,7 @@ export const ExampleArch: ArchApp = {
   entry: 'contract',
   layout: (m) => ({
     domain: join(import.meta.dir, 'platform', 'domain', m),
-    app: join(import.meta.dir, 'backend', m),
+    backend: join(import.meta.dir, 'backend', m),
   }),
   root: join(import.meta.dir, 'runners', 'assembly'),
   runners: [join(import.meta.dir, 'runners', 'cli')],

@@ -7,22 +7,24 @@ import type { ModulePackage } from './layout.types';
 export interface GenLayoutSettings {
   /** Каталог модуля домена */
   domain: string;
-  /** Каталог прикладного слоя модуля */
-  app: string;
-  /** Спецификатор импорта домена из прикладного слоя; нет — относительный путь */
+  /** Каталог реализации модуля */
+  backend: string;
+  /** Спецификатор импорта домена из реализации; нет — относительный путь */
   domainImport?: string;
   /**
    * Имя пакета модуля (`@acme/{m}`): задан — `gen module` создаёт пакет
-   * workspaces над каталогом прикладного слоя (`app` оканчивается на
+   * workspaces над каталогом реализации (`backend` оканчивается на
    * `/src`); нужен `domainImport` — по нему зависимость на пакет домена.
    */
   package?: string;
   /**
-   * Каталог корня сборки (`app.ts`, D-50) — без `{m}`: `gen module` и
+   * Каталог сборки (`app.ts`, D-50) — без `{m}`: `gen module` и
    * `gen aggregate` подключают модуль по маркерам его `app.ts`; при
    * `gen.package` и пути на `/src` — ещё зависимость в `package.json` пакета.
    */
-  compositionRoot?: string;
+  assembly?: string;
+  /** Каталог kernel — общего для домена и слоёв над ним, без `{m}` */
+  kernel?: string;
   /**
    * Файл `AppDef` проекта (`<домен>/<имя>.app.ts`) — без `{m}`: `gen module`
    * вписывает Def модуля в его `modules` по маркерам файла. Значения по
@@ -34,18 +36,28 @@ export interface GenLayoutSettings {
 /** Поля секции `gen`. */
 const FIELDS = [
   'domain',
-  'app',
+  'backend',
+  'kernel',
   'domainImport',
   'package',
-  'compositionRoot',
+  'assembly',
   'appDef',
 ];
 
-/** Суффикс каталога прикладного слоя в пакете модуля. */
+/** Переименованные ключи секции `gen` (D-106): ошибка с новым именем, без псевдонима. */
+const RENAMED: Readonly<Record<string, string>> = {
+  app: 'backend',
+  compositionRoot: 'assembly',
+};
+
+/** Ключи-каталоги без `{m}`; не заданы — значение только при раскладке по умолчанию. */
+type DirKey = 'assembly' | 'kernel';
+
+/** Суффикс каталога реализации в пакете модуля. */
 const SRC = '/src';
 
 /**
- * Где генератор создаёт файлы модуля и как прикладной слой импортирует
+ * Где генератор создаёт файлы модуля и как реализация импортирует
  * домен — из настроек, по умолчанию `src/domain/{m}`, `src/app/{m}`. Гибки
  * только корни: форма внутри модуля фиксирована (MAN-10, ARC-06). Один
  * источник путей для `gen` и `ArchApp.layout`.
@@ -56,15 +68,18 @@ export class GenLayout {
 
   static readonly defaults: GenLayoutSettings = {
     domain: 'src/domain/{m}',
-    app: 'src/app/{m}',
+    backend: 'src/app/{m}',
   };
 
   /**
-   * Корень сборки по умолчанию — только при раскладке по умолчанию: при
-   * своей раскладке без `gen.compositionRoot` он неизвестен, и генератор
-   * не подключает модуль сам, а печатает общую подсказку.
+   * Сборка по умолчанию — только при раскладке по умолчанию: при своей
+   * раскладке без `gen.assembly` она неизвестна, и генератор не подключает
+   * модуль сам, а печатает общую подсказку.
    */
-  static readonly defaultCompositionRoot = 'src/app';
+  static readonly defaultAssembly = 'src/app';
+
+  /** Kernel по умолчанию — как сборка, только при раскладке по умолчанию */
+  static readonly defaultKernel = 'src/domain/shared';
 
   /** Раскладка проекта из `dmg-core.json`; нет файла или секции — по умолчанию */
   static async read(root: string): Promise<GenLayout> {
@@ -85,13 +100,18 @@ export class GenLayout {
       return GenLayout.fail('gen — объект');
     }
     const data = json as Record<string, unknown>;
+    for (const [old, renamed] of Object.entries(RENAMED)) {
+      if (Object.hasOwn(data, old)) {
+        GenLayout.fail(`gen.${old} переименован в gen.${renamed}`);
+      }
+    }
     for (const key of Object.keys(data)) {
       if (!FIELDS.includes(key)) {
         GenLayout.fail(`неизвестное поле «gen.${key}»`);
       }
     }
     const gen = { ...GenLayout.defaults };
-    for (const key of ['domain', 'app'] as const) {
+    for (const key of ['domain', 'backend'] as const) {
       const value = data[key];
       if (value === undefined) continue;
       if (typeof value !== 'string' || !value.includes('{m}')) {
@@ -106,12 +126,13 @@ export class GenLayout {
       }
       gen.domainImport = value as string;
     }
-    if (data.compositionRoot !== undefined) {
-      const value = data.compositionRoot;
+    for (const key of ['assembly', 'kernel'] as const) {
+      const value = data[key];
+      if (value === undefined) continue;
       if (typeof value !== 'string' || value.includes('{m}')) {
-        GenLayout.fail('gen.compositionRoot — путь каталога без {m}');
+        GenLayout.fail(`gen.${key} — путь каталога без {m}`);
       }
-      gen.compositionRoot = value as string;
+      gen[key] = value as string;
     }
     if (data.appDef !== undefined) {
       const value = data.appDef;
@@ -125,8 +146,10 @@ export class GenLayout {
       if (typeof value !== 'string' || !value.includes('{m}')) {
         GenLayout.fail('gen.package — шаблон имени пакета с {m}');
       }
-      if (!gen.app.endsWith(SRC)) {
-        GenLayout.fail(`gen.package — gen.app должен оканчиваться на ${SRC}`);
+      if (!gen.backend.endsWith(SRC)) {
+        GenLayout.fail(
+          `gen.package — gen.backend должен оканчиваться на ${SRC}`,
+        );
       }
       if (gen.domainImport === undefined) {
         GenLayout.fail('gen.package — нужен gen.domainImport');
@@ -150,39 +173,56 @@ export class GenLayout {
     return this.path(this.settings.domain, module);
   }
 
-  appDir(module: string): string {
-    return this.path(this.settings.app, module);
+  backendDir(module: string): string {
+    return this.path(this.settings.backend, module);
   }
 
-  /** Обе стороны модуля — значение `ArchApp.layout` */
+  /** Домен и реализация модуля — значение `ArchApp.layout` */
   module(module: string): ModuleLayout {
-    return { domain: this.domainDir(module), app: this.appDir(module) };
+    return { domain: this.domainDir(module), backend: this.backendDir(module) };
   }
 
   /**
-   * Каталог корня сборки (`gen.compositionRoot`); не задан — `src/app` при
+   * Каталог сборки (`gen.assembly`); не задан — `src/app` при раскладке по
+   * умолчанию, иначе undefined
+   */
+  assemblyDir(): string | undefined {
+    return this.dirOf('assembly');
+  }
+
+  /**
+   * Каталог kernel (`gen.kernel`); не задан — `src/domain/shared` при
    * раскладке по умолчанию, иначе undefined
    */
-  compositionDir(): string | undefined {
-    const dir = this.compositionRoot();
+  kernelDir(): string | undefined {
+    return this.dirOf('kernel');
+  }
+
+  private dirOf(key: DirKey): string | undefined {
+    const dir = this.dirSetting(key);
     return dir === undefined ? undefined : this.path(dir, '');
   }
 
-  private compositionRoot(): string | undefined {
-    const { domain, app, compositionRoot } = this.settings;
-    if (compositionRoot !== undefined) return compositionRoot;
+  /** Своя раскладка без ключа — каталог неизвестен: не угадываем */
+  private dirSetting(key: DirKey): string | undefined {
+    const value = this.settings[key];
+    if (value !== undefined) return value;
+    const { domain, backend } = this.settings;
     const { defaults } = GenLayout;
-    return domain === defaults.domain && app === defaults.app
-      ? GenLayout.defaultCompositionRoot
-      : undefined;
+    if (domain !== defaults.domain || backend !== defaults.backend) {
+      return undefined;
+    }
+    return key === 'assembly'
+      ? GenLayout.defaultAssembly
+      : GenLayout.defaultKernel;
   }
 
   /**
-   * `package.json` пакета корня сборки: каталог корня оканчивается на
-   * `/src`, а модули — пакеты (`gen.package`); иначе undefined
+   * `package.json` пакета сборки: каталог сборки оканчивается на `/src`,
+   * а модули — пакеты (`gen.package`); иначе undefined
    */
-  compositionPackage(): string | undefined {
-    const dir = this.compositionDir();
+  assemblyPackage(): string | undefined {
+    const dir = this.assemblyDir();
     if (
       dir === undefined ||
       this.settings.package === undefined ||
@@ -199,11 +239,11 @@ export class GenLayout {
     return appDef === undefined ? undefined : this.path(appDef, '');
   }
 
-  /** Пакет прикладного слоя модуля; нет `gen.package` — undefined */
+  /** Пакет реализации модуля; нет `gen.package` — undefined */
   package(module: string): ModulePackage | undefined {
     const { package: name, domainImport } = this.settings;
     if (name === undefined || domainImport === undefined) return undefined;
-    const dir = this.appDir(module).slice(0, -SRC.length);
+    const dir = this.backendDir(module).slice(0, -SRC.length);
     const domain = this.fill(domainImport, module).split('/');
     return {
       dir,
@@ -215,13 +255,14 @@ export class GenLayout {
 
   /** Применяемая раскладка одной строкой — первая строка вывода `gen` */
   describe(): string {
-    const { domain, app, domainImport, package: name } = this.settings;
-    const line = `Раскладка: домен — ${domain}, прикладной слой — ${app}, импорт домена — ${domainImport ?? 'относительный'}`;
+    const { domain, backend, domainImport, package: name } = this.settings;
+    const line = `Раскладка: домен — ${domain}, реализация — ${backend}, импорт домена — ${domainImport ?? 'относительный'}`;
     const withPackage =
       name === undefined ? line : `${line}, пакет модуля — ${name}`;
-    const root = this.compositionRoot() ?? 'не задан (gen.compositionRoot)';
+    const assembly = this.dirSetting('assembly') ?? 'не задана (gen.assembly)';
+    const kernel = this.dirSetting('kernel') ?? 'не задан (gen.kernel)';
     const appDef = this.settings.appDef ?? 'не задан (gen.appDef)';
-    return `${withPackage}, корень сборки — ${root}, манифест приложения — ${appDef}`;
+    return `${withPackage}, сборка — ${assembly}, kernel — ${kernel}, манифест приложения — ${appDef}`;
   }
 
   /** Импорт домена по шаблону (`gen.domainImport`), а не относительный */

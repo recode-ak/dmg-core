@@ -8,7 +8,7 @@ const layout = (domainImport?: string) =>
   new GenLayout(
     {
       domain: 'packages/domain/src/{m}',
-      app: 'packages/{m}/src',
+      backend: 'packages/{m}/src',
       domainImport,
     },
     '/repo',
@@ -16,19 +16,22 @@ const layout = (domainImport?: string) =>
 
 test('каталоги модуля — шаблоны с {m} от корня проекта', () => {
   expect(layout().domainDir('stream')).toBe('/repo/packages/domain/src/stream');
-  expect(layout().appDir('stream')).toBe('/repo/packages/stream/src');
+  expect(layout().backendDir('stream')).toBe('/repo/packages/stream/src');
 });
 
 test('абсолютный шаблон не зависит от корня', () => {
-  const abs = new GenLayout({ domain: '/d/{m}', app: '/p/{m}/src' }, '/repo');
+  const abs = new GenLayout(
+    { domain: '/d/{m}', backend: '/p/{m}/src' },
+    '/repo',
+  );
   expect(abs.domainDir('stream')).toBe('/d/stream');
-  expect(abs.appDir('stream')).toBe('/p/stream/src');
+  expect(abs.backendDir('stream')).toBe('/p/stream/src');
 });
 
 test('корень «.» оставляет пути относительными', () => {
   const rel = new GenLayout(GenLayout.defaults, '.');
   expect(rel.domainDir('todo')).toBe('src/domain/todo');
-  expect(rel.appDir('todo')).toBe('src/app/todo');
+  expect(rel.backendDir('todo')).toBe('src/app/todo');
 });
 
 test('domainImport задан — спецификатор по шаблону', () => {
@@ -51,30 +54,33 @@ test('domainImport не задан — относительный путь к к
 });
 
 test('относительный путь внутри каталога начинается с ./', () => {
-  const nested = new GenLayout({ domain: 'm/{m}/domain', app: 'm/{m}' }, '.');
+  const nested = new GenLayout(
+    { domain: 'm/{m}/domain', backend: 'm/{m}' },
+    '.',
+  );
   expect(nested.domainImport('todo', 'm/todo')).toBe('./domain');
 });
 
-test('module — обе стороны модуля для ArchApp.layout', () => {
+test('module — домен и реализация модуля для ArchApp.layout', () => {
   expect(layout().module('stream')).toEqual({
     domain: '/repo/packages/domain/src/stream',
-    app: '/repo/packages/stream/src',
+    backend: '/repo/packages/stream/src',
   });
 });
 
 test('describe — применяемая раскладка одной строкой', () => {
   expect(layout('@acme/domain/{m}').describe()).toBe(
-    'Раскладка: домен — packages/domain/src/{m}, прикладной слой — packages/{m}/src, импорт домена — @acme/domain/{m}, корень сборки — не задан (gen.compositionRoot), манифест приложения — не задан (gen.appDef)',
+    'Раскладка: домен — packages/domain/src/{m}, реализация — packages/{m}/src, импорт домена — @acme/domain/{m}, сборка — не задана (gen.assembly), kernel — не задан (gen.kernel), манифест приложения — не задан (gen.appDef)',
   );
   expect(new GenLayout(GenLayout.defaults, '.').describe()).toBe(
-    'Раскладка: домен — src/domain/{m}, прикладной слой — src/app/{m}, импорт домена — относительный, корень сборки — src/app, манифест приложения — не задан (gen.appDef)',
+    'Раскладка: домен — src/domain/{m}, реализация — src/app/{m}, импорт домена — относительный, сборка — src/app, kernel — src/domain/shared, манифест приложения — не задан (gen.appDef)',
   );
 });
 
 test('settingsFrom — шаблоны поверх значений по умолчанию', () => {
-  expect(GenLayout.settingsFrom({ app: 'p/{m}' })).toEqual({
+  expect(GenLayout.settingsFrom({ backend: 'p/{m}' })).toEqual({
     domain: 'src/domain/{m}',
-    app: 'p/{m}',
+    backend: 'p/{m}',
   });
 });
 
@@ -84,11 +90,27 @@ test('settingsFrom — ошибки с полем', () => {
   expect(error({ domain: 'src/domain' })).toThrow(
     'dmg-core.json: gen.domain — шаблон пути с {m}',
   );
+  expect(error({ backend: 'src/app' })).toThrow(
+    'dmg-core.json: gen.backend — шаблон пути с {m}',
+  );
   expect(error({ domainImport: 1 })).toThrow(
     'dmg-core.json: gen.domainImport — шаблон с {m}',
   );
   expect(error({ root: '.' })).toThrow(
     'dmg-core.json: неизвестное поле «gen.root»',
+  );
+});
+
+test('settingsFrom — старые ключи: ошибка с новым именем, раньше неизвестного поля', () => {
+  const error = (json: unknown) => () => GenLayout.settingsFrom(json);
+  expect(error({ app: 'src/app/{m}' })).toThrow(
+    'dmg-core.json: gen.app переименован в gen.backend',
+  );
+  expect(error({ compositionRoot: 'src/app' })).toThrow(
+    'dmg-core.json: gen.compositionRoot переименован в gen.assembly',
+  );
+  expect(error({ root: '.', app: 'p/{m}' })).toThrow(
+    'dmg-core.json: gen.app переименован в gen.backend',
   );
 });
 
@@ -105,7 +127,7 @@ test('read — раскладка из секции gen dmg-core.json проек
   );
   expect((await GenLayout.read(root)).module('todo')).toEqual({
     domain: join(root, 'd/todo'),
-    app: join(root, 'src/app/todo'),
+    backend: join(root, 'src/app/todo'),
   });
 });
 
@@ -114,14 +136,24 @@ test('read — без файла или без секции gen значения
     join(root, 'src/domain/todo'),
   );
   writeFileSync(join(root, 'dmg-core.json'), '{}');
-  expect((await GenLayout.read(root)).appDir('todo')).toBe(
+  expect((await GenLayout.read(root)).backendDir('todo')).toBe(
     join(root, 'src/app/todo'),
+  );
+});
+
+test('read — старый ключ в dmg-core.json проекта: ошибка с новым именем', async () => {
+  writeFileSync(
+    join(root, 'dmg-core.json'),
+    JSON.stringify({ gen: { app: 'src/app/{m}' } }),
+  );
+  await expect(GenLayout.read(root)).rejects.toThrow(
+    'dmg-core.json: gen.app переименован в gen.backend',
   );
 });
 
 const MONOREPO = {
   domain: 'domain/src/{m}',
-  app: 'modules/{m}/src',
+  backend: 'modules/{m}/src',
   domainImport: '@acme/domain/{m}',
   package: '@acme/{m}',
 };
@@ -135,8 +167,8 @@ test('settingsFrom — ошибки gen.package', () => {
   expect(error({ ...MONOREPO, package: '@acme/todo' })).toThrow(
     'dmg-core.json: gen.package — шаблон имени пакета с {m}',
   );
-  expect(error({ ...MONOREPO, app: 'modules/{m}' })).toThrow(
-    'dmg-core.json: gen.package — gen.app должен оканчиваться на /src',
+  expect(error({ ...MONOREPO, backend: 'modules/{m}' })).toThrow(
+    'dmg-core.json: gen.package — gen.backend должен оканчиваться на /src',
   );
   const { domainImport: _, ...noImport } = MONOREPO;
   expect(error(noImport)).toThrow(
@@ -144,7 +176,7 @@ test('settingsFrom — ошибки gen.package', () => {
   );
 });
 
-test('package — пакет модуля над каталогом прикладного слоя', () => {
+test('package — пакет модуля над каталогом реализации', () => {
   expect(new GenLayout(MONOREPO, '.').package('todo')).toEqual({
     dir: 'modules/todo',
     name: '@acme/todo',
@@ -175,55 +207,78 @@ test('package — без gen.package пакета нет', () => {
 
 test('describe — с пакетом модуля', () => {
   expect(new GenLayout(MONOREPO, '.').describe()).toBe(
-    'Раскладка: домен — domain/src/{m}, прикладной слой — modules/{m}/src, импорт домена — @acme/domain/{m}, пакет модуля — @acme/{m}, корень сборки — не задан (gen.compositionRoot), манифест приложения — не задан (gen.appDef)',
+    'Раскладка: домен — domain/src/{m}, реализация — modules/{m}/src, импорт домена — @acme/domain/{m}, пакет модуля — @acme/{m}, сборка — не задана (gen.assembly), kernel — не задан (gen.kernel), манифест приложения — не задан (gen.appDef)',
   );
 });
 
-test('settingsFrom — gen.compositionRoot: каталог корня сборки без {m}', () => {
-  expect(
-    GenLayout.settingsFrom({ compositionRoot: 'app/src' }).compositionRoot,
-  ).toBe('app/src');
-  expect(() => GenLayout.settingsFrom({ compositionRoot: 'a/{m}' })).toThrow(
-    'dmg-core.json: gen.compositionRoot — путь каталога без {m}',
+test('settingsFrom — gen.assembly: каталог сборки без {m}', () => {
+  expect(GenLayout.settingsFrom({ assembly: 'app/src' }).assembly).toBe(
+    'app/src',
   );
-  expect(() => GenLayout.settingsFrom({ compositionRoot: 1 })).toThrow(
-    'dmg-core.json: gen.compositionRoot — путь каталога без {m}',
+  expect(() => GenLayout.settingsFrom({ assembly: 'a/{m}' })).toThrow(
+    'dmg-core.json: gen.assembly — путь каталога без {m}',
+  );
+  expect(() => GenLayout.settingsFrom({ assembly: 1 })).toThrow(
+    'dmg-core.json: gen.assembly — путь каталога без {m}',
   );
 });
 
-test('корень сборки: app.ts и package.json его пакета; appDefFile без gen.appDef', () => {
-  const mono = new GenLayout(
-    { ...MONOREPO, compositionRoot: 'app/src' },
-    '/repo',
+test('settingsFrom — gen.kernel: каталог kernel без {m}', () => {
+  expect(GenLayout.settingsFrom({ kernel: 'platform/kernel' }).kernel).toBe(
+    'platform/kernel',
   );
-  expect(mono.compositionDir()).toBe('/repo/app/src');
+  expect(() => GenLayout.settingsFrom({ kernel: 'k/{m}' })).toThrow(
+    'dmg-core.json: gen.kernel — путь каталога без {m}',
+  );
+  expect(() => GenLayout.settingsFrom({ kernel: 1 })).toThrow(
+    'dmg-core.json: gen.kernel — путь каталога без {m}',
+  );
+});
+
+test('сборка: app.ts и package.json её пакета; appDefFile без gen.appDef', () => {
+  const mono = new GenLayout({ ...MONOREPO, assembly: 'app/src' }, '/repo');
+  expect(mono.assemblyDir()).toBe('/repo/app/src');
   expect(mono.appDefFile()).toBe(undefined);
-  expect(mono.compositionPackage()).toBe('/repo/app/package.json');
+  expect(mono.assemblyPackage()).toBe('/repo/app/package.json');
   const single = new GenLayout(
-    { ...GenLayout.defaults, compositionRoot: 'src/app' },
+    { ...GenLayout.defaults, assembly: 'src/app' },
     '/repo',
   );
-  expect(single.compositionDir()).toBe('/repo/src/app');
-  expect(single.compositionPackage()).toBe(undefined);
+  expect(single.assemblyDir()).toBe('/repo/src/app');
+  expect(single.assemblyPackage()).toBe(undefined);
 });
 
-test('корень сборки не задан: раскладка по умолчанию — src/app', () => {
-  expect(new GenLayout(GenLayout.defaults, '.').compositionDir()).toBe(
-    'src/app',
-  );
+test('сборка не задана: раскладка по умолчанию — src/app', () => {
+  expect(new GenLayout(GenLayout.defaults, '.').assemblyDir()).toBe('src/app');
 });
 
-test('корень сборки не задан при своей раскладке — неизвестен (не угадываем)', () => {
-  const custom = new GenLayout({ domain: 'd/{m}', app: 'p/{m}' }, '.');
-  expect(custom.compositionDir()).toBe(undefined);
-  expect(custom.compositionPackage()).toBe(undefined);
+test('сборка не задана при своей раскладке — неизвестна (не угадываем)', () => {
+  const custom = new GenLayout({ domain: 'd/{m}', backend: 'p/{m}' }, '.');
+  expect(custom.assemblyDir()).toBe(undefined);
+  expect(custom.assemblyPackage()).toBe(undefined);
 });
 
-test('describe — корень сборки, если задан', () => {
+test('kernelDir — от корня проекта; не задан — src/domain/shared при раскладке по умолчанию, иначе неизвестен', () => {
   expect(
-    new GenLayout({ ...MONOREPO, compositionRoot: 'app/src' }, '.').describe(),
+    new GenLayout(
+      { ...MONOREPO, kernel: 'platform/kernel' },
+      '/repo',
+    ).kernelDir(),
+  ).toBe('/repo/platform/kernel');
+  expect(new GenLayout(GenLayout.defaults, '.').kernelDir()).toBe(
+    'src/domain/shared',
+  );
+  expect(new GenLayout(MONOREPO, '.').kernelDir()).toBe(undefined);
+});
+
+test('describe — сборка и kernel, если заданы', () => {
+  expect(
+    new GenLayout(
+      { ...MONOREPO, assembly: 'app/src', kernel: 'platform/kernel' },
+      '.',
+    ).describe(),
   ).toBe(
-    'Раскладка: домен — domain/src/{m}, прикладной слой — modules/{m}/src, импорт домена — @acme/domain/{m}, пакет модуля — @acme/{m}, корень сборки — app/src, манифест приложения — не задан (gen.appDef)',
+    'Раскладка: домен — domain/src/{m}, реализация — modules/{m}/src, импорт домена — @acme/domain/{m}, пакет модуля — @acme/{m}, сборка — app/src, kernel — platform/kernel, манифест приложения — не задан (gen.appDef)',
   );
 });
 
@@ -257,6 +312,6 @@ test('describe — манифест приложения, если задан ge
       '.',
     ).describe(),
   ).toBe(
-    'Раскладка: домен — src/domain/{m}, прикладной слой — src/app/{m}, импорт домена — относительный, корень сборки — src/app, манифест приложения — src/domain/acme.app.ts',
+    'Раскладка: домен — src/domain/{m}, реализация — src/app/{m}, импорт домена — относительный, сборка — src/app, kernel — src/domain/shared, манифест приложения — src/domain/acme.app.ts',
   );
 });

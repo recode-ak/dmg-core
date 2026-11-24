@@ -4,7 +4,7 @@ import { GenLayout } from '../layout';
 import { planAppAggregate } from './app-aggregate';
 
 const layout = new GenLayout(
-  { domain: '/d/{m}', app: '/p/{m}/src', domainImport: '@acme/domain/{m}' },
+  { domain: '/d/{m}', backend: '/p/{m}/src', domainImport: '@acme/domain/{m}' },
   '.',
 );
 
@@ -152,10 +152,10 @@ test('правки app.ts: импорт JSON-репозитория и репо�
   const mono = new GenLayout(
     {
       domain: 'domain/src/{m}',
-      app: 'modules/{m}/src',
+      backend: 'modules/{m}/src',
       domainImport: '@acme/domain/{m}',
       package: '@acme/{m}',
-      compositionRoot: 'app/src',
+      assembly: 'app/src',
     },
     '/r',
   );
@@ -211,10 +211,10 @@ test('длинное имя: импорт JSON-репозитория в app.ts 
   const mono = new GenLayout(
     {
       domain: 'domain/src/{m}',
-      app: 'modules/{m}/src',
+      backend: 'modules/{m}/src',
       domainImport: '@acme/domain/{m}',
       package: '@acme/{m}',
-      compositionRoot: 'app/src',
+      assembly: 'app/src',
     },
     '/r',
   );

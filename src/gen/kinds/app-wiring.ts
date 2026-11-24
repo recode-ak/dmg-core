@@ -38,7 +38,7 @@ export class AppWiring {
   constructor(private readonly args: GenArgs) {
     this.m = args.module;
     this.P = toPascal(args.module);
-    const dir = args.layout.compositionDir();
+    const dir = args.layout.assemblyDir();
     this.app = dir === undefined ? undefined : join(dir, 'app.ts');
     this.appDef = args.layout.appDefFile();
   }
@@ -106,7 +106,7 @@ export class AppWiring {
    */
   moduleDependencies(): PlannedDependency[] {
     const pkg = this.args.layout.package(this.m);
-    const path = this.args.layout.compositionPackage();
+    const path = this.args.layout.assemblyPackage();
     if (pkg === undefined || path === undefined) return [];
     return [{ path, name: pkg.name, version: 'workspace:*' }];
   }
@@ -118,7 +118,7 @@ export class AppWiring {
   moduleNotes(): string[] {
     const { layout } = this.args;
     const pkg = layout.package(this.m);
-    const dir = layout.compositionDir();
+    const dir = layout.assemblyDir();
     const install = pkg
       ? ['Затем bun install — чтобы пакет модуля появился в node_modules.']
       : [];
@@ -126,7 +126,7 @@ export class AppWiring {
     if (dir === undefined) {
       return [...this.manualWiring(), ...appDef, ...install];
     }
-    if (pkg === undefined || layout.compositionPackage() !== undefined) {
+    if (pkg === undefined || layout.assemblyPackage() !== undefined) {
       return [...appDef, ...install];
     }
     return [
@@ -171,10 +171,10 @@ export class AppWiring {
     const { m, P } = this;
     const { layout } = this.args;
     const pkg = layout.package(m);
-    const entry = pkg ? `'${pkg.name}'` : `${layout.appDir(m)}/index.ts`;
+    const entry = pkg ? `'${pkg.name}'` : `${layout.backendDir(m)}/index.ts`;
     const contract = this.contract();
     return [
-      'Корень сборки не задан (gen.compositionRoot в dmg-core.json) — подключи модуль вручную:',
+      'Корень сборки не задан (gen.assembly в dmg-core.json) — подключи модуль вручную:',
       '  корень сборки, список модулей (репозитории — в create вместе с deps):',
       `    { def: ${P}ModuleDef, create: (deps) => create${P}Module({ ...deps }) }`,
       `    create${P}Module — из входа ${entry}, ${P}ModuleDef — из ${contract}`,
@@ -209,7 +209,7 @@ export class AppWiring {
   private entry(fromDir: string): string {
     const pkg = this.args.layout.package(this.m);
     if (pkg !== undefined) return pkg.name;
-    const path = relative(fromDir, this.args.layout.appDir(this.m))
+    const path = relative(fromDir, this.args.layout.backendDir(this.m))
       .split(sep)
       .join('/');
     return path.startsWith('.') ? path : `./${path}`;

@@ -231,10 +231,10 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
     const data = json('dmg-core.json');
     const gen = {
       domain: 'domain/src/{m}',
-      app: 'modules/{m}/src',
+      backend: 'modules/{m}/src',
       domainImport: '@acme/domain/{m}',
       package: '@acme/{m}',
-      compositionRoot: 'app/src',
+      assembly: 'app/src',
       appDef: 'domain/src/acme.app.ts',
     };
 

@@ -36,7 +36,7 @@ export const repoFakeRel = (a: string): string => join(a, `${a}.repo.fake.ts`);
 export function planRepoFake(args: GenArgs): PlannedFile {
   const { module: m, aggregate: a = '' } = args;
   const P = toPascal(a);
-  const src = args.layout.appDir(m);
+  const src = args.layout.backendDir(m);
   const base = `MemoryRepo<${P}Ar, StateOf<typeof ${P}ArDef>>`;
   const header = fit(
     `export class ${P}RepoFake extends ${base} implements ${P}Repo {`,
@@ -72,7 +72,7 @@ ${list('    ', 'super(', [`${P}ArDef`, `${P}Ar.restore`], ');')}
 export function planAppAggregate(args: GenArgs): GenPlan {
   const { module: m, aggregate: a = '' } = args;
   const P = toPascal(a);
-  const src = args.layout.appDir(m);
+  const src = args.layout.backendDir(m);
   const domain = (dir: string) => args.layout.domainImport(m, join(src, dir));
   const modulePath = join(src, `${m}.module.ts`);
   const indexPath = join(src, 'index.ts');

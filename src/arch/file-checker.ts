@@ -10,8 +10,11 @@ import { type ArchRule, Violation } from './violation';
 const POLICY_TEXT =
   /\b(label|description|denyMessage)\s*:\s*(?:'([^']*)'|"([^"]*)"|`([^`]*)`)/;
 
-/** Каталоги модуля: домен (`domain/src/<m>`) и прикладной пакет (`<m>/src`). */
-export type ModuleLayout = { readonly domain: string; readonly app: string };
+/** Каталоги модуля: домен и пакет реализации. */
+export type ModuleLayout = {
+  readonly domain: string;
+  readonly backend: string;
+};
 
 /**
  * Проверки по файлам модулей: ARC-04, ARC-06, MAN-06, MAN-10, TST-07. `entry`
@@ -77,7 +80,7 @@ export class FileChecker {
     for (const [m, dir] of dirs) {
       // Внешний модуль реализован вне приложения: прикладного пакета у него
       // нет, в домене — только контракт.
-      const sides = m.external ? [dir.domain] : [dir.domain, dir.app];
+      const sides = m.external ? [dir.domain] : [dir.domain, dir.backend];
       for (const base of sides) {
         const file = join(base, `${m.name}.module.ts`);
         if (!existsSync(file)) add('ARC-06', `модуль ${m.name}: нет ${file}`);
@@ -85,7 +88,7 @@ export class FileChecker {
 
       const domainOps = this.operationFiles(dir.domain);
       if (!m.external) {
-        const appOps = this.operationFiles(dir.app);
+        const appOps = this.operationFiles(dir.backend);
         for (const f of appOps) {
           if (!domainOps.includes(f)) {
             add(
@@ -126,7 +129,7 @@ export class FileChecker {
         ? [[dir.domain, false]]
         : [
             [dir.domain, false],
-            [dir.app, true],
+            [dir.backend, true],
           ];
       for (const [base, isApp] of scanned) {
         for (const f of this.scan.files(base)) {
@@ -134,7 +137,7 @@ export class FileChecker {
             for (const [x, xDir] of dirs) {
               if (x === m) continue;
               const where = `${m.name}/${f}`;
-              if (isApp && this.scan.inside(target, xDir.app)) {
+              if (isApp && this.scan.inside(target, xDir.backend)) {
                 add(
                   'ARC-06',
                   `${where} импортирует прикладной пакет ${x.name}: ${spec}`,

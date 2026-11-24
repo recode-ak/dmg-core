@@ -16,7 +16,7 @@ export function planAppModule(args: GenArgs): GenPlan {
   const { module: m } = args;
   const P = toPascal(m);
   const c = toCamel(m);
-  const src = args.layout.appDir(m);
+  const src = args.layout.backendDir(m);
   const domain = args.layout.domainImport(m, src);
   const wiring = new AppWiring(args);
 

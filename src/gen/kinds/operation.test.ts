@@ -7,7 +7,7 @@ import { GenLayout } from '../layout';
 import { planOperation } from './operation';
 
 const layout = new GenLayout(
-  { domain: '/d/{m}', app: '/p/{m}/src', domainImport: '@acme/domain/{m}' },
+  { domain: '/d/{m}', backend: '/p/{m}/src', domainImport: '@acme/domain/{m}' },
   '.',
 );
 
@@ -37,7 +37,7 @@ test('uc: фейк порта уже есть — не создаётся зан
     mkdirSync(join(root, 'stream/src/student'), { recursive: true });
     writeFileSync(join(root, 'stream/src/student/student.repo.fake.ts'), '');
     const withFake = new GenLayout(
-      { domain: '/d/{m}', app: `${root}/{m}/src` },
+      { domain: '/d/{m}', backend: `${root}/{m}/src` },
       '.',
     );
     const p = planOperation(
@@ -363,7 +363,7 @@ test('MAN-06: UC создания уже есть — подсказки нет'
     mkdirSync(join(root, 'stream/student/uc'), { recursive: true });
     writeFileSync(join(root, 'stream/student/uc/create-student.uc.ts'), '');
     const withCreate = new GenLayout(
-      { domain: `${root}/{m}`, app: '/p/{m}/src' },
+      { domain: `${root}/{m}`, backend: '/p/{m}/src' },
       '.',
     );
     const notes = planOperation(

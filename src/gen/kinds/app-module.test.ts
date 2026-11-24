@@ -9,7 +9,7 @@ const plan = (
   gen: {
     domainImport?: string;
     package?: string;
-    compositionRoot?: string;
+    assembly?: string;
     appDef?: string;
   } = {
     domainImport: '@acme/domain/{m}',
@@ -18,7 +18,7 @@ const plan = (
   planAppModule(
     parseArgs(
       ['module', 'stream'],
-      new GenLayout({ domain: '/d/{m}', app: '/p/{m}/src', ...gen }, '.'),
+      new GenLayout({ domain: '/d/{m}', backend: '/p/{m}/src', ...gen }, '.'),
     ),
   );
 const content = (p: ReturnType<typeof plan>, rel: string) =>
@@ -45,7 +45,7 @@ export { createStreamModule, type StreamDeps } from './stream.module';
 const MONO = {
   domainImport: '@acme/domain/{m}',
   package: '@acme/{m}',
-  compositionRoot: 'app/src',
+  assembly: 'app/src',
   appDef: '/d/acme.app.ts',
 };
 
@@ -144,7 +144,7 @@ test('gen.package, корень сборки не на /src — зависимо
   const p = plan({
     domainImport: '@acme/domain/{m}',
     package: '@acme/{m}',
-    compositionRoot: 'app',
+    assembly: 'app',
   });
   expect(p.dependencies ?? []).toEqual([]);
   const text = (p.notes ?? []).join('\n');
@@ -155,12 +155,12 @@ test('gen.package, корень сборки не на /src — зависимо
   );
 });
 
-test('своя раскладка без gen.compositionRoot — правок нет, общая подсказка', () => {
+test('своя раскладка без gen.assembly — правок нет, общая подсказка', () => {
   const p = plan({ domainImport: '@acme/domain/{m}', package: '@acme/{m}' });
   expect(p.edits).toEqual([]);
   expect(p.dependencies ?? []).toEqual([]);
   const text = (p.notes ?? []).join('\n');
-  expect(text).toContain('gen.compositionRoot');
+  expect(text).toContain('gen.assembly');
   expect(text).toContain(
     '{ def: StreamModuleDef, create: (deps) => createStreamModule({ ...deps }) }',
   );
@@ -180,10 +180,10 @@ test('длинные имена: импорт с одним именем biome �
       new GenLayout(
         {
           domain: 'domain/src/{m}',
-          app: 'modules/{m}/src',
+          backend: 'modules/{m}/src',
           domainImport: '@acme/domain/{m}',
           package: '@acme/{m}',
-          compositionRoot: 'app/src',
+          assembly: 'app/src',
         },
         '/r',
       ),

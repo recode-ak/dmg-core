@@ -6,7 +6,7 @@ import { GenLayout } from './layout';
 
 const DOMAIN = '/d/stream';
 const APP = '/p/stream/src';
-const layout = new GenLayout({ domain: '/d/{m}', app: '/p/{m}/src' }, '.');
+const layout = new GenLayout({ domain: '/d/{m}', backend: '/p/{m}/src' }, '.');
 
 /** Правило пары (naming.md §3, MAN-10): путь относительно `src/<m>/` одинаков. */
 test.each(['uc', 'er', 'job'] as const)(

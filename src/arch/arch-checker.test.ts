@@ -18,7 +18,7 @@ const broken = ModuleDef.define({
   reactions: [],
   jobs: [],
 });
-const nowhere = () => ({ domain: '/нет/домена', app: '/нет/пакета' });
+const nowhere = () => ({ domain: '/нет/домена', backend: '/нет/пакета' });
 
 describe('ArchChecker', () => {
   it('без раскладки — только проверки по Def', () => {

@@ -197,14 +197,14 @@ describe('ProjectScaffold single: прочие конфиги', () => {
       ...defaults,
       gen: {
         ...defaults.gen,
-        compositionRoot: 'src/app',
+        assembly: 'src/app',
         appDef: 'src/domain/acme.app.ts',
       },
     });
     expect(config.parse(data).gen).toEqual({
       domain: 'src/domain/{m}',
-      app: 'src/app/{m}',
-      compositionRoot: 'src/app',
+      backend: 'src/app/{m}',
+      assembly: 'src/app',
       appDef: 'src/domain/acme.app.ts',
     });
   });

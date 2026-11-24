@@ -118,7 +118,10 @@ async function probeApp(): Promise<ArchApp> {
         long.LearningProgressAnalyticsModuleDef,
       ],
     }),
-    layout: (m) => ({ domain: layout.domainDir(m), app: layout.appDir(m) }),
+    layout: (m) => ({
+      domain: layout.domainDir(m),
+      backend: layout.backendDir(m),
+    }),
   };
 }
 

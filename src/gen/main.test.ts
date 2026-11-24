@@ -25,7 +25,7 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
 const gen = (...argv: string[]) =>
   runGen(
     argv,
-    new GenLayout({ domain: 'd/{m}', app: 'p/{m}/src' }, root),
+    new GenLayout({ domain: 'd/{m}', backend: 'p/{m}/src' }, root),
     (line) => out.push(line),
   );
 
@@ -79,8 +79,8 @@ test('uc/er/job/dcs/dqs --write', () => {
 /** Раскладка с корнем сборки `src/app` (как у single). */
 const WIRED = {
   domain: 'd/{m}',
-  app: 'p/{m}/src',
-  compositionRoot: 'src/app',
+  backend: 'p/{m}/src',
+  assembly: 'src/app',
   appDef: 'd/acme.app.ts',
 };
 const genWired = (...argv: string[]) =>
@@ -98,10 +98,10 @@ test('module без каркаса: «Вставь вручную» с точн�
   );
 });
 
-test('своя раскладка без gen.compositionRoot: общая подсказка, ложных путей нет', () => {
+test('своя раскладка без gen.assembly: общая подсказка, ложных путей нет', () => {
   expect(gen('module', 'stream', '--write')).toBe(0);
   const text = out.join('\n');
-  expect(text).toContain('Корень сборки не задан (gen.compositionRoot');
+  expect(text).toContain('Корень сборки не задан (gen.assembly');
   expect(text).not.toContain('src/app/app.ts');
 });
 
@@ -179,7 +179,7 @@ test('dry-run: уже объявленная зависимость не печ�
     '{ "dependencies": { "@acme/stream": "workspace:*" } }',
   );
   const layout = new GenLayout(
-    { ...PACKAGE_LAYOUT, compositionRoot: 'app/src' },
+    { ...PACKAGE_LAYOUT, assembly: 'app/src' },
     root,
   );
   runGen(['module', 'stream'], layout, (l) => out.push(l), DEPS);
@@ -201,7 +201,7 @@ test('module: вход прикладного слоя index.ts; aggregate до�
 
 const PACKAGE_LAYOUT = {
   domain: 'd/{m}',
-  app: 'p/{m}/src',
+  backend: 'p/{m}/src',
   domainImport: '@acme/d/{m}',
   package: '@acme/{m}',
 };
@@ -211,7 +211,7 @@ const genPackage = (...argv: string[]) =>
 
 test('module с gen.package: нет package.json корня сборки — подсказка с путём', () => {
   const layout = new GenLayout(
-    { ...PACKAGE_LAYOUT, compositionRoot: 'app/src' },
+    { ...PACKAGE_LAYOUT, assembly: 'app/src' },
     root,
   );
   runGen(['module', 'stream', '--write'], layout, (l) => out.push(l), DEPS);
@@ -225,7 +225,7 @@ test('module с gen.package: зависимость вписана в package.js
   mkdirSync(join(root, 'app'));
   writeFileSync(join(root, 'app/package.json'), '{ "name": "@acme/app" }');
   const layout = new GenLayout(
-    { ...PACKAGE_LAYOUT, compositionRoot: 'app/src' },
+    { ...PACKAGE_LAYOUT, assembly: 'app/src' },
     root,
   );
   runGen(['module', 'stream', '--write'], layout, (l) => out.push(l), DEPS);

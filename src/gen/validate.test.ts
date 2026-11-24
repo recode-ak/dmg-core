@@ -22,7 +22,7 @@ function touch(rel: string) {
 function args(argv: string[]): GenArgs {
   return parseArgs(
     argv,
-    new GenLayout({ domain: 'domain/{m}', app: 'packages/{m}/src' }, root),
+    new GenLayout({ domain: 'domain/{m}', backend: 'packages/{m}/src' }, root),
   );
 }
 

@@ -45,7 +45,7 @@ const draft: ArchApp = {
       }),
     ],
   }),
-  layout: () => ({ domain: join(root, 'domain'), app: join(root, 'app') }),
+  layout: () => ({ domain: join(root, 'domain'), backend: join(root, 'app') }),
 };
 
 describe('reportArchCheck', () => {
@@ -79,7 +79,7 @@ describe('reportArchCheck', () => {
           description: 'Приложение с модулем без названия.',
           modules: [broken],
         }),
-        layout: () => ({ domain: '/нет/домена', app: '/нет/пакета' }),
+        layout: () => ({ domain: '/нет/домена', backend: '/нет/пакета' }),
       },
     ]);
     expect(code).toBe(1);

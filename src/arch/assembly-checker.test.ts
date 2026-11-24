@@ -22,7 +22,7 @@ afterEach(() => {
 // корня сборки (`app/<m>`), раннер — рядом.
 const layout = (m: string): ModuleLayout => ({
   domain: join(root, 'domain', m),
-  app: join(root, 'app', m),
+  backend: join(root, 'app', m),
 });
 
 function write(path: string, text = 'export {};\n'): void {

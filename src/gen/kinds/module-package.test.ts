@@ -5,7 +5,7 @@ import { planModulePackage } from './module-package';
 
 const MONOREPO: GenLayoutSettings = {
   domain: 'domain/src/{m}',
-  app: 'modules/{m}/src',
+  backend: 'modules/{m}/src',
   domainImport: '@acme/domain/{m}',
   package: '@acme/{m}',
 };
@@ -59,8 +59,10 @@ test('tsconfig.json: extends корневого по глубине пакета
     extends: '../../tsconfig.json',
     include: ['src'],
   });
-  const deep = plan({ ...MONOREPO, app: 'workspaces/modules/{m}/src' }, DEPS)
-    .files[1]?.content;
+  const deep = plan(
+    { ...MONOREPO, backend: 'workspaces/modules/{m}/src' },
+    DEPS,
+  ).files[1]?.content;
   expect(JSON.parse(deep ?? '')).toMatchObject({
     extends: '../../../tsconfig.json',
   });
