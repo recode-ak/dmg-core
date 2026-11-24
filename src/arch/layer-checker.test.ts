@@ -19,6 +19,7 @@ import { AlphaModuleDef, BetaModuleDef, LayerProvider } from './arch.fixture';
 import { FRAMEWORK_LAYERS } from './framework-layers';
 import { LayerChecker } from './layer-checker';
 import type { FrameworkDirs, LayerPlaces } from './layer-checker.types';
+import { LayerMap } from './layer-map';
 
 // Временный проект `<base>/proj`; `<base>/outside` — каталог вне проекта.
 // Модули — `alpha` → `beta` (замыкание `dependsOn`), вход модуля — `contract`.
@@ -56,10 +57,12 @@ const check = (
   over: Partial<LayerPlaces> = {},
   providers: readonly GraphProvider[] = [],
   roots: readonly AnyModuleDef[] = [AlphaModuleDef],
-): string[] =>
-  new LayerChecker(DefIndex.from(roots), places(over), providers)
-    .check()
-    .map((v) => v.format());
+): string[] => {
+  // Отказы мест слоёв (`refusal`) бросает конструктор `LayerMap`, не `LayerChecker`.
+  const at = places(over);
+  const map = new LayerMap(DefIndex.from(roots), at, providers);
+  return new LayerChecker(map, at).check().map((v) => v.format());
+};
 
 /** Сообщение отказа сборки проверок (в конструкторе или в `check`). */
 function refusal(run: () => unknown): string {

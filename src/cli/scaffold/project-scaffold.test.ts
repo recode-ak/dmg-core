@@ -215,6 +215,7 @@ describe('ProjectScaffold single: прочие конфиги', () => {
     expect(src).toContain('project: root,');
     expect(src).toContain('layout: layout.dirs(),');
     expect(src).toContain("runners: [join(root, 'src/runners/cli')]");
+    expect(src).toContain("graphEntry: join(root, 'scripts/acme.graph.ts'),");
     expect(src).not.toContain('layout.module');
     expect(src).not.toContain('root: join(');
     expect(src).not.toContain("'src/runners/assembly'");

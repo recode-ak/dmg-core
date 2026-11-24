@@ -123,6 +123,7 @@ async function probeApp(): Promise<ArchApp> {
     project,
     layout: layout.dirs(),
     runners: [],
+    graphEntry: join(project, 'genprobe.graph.ts'),
   };
 }
 

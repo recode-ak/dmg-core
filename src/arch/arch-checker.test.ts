@@ -34,6 +34,7 @@ const nowhere: ArchApp = {
     assembly: '/нет/сборки',
   },
   runners: [],
+  graphEntry: '/нет/broken.graph.ts',
 };
 
 describe('ArchChecker', () => {

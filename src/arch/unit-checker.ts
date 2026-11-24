@@ -213,18 +213,12 @@ export class UnitChecker {
   }
 
   /**
-   * `.ts`-файл цели в проекте, вне `node_modules` (сегмент — от `project`),
-   * или `undefined`. Относительный путь приходит без расширения: `<цель>.ts`,
-   * затем `<цель>/index.ts`.
+   * `.ts`-файл цели — кода проекта (`SourceScan.inProject`), или `undefined`.
+   * Относительный путь приходит без расширения: `<цель>.ts`, затем
+   * `<цель>/index.ts`.
    */
   private source(target: string): string | undefined {
-    const { project } = this.map;
-    if (
-      !this.scan.inside(target, project) ||
-      relative(project, target).split(sep).includes('node_modules')
-    ) {
-      return undefined;
-    }
+    if (!this.scan.inProject(target, this.map.project)) return undefined;
     const candidates = target.endsWith('.ts')
       ? [target]
       : [`${target}.ts`, join(target, 'index.ts')];

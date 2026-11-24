@@ -142,9 +142,10 @@ export const SchoolArch: ArchApp = {
   project: root,
   layout: layout.dirs(), // kernel, domain/{m}, backend/{m}, assembly
   runners: [join(root, 'runners/bot/src')],
+  graphEntry: join(root, 'scripts/school.graph.ts'), // файл входа графа (ARC-16)
 };
 ```
 
-Состав приложения и поставщики графа `ArchApp` берёт из входа графа (D-97): один список поставщиков для `dmg-core graph` и `arch:check`.
+Состав приложения и поставщики графа `ArchApp` берёт из входа графа (D-97): один список поставщиков для `dmg-core graph` и `arch:check`; путь к его файлу — `graphEntry` (D-108).
 
 Каркас проекта (конфиги, `check`, корень сборки, раннер) создаёт `dmg-core init --profile single|monorepo`, секцию `gen` пишет он же. Без `gen.package` генератор пишет только исходники: пакет модуля и workspace — забота проекта.

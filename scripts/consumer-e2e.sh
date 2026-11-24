@@ -154,13 +154,22 @@ profile_e2e() {
       exit 1
     fi
   done
-  bun install >/dev/null
+  # Линкер — явно: установка не зависит от умолчания Bun. В monorepo единица
+  # видит только объявленные пакеты — на этом держатся ARC-14…16 (D-108).
+  bun install --linker isolated >/dev/null
+  if [ "$profile" = monorepo ] && [ ! -L runners/cli/node_modules/@acme/assembly ]; then
+    echo "e2e: monorepo — установка не изолированная" >&2
+    exit 1
+  fi
   run_logged "$WORK/$profile-init-check.log" \
     "$profile — bun run check красный сразу после init" bun run check
   bunx dmg-core gen module todo --write >/dev/null
   bunx dmg-core gen aggregate todo.task --write >/dev/null
   bunx dmg-core gen uc todo.task create-task --write >/dev/null
   bunx dmg-core gen uc todo.task complete-task --write >/dev/null
+  # Как велит gen module (project.md): в monorepo пакет модуля появляется в
+  # node_modules после установки — без неё arch:check даёт ARC-15 (D-108).
+  bun install --linker isolated >/dev/null
   # Подключение модуля генератором — сразу в форме biome, без format.
   run_logged "$WORK/$profile-gen-lint.log" \
     "$profile — biome красный после gen (подключение модуля)" bunx biome check .
@@ -195,7 +204,6 @@ profile_e2e() {
   fi
   # Ручных правок нет: UC вызывается по имени, контракт (D-45) — граница
   # TS-импортов между модулями, транспорту он не нужен.
-  bun install >/dev/null
   local out
   out="$(APP_DATA_DIR=data bun "$main" call todo.createTask \
     --user 5e3d1c2b-7a6f-4e8d-b9c0-a1f2e3d4c5b6)"

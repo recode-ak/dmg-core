@@ -1,10 +1,8 @@
-import { join, relative, sep } from 'node:path';
-import type { DefIndex } from '../graph/def-index';
-import type { GraphProvider } from '../graph/graph-provider';
+import { join } from 'node:path';
 import type { LayerAccess } from '../graph/source-layer.types';
 import { OUTSIDE_ACCESS } from './framework-layers';
 import type { LayerPlaces } from './layer-checker.types';
-import { LayerMap } from './layer-map';
+import type { LayerMap } from './layer-map';
 import type { LayerPlace } from './layer-map.types';
 import { SourceScan } from './source-scan';
 import type { ResolvedImport } from './source-scan.types';
@@ -27,16 +25,14 @@ type Import = {
  */
 export class LayerChecker {
   private readonly scan = new SourceScan();
-  private readonly map: LayerMap;
   private readonly entry: string;
   private readonly testing: string;
 
+  /** Карту слоёв строит `ArchChecker` — одну на проверяющих слоёв и единиц. */
   constructor(
-    index: DefIndex,
-    places: LayerPlaces,
-    providers: readonly GraphProvider[] = [],
+    private readonly map: LayerMap,
+    places: Pick<LayerPlaces, 'entry' | 'testing'>,
   ) {
-    this.map = new LayerMap(index, places, providers);
     this.entry = places.entry ?? 'index';
     this.testing = places.testing ?? 'testing';
   }
@@ -66,7 +62,7 @@ export class LayerChecker {
     from: LayerPlace | undefined,
     { spec, target }: ResolvedImport,
   ): Violation[] {
-    if (!this.inProject(target)) return [];
+    if (!this.scan.inProject(target, this.map.project)) return [];
     const to = this.map.placeOf(target);
     if (to === undefined) {
       return from === undefined
@@ -197,15 +193,6 @@ export class LayerChecker {
         `${this.where(file, from)} импортирует ${target}, которого нет в dependsOn ${module.name}`,
       ),
     ];
-  }
-
-  /** Цель в проекте и не в `node_modules` (сегмент — от `project`: сам проект может лежать в пакете). */
-  private inProject(target: string): boolean {
-    const { project } = this.map;
-    return (
-      this.scan.inside(target, project) &&
-      !relative(project, target).split(sep).includes('node_modules')
-    );
   }
 
   private where(file: string, from: LayerPlace | undefined): string {

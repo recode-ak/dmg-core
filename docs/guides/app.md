@@ -32,7 +32,7 @@ verified: 06429f5
 - [example-cli.ts](../../src/testing/example/runners/cli/example-cli.ts): argv → `Result` разбора → `Trace` (канал `cli`) → резолвер → одна точка `dispatch`; коды выхода 0 / 1 (ввод) / 2 (отказ UC).
 - [example-env.ts](../../src/testing/example/runners/cli/example-env.ts) и [main.ts](../../src/testing/example/runners/cli/main.ts): `process.env` → `ExampleAppEnv` — единственное место чтения окружения.
 - [example.arch.ts](../../src/testing/example/example.arch.ts): каталоги слоёв в `ArchApp` — сборка, kernel, домен и реализации из `layout`, раннеры-процессы — `runners`; их импорты проверяет `arch:check` (D-107).
-- [example.app.ts](../../src/testing/example/platform/domain/example.app.ts): `AppDef` — манифест состава приложения; в конфиг проверок `ArchApp` поле `def` приходит через вход графа (`{ ...ExampleGraph, entry, project, layout, runners }`).
+- [example.app.ts](../../src/testing/example/platform/domain/example.app.ts): `AppDef` — манифест состава приложения; в конфиг проверок `ArchApp` поле `def` приходит через вход графа (`{ ...ExampleGraph, entry, project, layout, runners, graphEntry }`; `graphEntry` — путь к файлу входа графа, D-108).
 
 ## 4. Чеклист правил
 

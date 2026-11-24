@@ -8,8 +8,10 @@
  * - карта линтера срабатывает: на каждое правило — файл-нарушитель, biome
  *   выдаёт ожидаемые ID ровно на нём; вне `includes` (тесты, `infra`,
  *   репозитории, точка входа раннера) нарушений нет;
- * - в `monorepo` пакеты `@acme/*` — ссылки на свои каталоги (как
- *   workspaces после `bun install`), `ArchChecker` видит их спецификаторы;
+ * - в `monorepo` пакеты `@acme/*` — ссылки на свои каталоги в корневом
+ *   `node_modules` (как hoisted-установка), `ArchChecker` видит их
+ *   спецификаторы; ARC-14/15 — по спецификатору и пути, изолированную
+ *   установку каркаса проверяет `consumer-e2e.sh` (D-108);
  * - срез `gen` в `monorepo` (модуль, агрегат, UC) с пакетом модуля сам
  *   подключает модуль к приложению (маркеры каркаса) и проходит biome,
  *   tsc, `arch:check` и тесты без ручных правок.
@@ -479,12 +481,14 @@ describe('ArchChecker на monorepo видит спецификаторы пак
       project,
       layout: layout.dirs(),
       runners: [join(project, 'runners/cli/src')],
+      graphEntry: join(project, 'scripts/acme.graph.ts'),
     };
     violations = ArchChecker.of(app)
       .check()
       .map((v) => v.format());
   }, 60_000);
 
+  // Порядок `check()`: слои, затем единицы.
   test('нарушения — выход домена по пути, мимо contract, пакет реализации из раннера', () => {
     expect(violations).toEqual([
       'ARC-02: platform/domain/src/probe/escape.ts (domain) импортирует assembly: ../../../../runners/assembly/src/app',
@@ -495,6 +499,8 @@ describe('ArchChecker на monorepo видит спецификаторы пак
         /^ARC-08: .*probe-runner-bad\.ts.*@acme\/domain\/probe$/,
       ),
       'ARC-08: runners/cli/src/probe-runner-be.ts (runner) импортирует backend probe: @acme/be-probe',
+      'ARC-15: platform/domain/src/probe/escape.ts (@acme/domain) импортирует за границу пакета относительным путём: ../../../../runners/assembly/src/app',
+      'ARC-14: runners/cli/src/probe-runner-be.ts (@acme/cli) импортирует @acme/be-probe — нет в package.json единицы: @acme/be-probe',
     ]);
   });
 });

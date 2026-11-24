@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { dirname, join, resolve, sep } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { ResolvedImport, SourceImport } from './source-scan.types';
 
 /** Суффиксы тестового кода: тесты, фикстуры, наборы клиентов, фейки портов. */
@@ -66,6 +66,17 @@ export class SourceScan {
 
   inside(path: string, dir: string): boolean {
     return path === dir || path.startsWith(dir + sep);
+  }
+
+  /**
+   * Путь — код проекта: внутри `project` и без сегмента `node_modules`
+   * (сегмент — от `project`: сам проект может лежать в пакете).
+   */
+  inProject(path: string, project: string): boolean {
+    return (
+      this.inside(path, project) &&
+      !relative(project, path).split(sep).includes('node_modules')
+    );
   }
 
   /**

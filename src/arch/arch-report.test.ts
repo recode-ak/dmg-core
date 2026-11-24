@@ -52,6 +52,7 @@ const draft: ArchApp = {
     assembly: join(root, 'assembly'),
   },
   runners: [],
+  graphEntry: join(root, 'draft.graph.ts'),
 };
 
 describe('reportArchCheck', () => {
@@ -93,6 +94,7 @@ describe('reportArchCheck', () => {
           assembly: '/нет/сборки',
         },
         runners: [],
+        graphEntry: '/нет/broken.graph.ts',
       },
     ]);
     expect(code).toBe(1);

@@ -230,8 +230,10 @@ export class ProjectFiles {
  * \`bun run arch:check\` — контрактные проверки архитектуры (\`ArchChecker\`):
  * состав приложения (\`AppDef\`, поставщики с правилами и слоями) — из входа
  * графа \`${appDef.name}.graph.ts\`, каталоги слоёв — из \`dmg-core.json\`
- * (\`GenLayout.dirs()\`), раннеры-процессы — списком. Выход 1 — есть нарушения.
- * \`--strict\` — незаполненные \`TODO\` в описаниях Def тоже нарушения (MAN-01).
+ * (\`GenLayout.dirs()\`), раннеры-процессы — списком; файл входа графа
+ * (\`graphEntry\`) — его замыкание импортов не доходит до реализаций (ARC-16).
+ * Выход 1 — есть нарушения. \`--strict\` — незаполненные \`TODO\` в описаниях
+ * Def тоже нарушения (MAN-01).
  */
 ${imports}
 
@@ -244,6 +246,7 @@ const app: ArchApp = {
   project: root,
   layout: layout.dirs(),
   runners: [join(root, '${runner}')],
+  graphEntry: join(root, '${appDef.graphFile}'),
 };
 
 // Незаполненные TODO в Def — предупреждения; --strict делает их нарушениями.
