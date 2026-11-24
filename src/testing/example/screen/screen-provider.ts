@@ -5,6 +5,7 @@ import {
   type GraphNodeInput,
   type GraphProvider,
   type GraphRule,
+  type SourceLayer,
 } from '#core/graph/index';
 import type { AnyAppDef } from '#core/index';
 import type { AnyScreenDef } from './screen-def.types';
@@ -55,6 +56,22 @@ export class ScreenProvider implements GraphProvider {
 
   rules(): readonly GraphRule[] {
     return [new ScreenWithoutUcRule()];
+  }
+
+  /** Слой `screen` (D-107): на оси раннеров, видит сборку, kernel и вход домена. */
+  layers(): readonly SourceLayer[] {
+    return [
+      {
+        name: 'screen',
+        axis: 'runner',
+        rule: 'SCR-02',
+        sees: [
+          { layer: 'assembly' },
+          { layer: 'kernel' },
+          { layer: 'domain', entries: ['public'] },
+        ],
+      },
+    ];
   }
 
   private static id(screen: AnyScreenDef): string {

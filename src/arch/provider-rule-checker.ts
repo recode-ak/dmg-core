@@ -15,7 +15,7 @@ const RESERVED = new Set<string>(PACKAGE_RULE_PREFIXES);
 
 /**
  * Проверка графа приложения правилами поставщиков: нарушение — с ID правила.
- * ID сверяются в конструкторе; нарушение ARC-13 — исключение.
+ * ID правил и слоёв сверяются в конструкторе; нарушение ARC-13 — исключение.
  */
 export class ProviderRuleChecker {
   private readonly rules: readonly GraphRule[];
@@ -53,38 +53,68 @@ export class ProviderRuleChecker {
     }
   }
 
-  // Префикс ID принадлежит одному поставщику (по `name`), префиксы пакета
-  // зарезервированы; отсюда же — отказ при совпадении с ID правила пакета.
+  // ID правил и слоёв поставщика (D-107) — по одной карте префиксов: правило
+  // SCR-01 и слой SCR-02 одного поставщика можно, общий ID — нет.
   private static verified(
     providers: readonly GraphProvider[],
   ): readonly GraphRule[] {
-    const owners = new Map<string, string>();
-    const ids = new Set<string>();
+    const ids = new ProviderIds();
     const all: GraphRule[] = [];
     for (const provider of providers) {
       for (const rule of provider.rules?.() ?? []) {
         const at = `ARC-13: правило ${rule.id} поставщика ${provider.name}`;
-        if (!RULE_ID.test(rule.id)) {
-          throw new Error(`${at} — ID не по форме <ПРЕФИКС>-<NN>`);
-        }
-        const [prefix = ''] = rule.id.split('-');
-        if (RESERVED.has(prefix)) {
-          throw new Error(
-            `${at} — префикс ${prefix} занят правилами пакета dmg-core`,
-          );
-        }
-        const owner = owners.get(prefix) ?? provider.name;
-        if (owner !== provider.name) {
-          throw new Error(
-            `ARC-13: префикс ${prefix} у двух поставщиков — ${owner} и ${provider.name}`,
-          );
-        }
-        if (ids.has(rule.id)) throw new Error(`${at} объявлено дважды`);
-        owners.set(prefix, owner);
-        ids.add(rule.id);
+        ids.claim(rule.id, provider.name, {
+          at,
+          form: `${at} — ID не по форме <ПРЕФИКС>-<NN>`,
+          twice: `${at} объявлено дважды`,
+        });
         all.push(rule);
+      }
+      for (const layer of provider.layers?.() ?? []) {
+        const at = `ARC-13: слой ${layer.name} поставщика ${provider.name}`;
+        ids.claim(layer.rule, provider.name, {
+          at,
+          form: `${at} — ID ${layer.rule} не по форме <ПРЕФИКС>-<NN>`,
+          twice: `${at} — ID ${layer.rule} объявлен дважды`,
+        });
       }
     }
     return all;
+  }
+}
+
+/** Тексты отказа по ID: кто объявил (`at`), ID не по форме, ID повторён. */
+type IdRefusals = {
+  readonly at: string;
+  readonly form: string;
+  readonly twice: string;
+};
+
+/**
+ * Занятые ID поставщиков (ARC-13): префикс принадлежит одному поставщику (по
+ * `name`), префиксы пакета зарезервированы; отсюда же — отказ при совпадении
+ * с ID правила пакета. Нарушение — исключение.
+ */
+class ProviderIds {
+  private readonly owners = new Map<string, string>();
+  private readonly ids = new Set<string>();
+
+  claim(id: string, provider: string, refusals: IdRefusals): void {
+    if (!RULE_ID.test(id)) throw new Error(refusals.form);
+    const [prefix = ''] = id.split('-');
+    if (RESERVED.has(prefix)) {
+      throw new Error(
+        `${refusals.at} — префикс ${prefix} занят правилами пакета dmg-core`,
+      );
+    }
+    const owner = this.owners.get(prefix) ?? provider;
+    if (owner !== provider) {
+      throw new Error(
+        `ARC-13: префикс ${prefix} у двух поставщиков — ${owner} и ${provider}`,
+      );
+    }
+    if (this.ids.has(id)) throw new Error(refusals.twice);
+    this.owners.set(prefix, owner);
+    this.ids.add(id);
   }
 }

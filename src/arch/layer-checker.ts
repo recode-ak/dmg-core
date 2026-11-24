@@ -1,0 +1,218 @@
+import { join, relative, sep } from 'node:path';
+import type { DefIndex } from '../graph/def-index';
+import type { GraphProvider } from '../graph/graph-provider';
+import type { LayerAccess } from '../graph/source-layer.types';
+import { OUTSIDE_ACCESS } from './framework-layers';
+import type { LayerPlaces } from './layer-checker.types';
+import { LayerMap } from './layer-map';
+import type { LayerPlace } from './layer-map.types';
+import { SourceScan } from './source-scan';
+import type { ResolvedImport } from './source-scan.types';
+import { Violation } from './violation';
+
+/** Импорт файла проекта: путь от `project` через `/`, его каталог слоя и цель. */
+type Import = {
+  readonly file: string;
+  readonly from: LayerPlace | undefined;
+  readonly to: LayerPlace;
+  readonly spec: string;
+  readonly target: string;
+};
+
+/**
+ * Импорты файлов проекта по слоям (D-107, D-70, D-37): видимость слоёв, вход
+ * модуля, `dependsOn`, вход `testing`. Нарушение — с ID слоя-импортёра или
+ * доступа; порядок — по пути файла, в файле — по импортам.
+ * @see src/arch/layer-checker.test.ts
+ */
+export class LayerChecker {
+  private readonly scan = new SourceScan();
+  private readonly map: LayerMap;
+  private readonly entry: string;
+  private readonly testing: string;
+
+  constructor(
+    index: DefIndex,
+    private readonly places: LayerPlaces,
+    providers: readonly GraphProvider[] = [],
+  ) {
+    this.map = new LayerMap(index, places, providers);
+    this.entry = places.entry ?? 'index';
+    this.testing = places.testing ?? 'testing';
+  }
+
+  check(): Violation[] {
+    const { project } = this.places;
+    return [
+      ...this.map.issues,
+      ...this.scan
+        .projectFiles(project)
+        .flatMap((file) => this.checkFile(file, join(project, file))),
+    ];
+  }
+
+  // Реализация внешнего модуля — не код приложения (D-37): не обходится.
+  private checkFile(file: string, path: string): Violation[] {
+    const from = this.map.placeOf(path);
+    if (from?.foreign === true) return [];
+    return this.scan
+      .imports(path)
+      .flatMap((imp) => this.checkImport(file, from, imp));
+  }
+
+  // Пакет вне проекта или в `node_modules` — дело линтера, не слоёв.
+  private checkImport(
+    file: string,
+    from: LayerPlace | undefined,
+    { spec, target }: ResolvedImport,
+  ): Violation[] {
+    if (!this.inProject(target)) return [];
+    const to = this.map.placeOf(target);
+    if (to === undefined) {
+      return from === undefined
+        ? []
+        : [
+            new Violation(
+              from.layer.rule,
+              `${this.where(file, from)} импортирует файл вне слоёв: ${spec}`,
+            ),
+          ];
+    }
+    const imp: Import = { file, from, to, spec, target };
+    return from === undefined ? this.outside(imp) : this.layered(imp, from);
+  }
+
+  /** Файл вне слоёв видит всё, кроме модуля домена мимо входа (`OUTSIDE_ACCESS`). */
+  private outside(imp: Import): Violation[] {
+    const access = OUTSIDE_ACCESS.find((a) => a.layer === imp.to.layer.name);
+    return access === undefined ? [] : this.entryOf(imp, access, access.rule);
+  }
+
+  private layered(imp: Import, from: LayerPlace): Violation[] {
+    const { to } = imp;
+    if (this.sameLayer(from, to)) return [];
+    const access =
+      from.layer.sees.find((a) => a.layer === to.layer.name) ??
+      to.layer.seenBy?.find((a) => a.layer === from.layer.name);
+    if (access === undefined) {
+      return [
+        new Violation(
+          from.layer.rule,
+          `${this.where(imp.file, from)} импортирует ${this.title(to)}: ${imp.spec}`,
+        ),
+      ];
+    }
+    const rule = access.rule ?? from.layer.rule;
+    return [
+      ...this.entryOf(imp, access, rule),
+      ...this.dependsOn(imp, from, access, rule),
+    ];
+  }
+
+  /** Свой слой свободен; у слоя по модулям — свой модуль и корень слоя. */
+  private sameLayer(from: LayerPlace, to: LayerPlace): boolean {
+    return (
+      from.layer.name === to.layer.name &&
+      (from.layer.perModule !== true ||
+        to.module === undefined ||
+        from.module?.name === to.module.name)
+    );
+  }
+
+  /**
+   * Вход каталога цели (D-70, D-37): `own` для своего модуля, иначе
+   * `entries`; вход `testing` — только тестовому коду (TST-07). Корень слоя
+   * по модулям, реализация внешнего модуля и импорт между внешними — без
+   * проверки.
+   */
+  private entryOf(
+    { file, from, to, spec, target }: Import,
+    access: LayerAccess,
+    rule: string,
+  ): Violation[] {
+    const own =
+      from?.module !== undefined && from.module.name === to.module?.name;
+    const list = own && access.own !== undefined ? access.own : access.entries;
+    if (
+      list === undefined ||
+      to.foreign ||
+      (to.module === undefined && to.layer.perModule === true) ||
+      (from?.module?.external === true && to.module?.external === true)
+    ) {
+      return [];
+    }
+    const names = [
+      ...new Set(list.map((e) => (e === 'public' ? this.entry : 'index'))),
+    ];
+    if (names.some((name) => this.scan.isEntry(target, to.dir, name))) {
+      return [];
+    }
+    const where = this.where(file, from);
+    if (
+      to.module !== undefined &&
+      to.layer.testEntry === true &&
+      this.scan.isEntry(target, to.dir, this.testing)
+    ) {
+      return this.scan.isTest(file, this.testing)
+        ? []
+        : [
+            new Violation(
+              'TST-07',
+              `${where} импортирует ${this.testing}.ts модуля ${to.module.name} — вход только для тестового кода: ${spec}`,
+            ),
+          ];
+    }
+    const entries = names.map((name) => `${name}.ts`).join(' и ');
+    return [
+      new Violation(
+        rule,
+        `${where} импортирует ${this.title(to)} мимо ${entries}: ${spec}`,
+      ),
+    ];
+  }
+
+  /** Чужой модуль — только из `dependsOn` модуля импортёра; и между внешними. */
+  private dependsOn(
+    { file, to }: Import,
+    from: LayerPlace,
+    access: LayerAccess,
+    rule: string,
+  ): Violation[] {
+    const { module } = from;
+    const target = to.module?.name;
+    if (
+      access.dependsOn !== true ||
+      module === undefined ||
+      target === undefined ||
+      target === module.name ||
+      module.dependsOn.some((m) => m.name === target)
+    ) {
+      return [];
+    }
+    return [
+      new Violation(
+        rule,
+        `${this.where(file, from)} импортирует ${target}, которого нет в dependsOn ${module.name}`,
+      ),
+    ];
+  }
+
+  /** Цель в проекте и не в `node_modules` (сегмент — от `project`: сам проект может лежать в пакете). */
+  private inProject(target: string): boolean {
+    const { project } = this.places;
+    return (
+      this.scan.inside(target, project) &&
+      !relative(project, target).split(sep).includes('node_modules')
+    );
+  }
+
+  private where(file: string, from: LayerPlace | undefined): string {
+    return `${file} (${from?.layer.name ?? 'вне слоёв'})`;
+  }
+
+  private title(place: LayerPlace): string {
+    return place.module === undefined
+      ? place.layer.name
+      : `${place.layer.name} ${place.module.name}`;
+  }
+}

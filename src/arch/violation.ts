@@ -1,5 +1,6 @@
 /** Правила `rules.md`, которые проверяет `arch:check`. */
 export type ArchRule =
+  | 'ARC-02'
   | 'ARC-04'
   | 'ARC-05'
   | 'ARC-06'

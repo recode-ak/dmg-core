@@ -317,3 +317,50 @@ test('describe — манифест приложения, если задан ge
     'Раскладка: домен — src/platform/domain/{m}, реализация — src/backend/{m}, импорт домена — относительный, сборка — src/runners/assembly, kernel — src/platform/kernel, манифест приложения — src/platform/domain/acme.app.ts',
   );
 });
+
+test('dirs — каталоги слоёв по умолчанию, абсолютные, {m} сохраняется', () => {
+  expect(new GenLayout(GenLayout.defaults, '/repo').dirs()).toEqual({
+    kernel: '/repo/src/platform/kernel',
+    domain: '/repo/src/platform/domain/{m}',
+    backend: '/repo/src/backend/{m}',
+    assembly: '/repo/src/runners/assembly',
+  });
+});
+
+test('dirs — своя раскладка с ключами: значения ключей', () => {
+  const custom = new GenLayout(
+    {
+      domain: 'packages/domain/src/{m}',
+      backend: 'packages/{m}/src',
+      kernel: 'packages/kernel/src',
+      assembly: 'app/src',
+    },
+    '/repo',
+  );
+  expect(custom.dirs()).toEqual({
+    kernel: '/repo/packages/kernel/src',
+    domain: '/repo/packages/domain/src/{m}',
+    backend: '/repo/packages/{m}/src',
+    assembly: '/repo/app/src',
+  });
+});
+
+test('dirs — своя раскладка без gen.kernel: отказ', () => {
+  const custom = new GenLayout(
+    { domain: 'd/{m}', backend: 'b/{m}', assembly: 'app' },
+    '/repo',
+  );
+  expect(() => custom.dirs()).toThrow(
+    'dmg-core.json: gen.kernel не задан — каталог kernel нужен проверке слоёв',
+  );
+});
+
+test('dirs — своя раскладка без gen.assembly: отказ', () => {
+  const custom = new GenLayout(
+    { domain: 'd/{m}', backend: 'b/{m}', kernel: 'k' },
+    '/repo',
+  );
+  expect(() => custom.dirs()).toThrow(
+    'dmg-core.json: gen.assembly не задан — каталог assembly нужен проверке слоёв',
+  );
+});

@@ -52,3 +52,9 @@ export {
   type NormalizedUseCase,
   normalize,
 } from './normalize';
+export type {
+  LayerAccess,
+  LayerAxis,
+  LayerEntry,
+  SourceLayer,
+} from './source-layer.types';

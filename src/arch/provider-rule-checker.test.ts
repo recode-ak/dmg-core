@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'bun:test';
+import type { GraphProvider } from '../graph/graph-provider';
+import type { SourceLayer } from '../graph/source-layer.types';
 import { ExampleAppDef } from '../testing/example/platform/domain/example.app';
 import {
+  LayerProvider,
   NoteWithoutChildrenRule,
   RuleProvider,
   StubRule,
@@ -13,7 +16,7 @@ const lines = (checker: ProviderRuleChecker) =>
   checker.check().map((v) => v.format());
 
 /** Сообщение исключения конструктора. */
-function refusal(providers: readonly RuleProvider[]): string {
+function refusal(providers: readonly GraphProvider[]): string {
   try {
     new ProviderRuleChecker({ def: ExampleAppDef, providers });
   } catch (error) {
@@ -183,5 +186,54 @@ describe('ProviderRuleChecker: ID правил (ARC-13)', () => {
       new StubRule('TOY-02'),
     ]);
     expect(refusal([toy])).toBe('не бросил');
+  });
+});
+
+describe('ProviderRuleChecker: ID слоёв поставщика (ARC-13)', () => {
+  const layer = (rule: string): SourceLayer => ({
+    name: 'views',
+    axis: 'runner',
+    rule,
+    sees: [{ layer: 'kernel' }],
+  });
+
+  it('ID слоя не по форме — отказ', () => {
+    expect(refusal([new LayerProvider('toy', [layer('toy-2')])])).toBe(
+      'ARC-13: слой views поставщика toy — ID toy-2 не по форме <ПРЕФИКС>-<NN>',
+    );
+  });
+
+  it('префикс пакета у слоя — отказ', () => {
+    expect(refusal([new LayerProvider('toy', [layer('ARC-02')])])).toBe(
+      'ARC-13: слой views поставщика toy — префикс ARC занят правилами пакета dmg-core',
+    );
+  });
+
+  it('префикс слоя занят правилом другого поставщика — отказ', () => {
+    const toy = new RuleProvider('toy', [new StubRule('TOY-01')]);
+    const rival = new LayerProvider('rival', [layer('TOY-02')]);
+    expect(refusal([toy, rival])).toBe(
+      'ARC-13: префикс TOY у двух поставщиков — toy и rival',
+    );
+  });
+
+  it('ID слоя совпал с ID правила того же поставщика — отказ', () => {
+    const toy = new LayerProvider(
+      'toy',
+      [layer('TOY-01')],
+      [new StubRule('TOY-01')],
+    );
+    expect(refusal([toy])).toBe(
+      'ARC-13: слой views поставщика toy — ID TOY-01 объявлен дважды',
+    );
+  });
+
+  it('правило SCR-01 и слой SCR-02 одного поставщика — допустимо', () => {
+    const screen = new LayerProvider(
+      'screen',
+      [layer('SCR-02')],
+      [new StubRule('SCR-01')],
+    );
+    expect(refusal([screen])).toBe('не бросил');
   });
 });

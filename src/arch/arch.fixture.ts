@@ -1,7 +1,7 @@
 // Чистая пара модулей для контрактных проверок: `alpha` зависит от `beta`,
 // слушает его событие и вызывает его UC через фасад (`calls`). Негативные
 // фикстуры — в тестах, как варианты этих Def. Внизу — игрушечные поставщики
-// графа с правилами (D-97).
+// графа с правилами (D-97) и со слоями исходников (D-107).
 import * as v from 'valibot';
 import { AggregateDef } from '../domain/aggregate/aggregate-def';
 import { EventReactionDef } from '../domain/contracts/event-reaction-def';
@@ -15,6 +15,7 @@ import type { GraphNodeInput } from '../graph/graph.types';
 import type { GraphContribution, GraphProvider } from '../graph/graph-provider';
 import type { GraphRule } from '../graph/graph-rule.types';
 import type { GraphKinds } from '../graph/kind-registry.types';
+import type { SourceLayer } from '../graph/source-layer.types';
 import { ErrorDef } from '../kernel/errors/error-def';
 import { BaseEntityFields, F } from '../kernel/fields/fields';
 
@@ -209,3 +210,32 @@ export class RuleProvider implements GraphProvider {
 /** `toy` с узлом-заметкой и правилом `TOY-01`. */
 export const toyRuleProvider = (): RuleProvider =>
   new RuleProvider('toy', [new NoteWithoutChildrenRule()], [TOY_NODE]);
+
+/**
+ * Поставщик-фикстура слоёв исходников (D-107): узлов и рёбер не вносит,
+ * `rules` нет, если не переданы.
+ */
+export class LayerProvider implements GraphProvider {
+  readonly version = '1.0.0';
+  readonly rules?: () => readonly GraphRule[];
+
+  constructor(
+    readonly name: string,
+    private readonly sourceLayers: readonly SourceLayer[],
+    rules?: readonly GraphRule[],
+  ) {
+    if (rules) this.rules = () => rules;
+  }
+
+  kinds(): GraphKinds {
+    return { nodes: [], edges: [] };
+  }
+
+  contribute(): GraphContribution {
+    return { nodes: [], edges: [] };
+  }
+
+  layers(): readonly SourceLayer[] {
+    return this.sourceLayers;
+  }
+}

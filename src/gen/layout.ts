@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
-import { isAbsolute, join, relative, sep } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { ModuleLayout } from '../arch/file-checker';
+import type { FrameworkDirs } from '../arch/layer-checker.types';
 import type { ModulePackage } from './layout.types';
 
 /** Раскладка проекта для генераторов (`dmg-core.json`, `gen`); `{m}` — имя модуля */
@@ -196,6 +197,30 @@ export class GenLayout {
    */
   kernelDir(): string | undefined {
     return this.dirOf('kernel');
+  }
+
+  /**
+   * Каталоги слоёв — значение `ArchApp.layout` (D-106, D-107): абсолютные,
+   * `{m}` сохраняется. Нет каталога kernel или сборки — Error.
+   */
+  dirs(): FrameworkDirs {
+    const { domain, backend } = this.settings;
+    return {
+      kernel: this.requiredDir('kernel'),
+      domain: resolve(this.root, domain),
+      backend: resolve(this.root, backend),
+      assembly: this.requiredDir('assembly'),
+    };
+  }
+
+  private requiredDir(key: DirKey): string {
+    const dir = this.dirSetting(key);
+    if (dir === undefined) {
+      return GenLayout.fail(
+        `gen.${key} не задан — каталог ${key} нужен проверке слоёв`,
+      );
+    }
+    return resolve(this.root, dir);
   }
 
   private dirOf(key: DirKey): string | undefined {

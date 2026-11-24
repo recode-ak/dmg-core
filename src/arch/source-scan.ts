@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import type { ResolvedImport } from './source-scan.types';
 
@@ -9,10 +9,10 @@ const IMPORT =
   /(?:^|[\s;])(?:import|export)\s+(?:type\s+)?(?:[^'"]*?\sfrom\s*)?['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g;
 
 /**
- * Чтение исходников для проверок по файлам: `.ts`-файлы каталога, их
- * импорты с разрешёнными путями и принадлежность пути каталогу или его
- * входу. Общий для `FileChecker` (модули) и `AssemblyChecker` (корень
- * сборки и раннеры).
+ * Чтение исходников для проверок по файлам: `.ts`-файлы каталога или всего
+ * проекта, их импорты с разрешёнными путями и принадлежность пути каталогу
+ * или его входу. Общий для проверок файлов модулей, сборки с раннерами и
+ * слоёв.
  */
 export class SourceScan {
   /** `.ts`-файлы каталога, относительные пути через `/`, по алфавиту. */
@@ -20,6 +20,26 @@ export class SourceScan {
     if (!existsSync(base)) return [];
     return [...new Bun.Glob('**/*.ts').scanSync({ cwd: base })]
       .map((f) => f.split(sep).join('/'))
+      .sort();
+  }
+
+  /**
+   * `.ts`-файлы проекта, как `files`, без путей с сегментом `node_modules`
+   * (D-107). Верхний `node_modules` не читается вовсе; скрытые каталоги и
+   * ссылки на каталоги не обходятся, как в `Bun.Glob`.
+   */
+  projectFiles(root: string): string[] {
+    if (!existsSync(root)) return [];
+    return readdirSync(root, { withFileTypes: true })
+      .flatMap((entry) => {
+        const { name } = entry;
+        if (name === 'node_modules' || name.startsWith('.')) return [];
+        if (entry.isDirectory()) {
+          return this.files(join(root, name)).map((f) => `${name}/${f}`);
+        }
+        return entry.isFile() && name.endsWith('.ts') ? [name] : [];
+      })
+      .filter((f) => !f.split('/').includes('node_modules'))
       .sort();
   }
 
