@@ -27,7 +27,7 @@ verified: 06429f5
 
 ## 3. Образец
 
-- [todo.module.ts (Def)](../../src/testing/example/platform/domain/todo/todo.module.ts): `dependsOn: [UsersModuleDef]` из контракта `users`, пять UC, одна ER, один Job.
+- [todo.module.ts (Def)](../../src/testing/example/platform/domain/todo/todo.module.ts): `dependsOn: [UsersModuleDef]` из контракта `users`, UC, ER и Job.
 - [todo/contract.ts](../../src/testing/example/platform/domain/todo/contract.ts) и [users/contract.ts](../../src/testing/example/platform/domain/users/contract.ts): входы модулей с JSDoc на каждом экспорте; `todo` отдаёт и `TaskAr`, `TaskPolicy`, `TaskRules` с типами контекстов и `OPEN_TASKS_LIMIT` — клиентскому коду (D-104), но не state, ArDef и DCS; `users` отдаёт `GetUserUcDef` и тип ответа `UserActivity`, но не state, Ar и Policy.
 - [todo.module.ts (реализация)](../../src/testing/example/backend/todo/todo.module.ts): `TodoDeps = ModuleDeps & { tasks }`, `todoMap … satisfies ModuleMap<…>`, `createTodoModule(deps)` → `ModuleFromDef`.
 - [example.arch.ts](../../src/testing/example/example.arch.ts): `ArchApp` учебного приложения — раскладка и `entry: 'contract'` для ARC-04.

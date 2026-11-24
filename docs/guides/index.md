@@ -25,4 +25,4 @@
 | делегирование: заявка, порт, резолвер (D-89) | [delegation.md](./delegation.md) | `runners/assembly/example-caller-resolver.ts`, `runners/assembly/example-delegation-store.ts` |
 | расширение графа и проверок: свой вид Def, поставщик, правило, слой, подписка | [graph-extension.md](./graph-extension.md) | `screen/screen-provider.ts`, `screen.test.ts` |
 
-Без отдельного гайда: тесты — [testing.md](../reference/testing.md); поля `F.*` и `shared/` — [manifests.md](../reference/manifests.md) §3; формат графа — [graph.md](../reference/graph.md); структура и имена — [naming.md](../reference/naming.md).
+Без отдельного гайда: тесты — [testing.md](../reference/testing.md); поля `F.*`, `shared/` модуля домена и `kernel` приложения — [manifests.md](../reference/manifests.md) §3; формат графа — [graph.md](../reference/graph.md); структура и имена — [naming.md](../reference/naming.md).

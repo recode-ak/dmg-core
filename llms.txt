@@ -8,6 +8,7 @@
 
 - [Вход в документацию](docs/index.md): суть DMG, карта документов
 - [Слои и пакеты](docs/reference/layers.md): оси, импорты, доменный API, доступ к entity
+- [Оси и сценарии роста](docs/concepts/layers.md): почему четыре оси и сборка в раннерах, реестр сценариев `GR-NN` (вынос модуля в сервис, на другой язык) и их статус
 - [Моделирование домена](docs/reference/domain-modeling.md): модуль-владелец, Ar / Policy / доменное правило / DCS / DQS, границы модулей
 - [Проект](docs/guides/project.md): `dmg-core init --profile single|monorepo` — что создаёт каркас, как растёт проект, подключение модулей генератором, `call` раннера
 - [Структура и имена](docs/reference/naming.md): сокращения, файловая структура домена и прикладного слоя, генератор `dmg-core gen` (§5)
@@ -33,7 +34,7 @@
 - [Индекс гайдов](docs/guides/index.md)
 - [State](docs/guides/state.md), [Aggregate](docs/guides/aggregate.md), [Events](docs/guides/events.md), [Errors](docs/guides/errors.md), [Policy](docs/guides/policy.md)
 - [Repo, DCS, DQS](docs/guides/repo.md), [Facade](docs/guides/facade.md), [Use case](docs/guides/use-case.md), [Event reaction](docs/guides/event-reaction.md), [Module](docs/guides/module.md), [Job](docs/guides/job.md), [Сборка и раннер](docs/guides/app.md), [Проект](docs/guides/project.md), [Вынос модуля](docs/guides/extract-module.md), [Делегирование](docs/guides/delegation.md)
-- [Расширение графа и проверок](docs/guides/graph-extension.md): пакет-поставщик — свой вид Def, поставщик графа, правило `arch:check` со своим префиксом, подписка `EventSubscriber`, `DeclaredSet`, `ErrorText`; образец — `src/testing/example/screen/`
+- [Расширение графа и проверок](docs/guides/graph-extension.md): пакет-поставщик — свой вид Def, поставщик графа, правило `arch:check` со своим префиксом, слой исходников, подписка `EventSubscriber`, `DeclaredSet`, `ErrorText`; образец — `src/testing/example/screen/`
 
 ## Агенты
 

@@ -6,7 +6,7 @@ import type { AnyModuleDef } from './module-def.types';
 export type AppSpec = DefSpec & {
   /** Полный состав модулей приложения (D-93). */
   readonly modules: readonly AnyModuleDef[];
-  /** Метка масштаба (D-82): слово словаря проекта, не перечень фреймворка. */
+  /** Метка масштаба (D-93; D-82 u7-school): слово словаря проекта, не перечень фреймворка. */
   readonly scale?: string;
 };
 

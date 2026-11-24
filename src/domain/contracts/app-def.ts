@@ -11,7 +11,7 @@ export type { AnyAppDef, AppSpec, NormalizedApp } from './app-def.types';
 export class AppDef<const S extends AppSpec = AppSpec> extends Def<S['name']> {
   readonly dmg = 'app';
   readonly modules: S['modules'];
-  /** Метка масштаба (D-82); не задана — `undefined`. */
+  /** Метка масштаба (D-93; D-82 u7-school); не задана — `undefined`. */
   readonly scale: string | undefined;
 
   constructor(spec: S) {
