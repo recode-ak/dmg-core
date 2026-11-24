@@ -1,6 +1,5 @@
 import { readFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
-import type { ModuleLayout } from '../arch/file-checker';
 import type { FrameworkDirs } from '../arch/layer-checker.types';
 import type { ModulePackage } from './layout.types';
 
@@ -176,11 +175,6 @@ export class GenLayout {
 
   backendDir(module: string): string {
     return this.path(this.settings.backend, module);
-  }
-
-  /** Домен и реализация модуля — значение `ArchApp.layout` */
-  module(module: string): ModuleLayout {
-    return { domain: this.domainDir(module), backend: this.backendDir(module) };
   }
 
   /**

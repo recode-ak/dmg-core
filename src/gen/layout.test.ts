@@ -61,13 +61,6 @@ test('относительный путь внутри каталога начи
   expect(nested.domainImport('todo', 'm/todo')).toBe('./domain');
 });
 
-test('module — домен и реализация модуля для ArchApp.layout', () => {
-  expect(layout().module('stream')).toEqual({
-    domain: '/repo/packages/domain/src/stream',
-    backend: '/repo/packages/stream/src',
-  });
-});
-
 test('describe — применяемая раскладка одной строкой', () => {
   expect(layout('@acme/domain/{m}').describe()).toBe(
     'Раскладка: домен — packages/domain/src/{m}, реализация — packages/{m}/src, импорт домена — @acme/domain/{m}, сборка — не задана (gen.assembly), kernel — не задан (gen.kernel), манифест приложения — не задан (gen.appDef)',
@@ -125,10 +118,9 @@ test('read — раскладка из секции gen dmg-core.json проек
     join(root, 'dmg-core.json'),
     JSON.stringify({ instructions: null, gen: { domain: 'd/{m}' } }),
   );
-  expect((await GenLayout.read(root)).module('todo')).toEqual({
-    domain: join(root, 'd/todo'),
-    backend: join(root, 'src/backend/todo'),
-  });
+  const read = await GenLayout.read(root);
+  expect(read.domainDir('todo')).toBe(join(root, 'd/todo'));
+  expect(read.backendDir('todo')).toBe(join(root, 'src/backend/todo'));
 });
 
 test('read — без файла или без секции gen значения по умолчанию', async () => {
