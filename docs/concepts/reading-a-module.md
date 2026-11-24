@@ -3,7 +3,7 @@ covers:
   - src/testing/example/platform/domain/todo/**
   - src/testing/example/backend/todo/**
   - src/gen/kinds/**
-verified: 269f105
+verified: 55ea74c
 ---
 
 # Как читать модуль
