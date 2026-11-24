@@ -1,7 +1,7 @@
 ---
 covers:
   - src/cli/scaffold/**
-verified: eac4528
+verified: b1d3f9a
 ---
 
 # Проект — гайд
