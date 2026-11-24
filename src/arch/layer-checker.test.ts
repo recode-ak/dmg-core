@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { type AnyModuleDef, ModuleDef } from '../domain/contracts/module-def';
 import { DefIndex } from '../graph/def-index';
 import type { GraphProvider } from '../graph/graph-provider';
@@ -809,6 +809,33 @@ describe('LayerChecker: пакеты', () => {
   });
 });
 
+describe('LayerChecker: путь проекта', () => {
+  // Каталоги слоёв сверяются с разрешённым project: без нормализации обход и
+  // «цель в проекте» шли бы по сырой строке и молча не находили нарушений.
+  const violations = [
+    'ARC-02: kernel/fields.ts (kernel) импортирует backend alpha: ../backend/alpha/index',
+    'ARC-08: runners/cli/main.ts (runner) импортирует backend beta: ../../backend/beta',
+  ];
+  const tree = (): void => {
+    cleanTree();
+    write('kernel/fields.ts', '../backend/alpha/index');
+    write('runners/cli/main.ts', '../../backend/beta');
+  };
+
+  it('project с / на конце — те же нарушения, что у абсолютного', () => {
+    tree();
+    expect(check()).toEqual(violations);
+    expect(check({ project: `${root}/` })).toEqual(violations);
+  });
+
+  it('относительный project — те же нарушения, что у абсолютного', () => {
+    tree();
+    expect(check({ project: relative(process.cwd(), root) })).toEqual(
+      violations,
+    );
+  });
+});
+
 describe('LayerChecker: место нарушения', () => {
   it('два раннера с одним basename различаются путём от project', () => {
     cleanTree();
@@ -829,7 +856,7 @@ describe('LayerChecker: место нарушения', () => {
   });
 });
 
-describe('LayerChecker: слои поставщиков (Р-15)', () => {
+describe('LayerChecker: слои поставщиков', () => {
   it('раннер → реализация — ARC-08 и screen → реализация — SCR-02 одним LayerChecker', () => {
     cleanTree();
     write('runners/cli/main.ts', '../../backend/alpha');
@@ -847,6 +874,47 @@ describe('LayerChecker: слои поставщиков (Р-15)', () => {
     cleanTree();
     expect(check({}, [new LayerProvider('toy', [views()])])).toEqual([
       'ARC-13: слой views поставщика toy без каталога в ArchApp.layers',
+    ]);
+  });
+
+  it('пустой список каталогов слоя — как без каталога, ARC-13', () => {
+    cleanTree();
+    expect(
+      check({ layers: { views: [] } }, [new LayerProvider('toy', [views()])]),
+    ).toEqual([
+      'ARC-13: слой views поставщика toy без каталога в ArchApp.layers',
+    ]);
+  });
+
+  it('доступ к домену без entries: любой файл модуля, но testing — только тестовому коду (TST-07)', () => {
+    cleanTree();
+    write('domain/beta/testing.ts');
+    write(
+      'views/page.ts',
+      '../domain/beta/item/item.ar',
+      '../domain/beta/testing',
+    );
+    write('views/page.test.ts', '../domain/beta/testing');
+    const toy = new LayerProvider('toy', [
+      views({ sees: [{ layer: 'kernel' }, { layer: 'domain' }] }),
+    ]);
+    expect(check({ layers: { views: [join(root, 'views')] } }, [toy])).toEqual([
+      'TST-07: views/page.ts (views) импортирует testing.ts модуля beta — вход только для тестового кода: ../domain/beta/testing',
+    ]);
+  });
+
+  it('слой по модулям: каталог на модуль из шаблона {m}, чужой модуль того же слоя — ID слоя', () => {
+    cleanTree();
+    write('pages/alpha/home.ts', './list', '../beta/item');
+    write('pages/alpha/list.ts');
+    write('pages/beta/item.ts');
+    const toy = new LayerProvider('toy', [
+      views({ name: 'pages', perModule: true }),
+    ]);
+    expect(
+      check({ layers: { pages: [join(root, 'pages', '{m}')] } }, [toy]),
+    ).toEqual([
+      'TOY-02: pages/alpha/home.ts (pages) импортирует pages beta: ../beta/item',
     ]);
   });
 
@@ -925,6 +993,22 @@ describe('LayerChecker: слои поставщиков (Р-15)', () => {
       expect(refuse(toy)).toBe(
         'ARC-13: слой domain поставщика toy — имя занято слоем dmg-core',
       );
+    });
+
+    it('слой объявлен поставщиком дважды', () => {
+      const toy = new LayerProvider('toy', [views(), views()]);
+      expect(refuse(toy)).toBe(
+        'ARC-13: слой views поставщика toy объявлен дважды',
+      );
+    });
+
+    it('{m} в каталоге слоя не по модулям', () => {
+      const toy = new LayerProvider('toy', [views()]);
+      expect(
+        refusal(() =>
+          check({ layers: { views: [join(root, 'views', '{m}')] } }, [toy]),
+        ),
+      ).toBe('ArchApp.layers.views — {m} только у слоя по модулям');
     });
 
     it('один слой у двух поставщиков', () => {

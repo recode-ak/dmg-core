@@ -228,6 +228,14 @@ describe('ProviderRuleChecker: ID слоёв поставщика (ARC-13)', () 
     );
   });
 
+  it('два слоя одного поставщика с одним ID — допустимо, как ARC-02 у kernel и domain', () => {
+    const toy = new LayerProvider('toy', [
+      layer('TOY-02'),
+      { ...layer('TOY-02'), name: 'pages' },
+    ]);
+    expect(refusal([toy])).toBe('не бросил');
+  });
+
   it('правило SCR-01 и слой SCR-02 одного поставщика — допустимо', () => {
     const screen = new LayerProvider(
       'screen',

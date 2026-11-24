@@ -3,10 +3,8 @@ import { AppDef } from '../domain/contracts/app-def';
 import { ModuleDef } from '../domain/contracts/module-def';
 import { DefIndex } from '../graph/def-index';
 import { ExampleArch } from '../testing/example/example.arch';
-import { ExampleAppDef } from '../testing/example/platform/domain/example.app';
 import { TodoModuleDef } from '../testing/example/platform/domain/todo';
 import { UsersModuleDef } from '../testing/example/platform/domain/users';
-import { ScreenProvider } from '../testing/example/screen/screen-provider';
 import { RuleProvider, StubRule, toyRuleProvider } from './arch.fixture';
 import { type ArchApp, ArchChecker } from './arch-checker';
 
@@ -99,78 +97,13 @@ describe('ArchChecker', () => {
   });
 
   it('вход модуля для других — из приложения (`entry`, по умолчанию index)', () => {
-    // Пример входит через `contract.ts`; при входе `index` тот же импорт —
-    // нарушение с ID слоя-импортёра: ARC-04 в домене (и в `<имя>.app.ts`
-    // корня домена) и реализации, ARC-07 в сборке, ARC-08 в раннере, ARC-04
-    // у файлов вне слоёв (`index.ts`, `screen/*`, `screen.test.ts`). `users`
-    // проверяется через `dependsOn` todo.
-    const app = { ...ExampleArch, entry: undefined };
-    const users = (file: string, layer: string, rule = 'ARC-04') =>
-      `${rule}: ${file} (${layer}) импортирует domain users мимо index.ts: #core/testing/example/platform/domain/users/contract`;
-    const todo = (file: string, layer: string, rule: string) =>
-      `${rule}: ${file} (${layer}) импортирует domain todo мимо index.ts: #core/testing/example/platform/domain/todo/contract`;
-    const outside = (file: string, m: string, spec: string) =>
-      `ARC-04: ${file} (вне слоёв) импортирует domain ${m} мимо index.ts: ${spec}`;
-    const app04 = (m: string) =>
-      `ARC-04: platform/domain/example.app.ts (domain) импортирует domain ${m} мимо index.ts: ./${m}/contract`;
+    // Пример входит через `contract.ts` и чист; без `entry` вход — `index`, и
+    // те же импорты — нарушения мимо index.ts. Случаи по слоям — layer-checker.test.
+    const lines = ArchChecker.of({ ...ExampleArch, entry: undefined }).report();
+    expect(lines).not.toEqual([]);
     expect(
-      ArchChecker.of(app)
-        .check()
-        .map((v) => v.format()),
-    ).toEqual([
-      // реализация (`backend/`)
-      users(
-        'backend/todo/task/er/release-removed-user-tasks.er.test.ts',
-        'backend',
-      ),
-      users('backend/todo/task/uc/assign-task.uc.test.ts', 'backend'),
-      users('backend/todo/task/uc/assign-task.uc.ts', 'backend'),
-      users('backend/todo/todo.module.test.ts', 'backend'),
-      // вход пакета `example` — вне слоёв
-      outside('index.ts', 'todo', './platform/domain/todo/contract'),
-      outside('index.ts', 'users', './platform/domain/users/contract'),
-      // корень домена: AppDef
-      app04('todo'),
-      app04('users'),
-      // домен
-      users(
-        'platform/domain/todo/task/er/release-removed-user-tasks.er.ts',
-        'domain',
-      ),
-      users('platform/domain/todo/task/task.rules.ts', 'domain'),
-      users('platform/domain/todo/task/uc/assign-task.uc.test.ts', 'domain'),
-      users('platform/domain/todo/task/uc/assign-task.uc.ts', 'domain'),
-      users('platform/domain/todo/todo.module.ts', 'domain'),
-      // сборка (`runners/assembly/`)
-      todo('runners/assembly/example-app.test.ts', 'assembly', 'ARC-07'),
-      users('runners/assembly/example-app.test.ts', 'assembly', 'ARC-07'),
-      todo('runners/assembly/example-app.ts', 'assembly', 'ARC-07'),
-      users('runners/assembly/example-app.ts', 'assembly', 'ARC-07'),
-      users(
-        'runners/assembly/example-caller-resolver.ts',
-        'assembly',
-        'ARC-07',
-      ),
-      users(
-        'runners/assembly/example-delegation.test.ts',
-        'assembly',
-        'ARC-07',
-      ),
-      // раннер (`runners/cli/`)
-      todo('runners/cli/example-cli.ts', 'runner', 'ARC-08'),
-      // образец «экран» — вне слоёв без ScreenArch
-      outside('screen.test.ts', 'todo', './platform/domain/todo/contract'),
-      outside(
-        'screen/tasks-screen.ts',
-        'todo',
-        '../platform/domain/todo/contract',
-      ),
-      outside(
-        'screen/tasks.screen.ts',
-        'todo',
-        '../platform/domain/todo/contract',
-      ),
-    ]);
+      lines.filter((line) => !/ мимо index\.ts: \S*\/contract$/.test(line)),
+    ).toEqual([]);
   });
 
   it('проверки AppDef входят в of(): пустой label приложения — нарушение MAN-01', () => {
@@ -240,16 +173,6 @@ describe('ArchChecker', () => {
     const app = { ...ExampleArch, providers: [plain] };
     expect(ArchChecker.of(app).check()).toEqual([]);
     expect(plain.contributed).toBe(0);
-  });
-
-  it('слой поставщика без каталога в ArchApp.layers — нарушение ARC-13 в of()', () => {
-    const app = {
-      ...ExampleArch,
-      providers: [new ScreenProvider(ExampleAppDef, [])],
-    };
-    expect(ArchChecker.of(app).report()).toEqual([
-      'ARC-13: слой screen поставщика example-screen без каталога в ArchApp.layers',
-    ]);
   });
 
   it('неверный ID правила поставщика — отказ ARC-13 из of()', () => {

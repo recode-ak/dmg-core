@@ -54,7 +54,9 @@ export class ProviderRuleChecker {
   }
 
   // ID правил и слоёв поставщика (D-107) — по одной карте префиксов: правило
-  // SCR-01 и слой SCR-02 одного поставщика можно, общий ID — нет.
+  // SCR-01 и слой SCR-02 одного поставщика можно, ID слоя = ID правила — нет.
+  // Слои между собой ID делят, как kernel и domain (ARC-02): правила
+  // поставщика заявлены раньше его слоёв.
   private static verified(
     providers: readonly GraphProvider[],
   ): readonly GraphRule[] {
@@ -63,7 +65,7 @@ export class ProviderRuleChecker {
     for (const provider of providers) {
       for (const rule of provider.rules?.() ?? []) {
         const at = `ARC-13: правило ${rule.id} поставщика ${provider.name}`;
-        ids.claim(rule.id, provider.name, {
+        ids.rule(rule.id, provider.name, {
           at,
           form: `${at} — ID не по форме <ПРЕФИКС>-<NN>`,
           twice: `${at} объявлено дважды`,
@@ -72,7 +74,7 @@ export class ProviderRuleChecker {
       }
       for (const layer of provider.layers?.() ?? []) {
         const at = `ARC-13: слой ${layer.name} поставщика ${provider.name}`;
-        ids.claim(layer.rule, provider.name, {
+        ids.layer(layer.rule, provider.name, {
           at,
           form: `${at} — ID ${layer.rule} не по форме <ПРЕФИКС>-<NN>`,
           twice: `${at} — ID ${layer.rule} объявлен дважды`,
@@ -92,14 +94,25 @@ type IdRefusals = {
 
 /**
  * Занятые ID поставщиков (ARC-13): префикс принадлежит одному поставщику (по
- * `name`), префиксы пакета зарезервированы; отсюда же — отказ при совпадении
- * с ID правила пакета. Нарушение — исключение.
+ * `name`), префиксы пакета зарезервированы; ID правила — один на правило, ID
+ * слоя не совпадает с ID правила, а слои его делят. Нарушение — исключение.
  */
 class ProviderIds {
   private readonly owners = new Map<string, string>();
-  private readonly ids = new Set<string>();
+  private readonly rules = new Set<string>();
 
-  claim(id: string, provider: string, refusals: IdRefusals): void {
+  rule(id: string, provider: string, refusals: IdRefusals): void {
+    this.prefix(id, provider, refusals);
+    if (this.rules.has(id)) throw new Error(refusals.twice);
+    this.rules.add(id);
+  }
+
+  layer(id: string, provider: string, refusals: IdRefusals): void {
+    this.prefix(id, provider, refusals);
+    if (this.rules.has(id)) throw new Error(refusals.twice);
+  }
+
+  private prefix(id: string, provider: string, refusals: IdRefusals): void {
     if (!RULE_ID.test(id)) throw new Error(refusals.form);
     const [prefix = ''] = id.split('-');
     if (RESERVED.has(prefix)) {
@@ -113,8 +126,6 @@ class ProviderIds {
         `ARC-13: префикс ${prefix} у двух поставщиков — ${owner} и ${provider}`,
       );
     }
-    if (this.ids.has(id)) throw new Error(refusals.twice);
     this.owners.set(prefix, owner);
-    this.ids.add(id);
   }
 }

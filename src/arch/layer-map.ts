@@ -12,11 +12,13 @@ import { Violation } from './violation';
 const MODULE = '{m}';
 
 /**
- * Каталоги слоёв приложения и слои поставщиков (D-107, Р-15): чей файл и
- * какой слой. Ошибка раскладки или слоя поставщика — отказ в конструкторе.
+ * Каталоги слоёв приложения и слои поставщиков (D-107): чей файл и какой
+ * слой. Ошибка раскладки или слоя поставщика — отказ в конструкторе.
  * @see src/arch/layer-checker.test.ts
  */
 export class LayerMap {
+  /** `ArchApp.project`, разрешённый в абсолютный путь: с ним сверяются каталоги и цели. */
+  readonly project: string;
   /** Нарушения ARC-13: слой поставщика без каталога, каталог без слоя. */
   readonly issues: readonly Violation[];
   private readonly layers = new Map<string, SourceLayer>();
@@ -31,6 +33,7 @@ export class LayerMap {
     private readonly app: LayerPlaces,
     providers: readonly GraphProvider[],
   ) {
+    this.project = resolve(app.project);
     for (const layer of FRAMEWORK_LAYERS) this.layers.set(layer.name, layer);
     this.declare(providers);
     this.issues = this.undeclared();
@@ -91,11 +94,14 @@ export class LayerMap {
     }
   }
 
+  // Пустой список каталогов — то же, что нет ключа: иначе слой молча без проверок.
   private undeclared(): Violation[] {
     const given = this.app.layers ?? {};
     return [
       ...[...this.owners]
-        .filter(([name]) => !Object.hasOwn(given, name))
+        .filter(
+          ([name]) => !Object.hasOwn(given, name) || given[name]?.length === 0,
+        )
         .map(
           ([name, owner]) =>
             new Violation(
@@ -173,7 +179,7 @@ export class LayerMap {
   ): void {
     const layer = this.layer(name);
     const dir = resolve(path);
-    if (!this.scan.inside(dir, resolve(this.app.project))) {
+    if (!this.scan.inside(dir, this.project)) {
       throw new Error(`каталог слоя ${name} вне ArchApp.project: ${dir}`);
     }
     const twin = places.find((p) => p.dir === dir);
@@ -214,6 +220,6 @@ export class LayerMap {
   }
 
   private path(dir: string): string {
-    return relative(this.app.project, dir).split(sep).join('/');
+    return relative(this.project, dir).split(sep).join('/');
   }
 }

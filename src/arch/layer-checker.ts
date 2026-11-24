@@ -33,7 +33,7 @@ export class LayerChecker {
 
   constructor(
     index: DefIndex,
-    private readonly places: LayerPlaces,
+    places: LayerPlaces,
     providers: readonly GraphProvider[] = [],
   ) {
     this.map = new LayerMap(index, places, providers);
@@ -42,7 +42,7 @@ export class LayerChecker {
   }
 
   check(): Violation[] {
-    const { project } = this.places;
+    const { project } = this.map;
     return [
       ...this.map.issues,
       ...this.scan
@@ -121,28 +121,29 @@ export class LayerChecker {
 
   /**
    * Вход каталога цели (D-70, D-37): `own` для своего модуля, иначе
-   * `entries`; вход `testing` — только тестовому коду (TST-07). Корень слоя
-   * по модулям, реализация внешнего модуля и импорт между внешними — без
-   * проверки.
+   * `entries`, нет списка — любой файл; вход `testing` — только тестовому
+   * коду (TST-07) и при любом списке. Корень слоя по модулям, реализация
+   * внешнего модуля и импорт между внешними — без проверки.
    */
   private entryOf(
     { file, from, to, spec, target }: Import,
     access: LayerAccess,
     rule: string,
   ): Violation[] {
-    const own =
-      from?.module !== undefined && from.module.name === to.module?.name;
-    const list = own && access.own !== undefined ? access.own : access.entries;
     if (
-      list === undefined ||
       to.foreign ||
       (to.module === undefined && to.layer.perModule === true) ||
       (from?.module?.external === true && to.module?.external === true)
     ) {
       return [];
     }
+    const own =
+      from?.module !== undefined && from.module.name === to.module?.name;
+    const list = own && access.own !== undefined ? access.own : access.entries;
     const names = [
-      ...new Set(list.map((e) => (e === 'public' ? this.entry : 'index'))),
+      ...new Set(
+        (list ?? []).map((e) => (e === 'public' ? this.entry : 'index')),
+      ),
     ];
     if (names.some((name) => this.scan.isEntry(target, to.dir, name))) {
       return [];
@@ -162,6 +163,7 @@ export class LayerChecker {
             ),
           ];
     }
+    if (list === undefined) return [];
     const entries = names.map((name) => `${name}.ts`).join(' и ');
     return [
       new Violation(
@@ -199,7 +201,7 @@ export class LayerChecker {
 
   /** Цель в проекте и не в `node_modules` (сегмент — от `project`: сам проект может лежать в пакете). */
   private inProject(target: string): boolean {
-    const { project } = this.places;
+    const { project } = this.map;
     return (
       this.scan.inside(target, project) &&
       !relative(project, target).split(sep).includes('node_modules')
