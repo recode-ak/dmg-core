@@ -3,6 +3,8 @@ import { DefIndex } from '../graph/def-index';
 import type { GraphApp } from '../graph/domain/graph-app.types';
 import { AppDefChecker } from './app-def-checker';
 import { DefChecker } from './def-checker';
+import { DeviationRegistry } from './deviation-registry';
+import type { DebtPlaces } from './deviation-registry.types';
 import { FileChecker, type ModuleLayout } from './file-checker';
 import { LayerChecker } from './layer-checker';
 import type { FrameworkDirs, LayerPlaces } from './layer-checker.types';
@@ -14,18 +16,19 @@ import { UnitMap } from './unit-map';
 import type { Violation } from './violation';
 
 /**
- * Приложение для `arch:check` (D-52, D-107, D-108): вход графа (`def`, D-93;
- * `providers`, D-97), места слоёв `LayerPlaces` (проект, `GenLayout.dirs()`,
- * раннеры, слои поставщиков, `entry`, `testing`) и файл входа графа
- * `graphEntry` (`UnitPlaces`, ARC-16; проверяется только при единицах).
+ * Приложение для `arch:check` (D-52, D-107, D-108, D-111): вход графа (`def`,
+ * `providers`), места слоёв `LayerPlaces` (`layout` — `GenLayout.dirs()` или
+ * нет), файл входа графа `graphEntry` (ARC-16, проверяется в обеих формах)
+ * и реестр отступлений `debt` (ARC-12).
  */
-export type ArchApp = GraphApp & LayerPlaces & UnitPlaces;
+export type ArchApp = GraphApp & LayerPlaces & UnitPlaces & DebtPlaces;
 
 /**
  * Контрактные проверки по индексу Def: Def (`DefChecker`), а с приложением —
- * `AppDef` (`AppDefChecker`), файлы модулей (`FileChecker`), импорты по слоям
- * (`LayerChecker`), единицы выноса (`UnitChecker`) и правила поставщиков
- * графа (`ProviderRuleChecker`). Без приложения — только Def.
+ * `AppDef` (`AppDefChecker`), файлы модулей (`FileChecker`, только при
+ * `layout`), импорты по слоям (`LayerChecker`), единицы выноса
+ * (`UnitChecker`), правила поставщиков графа (`ProviderRuleChecker`) и
+ * отступления по реестру долга (`DeviationRegistry`). Без приложения — Def.
  * @see src/arch/arch-checker.test.ts
  */
 export class ArchChecker {
@@ -35,23 +38,29 @@ export class ArchChecker {
   private readonly layers: LayerChecker | undefined;
   private readonly units: UnitChecker | undefined;
   private readonly providers: ProviderRuleChecker | undefined;
+  private readonly deviations: DeviationRegistry | undefined;
 
   /**
-   * Неверный ID правила или слоя поставщика — исключение ARC-13
-   * (`ProviderRuleChecker`); неверные места слоёв — исключение `LayerMap`;
-   * единица `workspaces` без `name` — исключение `UnitMap`. Неверный
-   * `graphEntry` при единицах — исключение в `check()`.
+   * Исключения: неверный ID правила или слоя поставщика — ARC-13
+   * (`ProviderRuleChecker`), места слоёв — `LayerMap`, единица `workspaces`
+   * без `name` — `UnitMap`, `debt` — `DeviationRegistry`; неверный
+   * `graphEntry` — в `check()`.
    */
   constructor(index: DefIndex, app?: ArchApp) {
     this.defs = new DefChecker(index);
     if (app === undefined) return;
     this.app = new AppDefChecker(app.def);
     this.providers = new ProviderRuleChecker(app);
-    this.files = new FileChecker(index, ArchChecker.modules(app.layout));
+    if (app.layout !== undefined) {
+      this.files = new FileChecker(index, ArchChecker.modules(app.layout));
+    }
     // Одна карта слоёв на два проверяющих: слои поставщиков разбираются раз.
     const map = new LayerMap(index, app, app.providers ?? []);
     this.layers = new LayerChecker(map, app);
     this.units = new UnitChecker(map, UnitMap.read(map.project), app);
+    if (app.debt !== undefined) {
+      this.deviations = DeviationRegistry.read(app.debt, map.project);
+    }
   }
 
   /** Все проверки приложения; индекс — замыкание состава по `dependsOn`. */
@@ -74,9 +83,13 @@ export class ArchChecker {
     });
   }
 
-  /** Порядок: `AppDef`, Def, файлы модулей, слои, единицы, правила поставщиков. */
+  /**
+   * Порядок: `AppDef`, Def, файлы модулей, слои, единицы, правила
+   * поставщиков; с `debt` снятые отступления выпадают, строки ARC-12 реестра
+   * — последними.
+   */
   check(): Violation[] {
-    return [
+    const found = [
       ...(this.app?.check() ?? []),
       ...this.defs.check(),
       ...(this.files?.check() ?? []),
@@ -84,6 +97,10 @@ export class ArchChecker {
       ...(this.units?.check() ?? []),
       ...(this.providers?.check() ?? []),
     ];
+    if (this.deviations === undefined || this.providers === undefined) {
+      return found;
+    }
+    return this.deviations.apply(found, this.providers.debtIds);
   }
 
   /**

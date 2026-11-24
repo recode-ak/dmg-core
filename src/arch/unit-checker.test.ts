@@ -5,7 +5,7 @@ import { DefIndex } from '../graph/def-index';
 import type { GraphProvider } from '../graph/graph-provider';
 import type { SourceLayer } from '../graph/source-layer.types';
 import { AlphaModuleDef, BetaModuleDef, LayerProvider } from './arch.fixture';
-import type { LayerPlaces } from './layer-checker.types';
+import type { FrameworkDirs, LayerPlaces } from './layer-checker.types';
 import { LayerMap } from './layer-map';
 import { Monorepo } from './monorepo.fixture';
 import type { FixtureManifest } from './monorepo.fixture.types';
@@ -110,14 +110,16 @@ function standard(kernel = 'platform/kernel'): void {
 
 type Places = LayerPlaces & UnitPlaces;
 
+const dirs = (): FrameworkDirs => ({
+  kernel: at('platform/kernel/src'),
+  domain: at('platform/domain/src/{m}'),
+  backend: at('backend/{m}/src'),
+  assembly: at('runners/assembly/src'),
+});
+
 const places = (over: Partial<Places> = {}): Places => ({
   project: repo.proj,
-  layout: {
-    kernel: at('platform/kernel/src'),
-    domain: at('platform/domain/src/{m}'),
-    backend: at('backend/{m}/src'),
-    assembly: at('runners/assembly/src'),
-  },
+  layout: dirs(),
   runners: [at('runners/cli/src')],
   entry: 'contract',
   graphEntry: at('scripts/app.graph.ts'),
@@ -362,7 +364,7 @@ describe('UnitChecker: ARC-16 (а) — платформа приложения �
   it('ARC-16: единица платформы приложения — по оси слоя, не по каталогу: kernel в core/kernel объявляет реализацию', () => {
     standard('core/kernel');
     repo.unit('core/kernel', { ...KERNEL, peerDependencies: ['@t/be-alpha'] });
-    const layout = { ...places().layout, kernel: at('core/kernel/src') };
+    const layout = { ...dirs(), kernel: at('core/kernel/src') };
     expect(check({ layout })).toEqual([
       'ARC-16: core/kernel/package.json (@t/kernel) объявляет @t/be-alpha — реализацию',
     ]);
@@ -544,22 +546,48 @@ describe('UnitChecker: порядок нарушений', () => {
   });
 });
 
-describe('UnitChecker: single — единиц нет, ARC-14…16 молчат', () => {
-  it('ARC-14…16: те же нарушения в проекте без workspaces', () => {
+describe('UnitChecker: single — единиц нет, ARC-14, ARC-15 и ARC-16 (а) молчат', () => {
+  it('single: вход графа доходит до реализации — ARC-16, ARC-14, ARC-15 и ARC-16 (а) молчат', () => {
     repo
       .root({ name: 'single' })
       .unit('platform/domain', { ...DOMAIN, dependencies: ['@t/be-alpha'] })
       .unit('backend/alpha', ALPHA)
+      .write('backend/alpha/src/index.ts')
       .write('backend/alpha/src/note.ts', 'ext-a', '../../../platform/x')
       .write('scripts/app.graph.ts', '../backend/alpha/src/index');
-    expect(check()).toEqual([]);
+    expect(check()).toEqual([
+      'ARC-16: вход графа scripts/app.graph.ts доходит до реализации: scripts/app.graph.ts импортирует backend alpha: ../backend/alpha/src/index',
+    ]);
   });
 
-  it('ARC-14…16: проект без package.json, вход графа не проверяется', () => {
+  it('single без package.json: нет файла входа графа — отказ', () => {
     repo
       .unit('backend/alpha', ALPHA)
       .write('backend/alpha/src/note.ts', 'ext-a', '../../../platform/x');
-    expect(checkAsIs({ graphEntry: at('scripts/нет.graph.ts') })).toEqual([]);
+    const missing = at('scripts/нет.graph.ts');
+    expect(refusal(() => checkAsIs({ graphEntry: missing }))).toBe(
+      `ArchApp.graphEntry — нет файла: ${missing}`,
+    );
+  });
+
+  it('single: вход графа доходит до слоя поставщика на оси реализаций — ARC-16', () => {
+    repo
+      .root({ name: 'single' })
+      .write('ui/widgets/card.ts')
+      .write('scripts/app.graph.ts', '../ui/widgets/card');
+    const widgets: SourceLayer = {
+      name: 'widgets',
+      axis: 'implementation',
+      rule: 'TOY-03',
+      sees: [{ layer: 'kernel' }],
+    };
+    expect(
+      checkAsIs({ layers: { widgets: [at('ui/widgets')] } }, [
+        new LayerProvider('toy', [widgets]),
+      ]),
+    ).toEqual([
+      'ARC-16: вход графа scripts/app.graph.ts доходит до реализации: scripts/app.graph.ts импортирует widgets: ../ui/widgets/card',
+    ]);
   });
 });
 

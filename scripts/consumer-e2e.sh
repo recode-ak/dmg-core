@@ -5,7 +5,7 @@
 #   bun run e2e
 #
 # 1. npm publish --dry-run без исправлений package.json; состав tarball.
-# 2. Установка tarball в пустой проект → импорт и ArchChecker.
+# 2. Установка tarball в пустой проект → импорт, ArchChecker и Monorepo.
 # 3. dmg-core init → sync --check; документация, скилы и ссылки на месте
 #    (consumer-check.ts); biome потребителя загружает плагины пакета.
 # 4. gen создаёт модуль, тесты заготовок зелёные на установленном пакете.
@@ -65,7 +65,7 @@ JSON
 bun add "$TARBALL" valibot @valibot/to-json-schema >/dev/null
 cat >smoke.ts <<'TS'
 import { ArchChecker } from 'dmg-core/arch';
-import { ExampleArch } from 'dmg-core/testing';
+import { ExampleArch, Monorepo } from 'dmg-core/testing';
 import { ExampleApp } from 'dmg-core/testing/example';
 import { ScreenArch } from 'dmg-core/testing/example/screen.arch';
 
@@ -80,6 +80,10 @@ if (violations.length > 0) {
 // Неиспользуемый импорт транспилятор выбросит — проверяем значение явно.
 if (typeof ExampleApp !== 'function') {
   console.error('consumer: dmg-core/testing/example не отдаёт ExampleApp');
+  process.exit(1);
+}
+if (typeof Monorepo !== 'function') {
+  console.error('consumer: dmg-core/testing не отдаёт Monorepo');
   process.exit(1);
 }
 console.log('consumer: dmg-core импортируется, ArchChecker чист');

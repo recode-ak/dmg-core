@@ -56,6 +56,8 @@ beforeAll(() => {
     join(project, 'tsconfig.json'),
     JSON.stringify({ extends: join(PKG, 'tsconfig.json'), include: ['src'] }),
   );
+  // Вход графа `probeApp` проверяется и без единиц: файл должен быть.
+  writeFileSync(join(project, `${MODULE}.graph.ts`), '');
   const layout = new GenLayout(GenLayout.defaults, project);
   const steps = [
     ['module', MODULE],
@@ -123,7 +125,7 @@ async function probeApp(): Promise<ArchApp> {
     project,
     layout: layout.dirs(),
     runners: [],
-    graphEntry: join(project, 'genprobe.graph.ts'),
+    graphEntry: join(project, `${MODULE}.graph.ts`),
   };
 }
 

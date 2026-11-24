@@ -41,12 +41,15 @@ export const PACKAGE_RULE_PREFIXES = [
 
 /**
  * Нарушение, найденное `arch:check`: правила `rules.md` пакета (`ArchRule`)
- * или правила поставщика графа со своим ID (D-97).
+ * или правила поставщика графа со своим ID (D-97). `file` — абсолютный путь
+ * файла-импортёра у нарушений импорта по слоям: по нему нарушение
+ * сопоставляется с записью долга (D-111).
  */
 export class Violation {
   constructor(
     readonly rule: string,
     readonly message: string,
+    readonly file?: string,
   ) {}
 
   /** Строка отчёта: начинается с ID правила. */

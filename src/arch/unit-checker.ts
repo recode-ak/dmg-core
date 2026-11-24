@@ -22,10 +22,11 @@ type UnitFile = {
 const PAST_EXPORTS = 'мимо exports (или пакет не установлен — bun install)';
 
 /**
- * Единицы выноса (D-108): пакет объявляет всё, что импортирует (ARC-14);
- * между пакетами — только имя и `exports` (ARC-15); платформа приложения не
- * зависит от реализаций и раннеров, замыкание входа графа не доходит до
- * реализаций (ARC-16). Без единиц (`single`) — молчит, вход графа не проверяется.
+ * Единицы выноса (D-108, D-111): пакет объявляет всё, что импортирует
+ * (ARC-14); между пакетами — только имя и `exports` (ARC-15); платформа
+ * приложения не зависит от реализаций и раннеров, замыкание входа графа не
+ * доходит до реализаций (ARC-16). Вход графа проверяется в обеих формах; без
+ * единиц (`single`) ARC-14, ARC-15 и ARC-16 по `package.json` молчат.
  * @see src/arch/unit-checker.test.ts
  */
 export class UnitChecker {
@@ -42,8 +43,8 @@ export class UnitChecker {
 
   /** Порядок: ARC-16 по `package.json` единиц, ARC-14/15 по файлам, ARC-16 по входу графа. */
   check(): Violation[] {
-    if (this.units.units.length === 0) return [];
     const entry = this.graphEntry();
+    if (this.units.units.length === 0) return this.closure(entry);
     return [...this.declarations(), ...this.files(), ...this.closure(entry)];
   }
 

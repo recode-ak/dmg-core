@@ -19,3 +19,10 @@ export type LayerPlace = {
   /** Реализации нет в приложении (D-37): файлы не обходятся, вход не проверяется. */
   readonly foreign: boolean;
 };
+
+/** Шаблон каталога слоя по модулям: корень до сегмента с `{m}` и этот сегмент регуляркой. */
+export type LayerTemplate = {
+  readonly layer: string;
+  readonly root: string;
+  readonly segment: RegExp;
+};

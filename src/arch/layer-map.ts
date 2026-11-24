@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
-import { relative, resolve, sep } from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
+import { join, relative, resolve, sep } from 'node:path';
 import type { AnyModuleDef } from '../domain/contracts/module-def';
 import type { DefIndex } from '../graph/def-index';
 import type { GraphProvider } from '../graph/graph-provider';
@@ -9,8 +9,8 @@ import type {
   SourceLayer,
 } from '../graph/source-layer.types';
 import { FRAMEWORK_LAYERS, IMPLEMENTATION_LAYERS } from './framework-layers';
-import type { LayerPlaces } from './layer-checker.types';
-import type { LayerModule, LayerPlace } from './layer-map.types';
+import type { FrameworkDirs, LayerPlaces } from './layer-checker.types';
+import type { LayerModule, LayerPlace, LayerTemplate } from './layer-map.types';
 import { SourceScan } from './source-scan';
 import { Violation } from './violation';
 
@@ -21,15 +21,16 @@ const SEGMENT = /^[^/\\{}]+$/;
 const FILE_NAME = /^[^/\\.]+$/;
 
 /**
- * Каталоги слоёв приложения и слои поставщиков (D-107): чей файл и какой
- * слой. Ошибка раскладки или слоя поставщика, нет каталога `project` — отказ
- * в конструкторе: проверки не проходят молча по пустому обходу.
+ * Каталоги слоёв приложения и слои поставщиков (D-107, D-111): чей файл и
+ * какой слой; без `layout` — только раннеры и слои поставщиков. Ошибка
+ * раскладки или слоя поставщика, нет каталога `project` — отказ в
+ * конструкторе: проверки не проходят молча по пустому обходу.
  * @see src/arch/layer-checker.test.ts
  */
 export class LayerMap {
   /** `ArchApp.project`, разрешённый в абсолютный путь: с ним сверяются каталоги и цели. */
   readonly project: string;
-  /** Нарушения ARC-13: слой поставщика без каталога, каталог без слоя. */
+  /** Нарушения ARC-13: слой поставщика без каталога, каталог без слоя, каталог по шаблону без модуля. */
   readonly issues: readonly Violation[];
   private readonly layers = new Map<string, SourceLayer>();
   /** Владелец слоя поставщика по имени слоя. */
@@ -49,10 +50,10 @@ export class LayerMap {
     }
     for (const layer of FRAMEWORK_LAYERS) this.layers.set(layer.name, layer);
     this.declare(providers);
-    this.issues = this.undeclared();
     this.places = this.locate(index.modules).sort(
       (a, b) => b.dir.length - a.dir.length,
     );
+    this.issues = [...this.undeclared(), ...this.strays()];
   }
 
   /** Каталог слоя, которому принадлежит путь, или `undefined` — вне слоёв. */
@@ -212,18 +213,32 @@ export class LayerMap {
     ];
   }
 
-  // Модуль `app` занял бы каталог общего реализаций (D-106) — отказ по имени,
-  // а не по совпавшим каталогам.
   private locate(modules: readonly AnyModuleDef[]): LayerPlace[] {
+    const { layout, runners } = this.app;
+    const places: LayerPlace[] = [];
+    if (layout !== undefined) this.addFramework(places, layout, modules);
+    for (const dir of runners) this.add(places, 'runner', dir);
+    for (const [name, dirs] of Object.entries(this.app.layers ?? {})) {
+      if (!this.owners.has(name)) continue;
+      for (const dir of dirs) this.addProvided(places, name, dir, modules);
+    }
+    return places;
+  }
+
+  // Модуль `app` занял бы каталог общего реализаций (D-106) — отказ по имени,
+  // а не по совпавшим каталогам. Без `layout` каталога `backend/app` нет.
+  private addFramework(
+    places: LayerPlace[],
+    layout: FrameworkDirs,
+    modules: readonly AnyModuleDef[],
+  ): void {
     if (modules.some((m) => m.name === 'app')) {
       throw new Error(
         'модуль app: каталог реализации совпадает с общим реализаций backend/app — имя зарезервировано (D-106)',
       );
     }
-    const { layout, runners } = this.app;
     const domain = this.template('ArchApp.layout.domain', layout.domain);
     const backend = this.template('ArchApp.layout.backend', layout.backend);
-    const places: LayerPlace[] = [];
     this.add(places, 'kernel', layout.kernel);
     this.add(places, 'domain', this.rootOf(domain));
     for (const m of modules) {
@@ -232,12 +247,87 @@ export class LayerMap {
     }
     this.add(places, 'backend-app', this.fill(backend, 'app'));
     this.add(places, 'assembly', layout.assembly);
-    for (const dir of runners) this.add(places, 'runner', dir);
-    for (const [name, dirs] of Object.entries(this.app.layers ?? {})) {
-      if (!this.owners.has(name)) continue;
-      for (const dir of dirs) this.addProvided(places, name, dir, modules);
+  }
+
+  /**
+   * Каталог по шаблону без модуля (D-111): подкаталог корня шаблона на месте
+   * `{m}`, в котором и которым не лежит ни один каталог слоя. Шаблоны с общим
+   * корнем — одна строка на каталог; скрытые и `node_modules` не берутся.
+   */
+  private strays(): Violation[] {
+    const roots = new Map<string, LayerTemplate[]>();
+    for (const t of this.templates()) {
+      roots.set(t.root, [...(roots.get(t.root) ?? []), t]);
     }
-    return places;
+    return [...roots].flatMap(([root, templates]) =>
+      this.subdirs(root).flatMap((name) => {
+        const dir = join(root, name);
+        const names = [
+          ...new Set(
+            templates.filter((t) => t.segment.test(name)).map((t) => t.layer),
+          ),
+        ];
+        if (
+          names.length === 0 ||
+          this.places.some((p) => this.scan.inside(p.dir, dir))
+        ) {
+          return [];
+        }
+        const of =
+          names.length === 1
+            ? `слоя ${names[0]} — ${name} не модуль слоя`
+            : `слоёв ${names.join(', ')} — ${name} не модуль этих слоёв`;
+        return [
+          new Violation('ARC-13', `каталог ${this.path(dir)} по шаблону ${of}`),
+        ];
+      }),
+    );
+  }
+
+  /** Шаблоны с `{m}`: домена, `backend`, затем слоёв поставщиков по объявлению. */
+  private templates(): LayerTemplate[] {
+    const { layout, layers = {} } = this.app;
+    const out: LayerTemplate[] = [];
+    if (layout !== undefined) {
+      out.push(this.split('domain', layout.domain));
+      out.push(this.split('backend', layout.backend));
+    }
+    for (const name of this.owners.keys()) {
+      if (this.layer(name).perModule === undefined) continue;
+      for (const dir of layers[name] ?? []) out.push(this.split(name, dir));
+    }
+    return out;
+  }
+
+  /** Корень шаблона (`rootOf`) и сегмент с `{m}` регуляркой: `{m}` — любое имя. */
+  private split(layer: string, template: string): LayerTemplate {
+    const segment =
+      resolve(template)
+        .split(sep)
+        .find((p) => p.includes(MODULE)) ?? MODULE;
+    const pattern = segment
+      .split(MODULE)
+      .map((piece) => piece.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('.+');
+    return {
+      layer,
+      root: this.rootOf(template),
+      segment: new RegExp(`^${pattern}$`),
+    };
+  }
+
+  /** Подкаталоги по имени, без скрытых и `node_modules`; нет каталога — пусто. */
+  private subdirs(root: string): string[] {
+    if (!existsSync(root)) return [];
+    return readdirSync(root, { withFileTypes: true })
+      .filter(
+        (d) =>
+          d.isDirectory() &&
+          !d.name.startsWith('.') &&
+          d.name !== 'node_modules',
+      )
+      .map((d) => d.name)
+      .sort();
   }
 
   /**

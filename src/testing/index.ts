@@ -8,6 +8,11 @@ export {
   TASK_2,
   taskRow,
 } from '../app/app.fixture';
+export { Monorepo } from '../arch/monorepo.fixture';
+export type {
+  FixtureManifest,
+  FixtureSection,
+} from '../arch/monorepo.fixture.types';
 export { TEST_NOW, testAppContext } from './app-context';
 export { AwaitingBus } from './awaiting-bus';
 export { ExampleArch } from './example/example.arch';

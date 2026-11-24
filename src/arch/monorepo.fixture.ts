@@ -1,9 +1,3 @@
-// Мини-монорепо для проверок единиц выноса (D-108) на настоящей изолированной
-// установке Bun: `<base>/proj` — проект, `<base>/vendor/<имя>` — внешние
-// пакеты. Зависимости — только `workspace:*` и `file:` (офлайн, без реестра).
-// Кэш резолвера Bun живёт весь процесс: неудачное разрешение не забывается,
-// новый `exports` не перечитывается. Поэтому каждый сценарий — в своём
-// каталоге, фикстура пишется целиком до `install()` и после не меняется.
 import {
   mkdirSync,
   mkdtempSync,
@@ -23,6 +17,13 @@ const SECTIONS: readonly FixtureSection[] = [
   'optionalDependencies',
 ];
 
+/**
+ * Мини-монорепо на изолированной установке Bun (D-108, D-111): `<base>/proj` —
+ * проект, `<base>/vendor/<имя>` — внешние пакеты; зависимости — `workspace:*`
+ * и `file:`, офлайн. Кэш резолвера Bun живёт весь процесс и не забывает
+ * разрешений: сценарий — в своём каталоге, фикстура — целиком до `install()`.
+ * @see src/arch/unit-checker.test.ts
+ */
 export class Monorepo {
   /** Абсолютный путь проекта (`ArchApp.project`), без ссылок. */
   readonly proj: string;
@@ -50,16 +51,23 @@ export class Monorepo {
     return this.json(join(dir, 'package.json'), this.manifest(manifest));
   }
 
-  /** Внешний пакет вне проекта; без `exports`: любой подпуть — его поверхность. */
+  /** Внешний пакет вне проекта; без `exports` любой подпуть — его поверхность. */
   vendor(
     name: string,
     files: Readonly<Record<string, string>> = { 'index.ts': 'export {};\n' },
+    exports?: Readonly<Record<string, string>>,
   ): this {
     this.guard();
     const dir = join(this.base, 'vendor', name);
+    const manifest = {
+      name,
+      version: '1.0.0',
+      main: 'index.ts',
+      ...(exports === undefined ? {} : { exports }),
+    };
     this.put(
       join(dir, 'package.json'),
-      `${JSON.stringify({ name, version: '1.0.0', main: 'index.ts' }, null, 2)}\n`,
+      `${JSON.stringify(manifest, null, 2)}\n`,
     );
     for (const [file, text] of Object.entries(files)) {
       this.put(join(dir, file), text);

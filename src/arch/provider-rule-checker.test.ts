@@ -315,3 +315,80 @@ describe('ProviderRuleChecker: ID доступа слоя поставщика (
     expect(refusal([toy])).toBe('не бросил');
   });
 });
+
+describe('ProviderRuleChecker: отступление доступа (ARC-13)', () => {
+  const layer = (over: Partial<SourceLayer> = {}): SourceLayer => ({
+    name: 'views',
+    axis: 'runner',
+    rule: 'TOY-02',
+    sees: [{ layer: 'kernel' }],
+    ...over,
+  });
+
+  it('debt у доступа без своего rule — отказ', () => {
+    expect(
+      refusal([
+        new LayerProvider('toy', [
+          layer({ sees: [{ layer: 'kernel', debt: true }] }),
+        ]),
+      ]),
+    ).toBe(
+      'ARC-13: доступ sees kernel слоя views поставщика toy — debt без своего rule',
+    );
+    expect(
+      refusal([
+        new LayerProvider('toy', [
+          layer({ seenBy: [{ layer: 'runner', debt: true }] }),
+        ]),
+      ]),
+    ).toBe(
+      'ARC-13: доступ seenBy runner слоя views поставщика toy — debt без своего rule',
+    );
+  });
+
+  it('ID с debt делят доступ с debt и слой или доступ без него — отказ', () => {
+    // Порядок обхода: слой, затем его доступы; отказ — у второго из пары.
+    const shared = (detail: string, id: string): string =>
+      `ARC-13: ${detail} поставщика toy — ID ${id} делят доступ с debt и слой или доступ без него`;
+    expect(
+      refusal([
+        new LayerProvider('toy', [
+          layer({ sees: [{ layer: 'kernel', rule: 'TOY-02', debt: true }] }),
+        ]),
+      ]),
+    ).toBe(shared('доступ sees kernel слоя views', 'TOY-02'));
+    expect(
+      refusal([
+        new LayerProvider('toy', [
+          layer({
+            sees: [
+              { layer: 'kernel', rule: 'TOY-03', debt: true },
+              { layer: 'domain', rule: 'TOY-03' },
+            ],
+          }),
+        ]),
+      ]),
+    ).toBe(shared('доступ sees domain слоя views', 'TOY-03'));
+    expect(
+      refusal([
+        new LayerProvider('toy', [
+          layer({ sees: [{ layer: 'kernel', rule: 'TOY-03', debt: true }] }),
+          layer({ name: 'pages', rule: 'TOY-03' }),
+        ]),
+      ]),
+    ).toBe(shared('слой pages', 'TOY-03'));
+    // Допустимо: доступы с debt делят ID, в том числе в seenBy.
+    const checker = new ProviderRuleChecker({
+      def: ExampleAppDef,
+      providers: [
+        new LayerProvider('toy', [
+          layer({
+            sees: [{ layer: 'kernel', rule: 'TOY-03', debt: true }],
+            seenBy: [{ layer: 'runner', rule: 'TOY-03', debt: true }],
+          }),
+        ]),
+      ],
+    });
+    expect(checker.debtIds).toEqual(new Set(['TOY-03']));
+  });
+});

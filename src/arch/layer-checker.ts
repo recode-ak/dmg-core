@@ -8,9 +8,10 @@ import { SourceScan } from './source-scan';
 import type { ResolvedImport } from './source-scan.types';
 import { Violation } from './violation';
 
-/** Импорт файла проекта: путь от `project` через `/`, его каталог слоя и цель. */
+/** Импорт файла проекта: путь от `project` через `/` и абсолютный, его каталог слоя и цель. */
 type Import = {
   readonly file: string;
+  readonly path: string;
   readonly from: LayerPlace | undefined;
   readonly to: LayerPlace;
   readonly spec: string;
@@ -18,9 +19,10 @@ type Import = {
 };
 
 /**
- * Импорты файлов проекта по слоям (D-107, D-110, D-70, D-37): видимость слоёв,
- * вход модуля, чужие модули (`others`), вход `testing`. Нарушение — с ID
- * слоя-импортёра или доступа; порядок — по пути файла, в файле — по импортам.
+ * Импорты файлов проекта по слоям (D-107, D-110, D-70, D-37, D-111): видимость
+ * слоёв, вход модуля, чужие модули (`others`), вход `testing`. Нарушение — с
+ * ID слоя-импортёра или доступа и местом — файлом импортёра; порядок — по
+ * пути файла, в файле — по импортам.
  * @see src/arch/layer-checker.test.ts
  */
 export class LayerChecker {
@@ -53,12 +55,13 @@ export class LayerChecker {
     if (from?.foreign === true) return [];
     return this.scan
       .imports(path)
-      .flatMap((imp) => this.checkImport(file, from, imp));
+      .flatMap((imp) => this.checkImport(file, path, from, imp));
   }
 
   // Пакет вне проекта или в `node_modules` — дело линтера, не слоёв.
   private checkImport(
     file: string,
+    path: string,
     from: LayerPlace | undefined,
     { spec, target }: ResolvedImport,
   ): Violation[] {
@@ -71,10 +74,11 @@ export class LayerChecker {
             new Violation(
               from.layer.rule,
               `${this.where(file, from)} импортирует файл вне слоёв: ${spec}`,
+              path,
             ),
           ];
     }
-    const imp: Import = { file, from, to, spec, target };
+    const imp: Import = { file, path, from, to, spec, target };
     return from === undefined ? this.outside(imp) : this.layered(imp, from);
   }
 
@@ -95,6 +99,7 @@ export class LayerChecker {
         new Violation(
           from.layer.rule,
           `${this.where(imp.file, from)} импортирует ${this.title(to)}: ${imp.spec}`,
+          imp.path,
         ),
       ];
     }
@@ -122,7 +127,7 @@ export class LayerChecker {
    * по модулям, реализация внешнего модуля и импорт между внешними — без проверки.
    */
   private entryOf(
-    { file, from, to, spec, target }: Import,
+    { file, path, from, to, spec, target }: Import,
     access: LayerAccess,
     rule: string,
   ): Violation[] {
@@ -155,6 +160,7 @@ export class LayerChecker {
             new Violation(
               'TST-07',
               `${where} импортирует ${this.testing}.ts модуля ${to.module.name} — вход только для тестового кода: ${spec}`,
+              path,
             ),
           ];
     }
@@ -164,6 +170,7 @@ export class LayerChecker {
       new Violation(
         rule,
         `${where} импортирует ${this.title(to)} мимо ${entries}: ${spec}`,
+        path,
       ),
     ];
   }
@@ -174,7 +181,7 @@ export class LayerChecker {
    * внешними. Корень слоя-цели — не модуль.
    */
   private others(
-    { file, to, spec }: Import,
+    { file, path, to, spec }: Import,
     from: LayerPlace,
     access: LayerAccess,
     rule: string,
@@ -189,6 +196,7 @@ export class LayerChecker {
           new Violation(
             rule,
             `${where} импортирует ${this.title(to)} — виден только свой модуль: ${spec}`,
+            path,
           ),
         ];
       case 'dependsOn':
@@ -202,6 +210,7 @@ export class LayerChecker {
           new Violation(
             rule,
             `${where} импортирует ${target}, которого нет в dependsOn ${module.name}`,
+            path,
           ),
         ];
       case undefined:

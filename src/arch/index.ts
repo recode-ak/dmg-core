@@ -15,6 +15,7 @@ export type {
   DebtRegistryPaths,
   SourceFile,
 } from './debt-checker.types';
+export type { ArchDebt } from './deviation-registry.types';
 export type { ModuleLayout } from './file-checker';
 export type { FrameworkDirs } from './layer-checker.types';
 export {

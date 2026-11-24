@@ -12,7 +12,8 @@ export type FrameworkDirs = {
 export type LayerPlaces = {
   /** Корень проекта: файлы обходятся под ним, место в сообщении — путь от него. */
   readonly project: string;
-  readonly layout: FrameworkDirs;
+  /** Каталоги слоёв фреймворка; нет — проект без них, домен — пакет (D-111). */
+  readonly layout?: FrameworkDirs;
   /** Каталоги раннеров-процессов. */
   readonly runners: readonly string[];
   /** Каталоги слоёв поставщиков по имени слоя; у слоя по модулям — шаблоны с `{m}`. */

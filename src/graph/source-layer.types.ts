@@ -28,6 +28,8 @@ export type LayerAccess = {
   readonly others?: LayerOthers;
   /** ID нарушения доступа; нет — ID слоя-импортёра. */
   readonly rule?: string;
+  /** Нарушение доступа снимается записью долга (ARC-12, D-111); нужен свой `rule`. */
+  readonly debt?: true;
 };
 
 /** Слой исходников: что видит и кем виден; каталоги задаёт `ArchApp`. */

@@ -15,15 +15,19 @@ const RESERVED = new Set<string>(PACKAGE_RULE_PREFIXES);
 
 /**
  * Проверка графа приложения правилами поставщиков: нарушение — с ID правила.
- * ID правил, слоёв и доступов слоёв сверяются в конструкторе; нарушение
- * ARC-13 — исключение.
+ * ID правил, слоёв и доступов слоёв и отступления доступов (`debt`, D-111)
+ * сверяются в конструкторе; нарушение ARC-13 — исключение.
  */
 export class ProviderRuleChecker {
   private readonly rules: readonly GraphRule[];
+  /** ID доступов с `debt` (D-111): только их нарушения снимает запись долга. */
+  readonly debtIds: ReadonlySet<string>;
   private graph: Graph | GraphError | undefined;
 
   constructor(private readonly app: GraphApp) {
-    this.rules = ProviderRuleChecker.verified(app.providers ?? []);
+    const ids = new ProviderIds();
+    this.rules = ProviderRuleChecker.verified(app.providers ?? [], ids);
+    this.debtIds = ids.debtIds;
   }
 
   /** Поставщики — в порядке `providers`, правила и сообщения — как объявлены. */
@@ -57,11 +61,13 @@ export class ProviderRuleChecker {
   // ID правил, слоёв и доступов поставщика (D-107, D-110) — по одной карте
   // префиксов: правило SCR-01 и слой SCR-02 одного поставщика можно, ID слоя
   // или доступа = ID правила — нет. Слои и доступы ID делят, как kernel и
-  // domain (ARC-02): правила поставщика заявлены раньше его слоёв.
+  // domain (ARC-02): правила поставщика заявлены раньше его слоёв. Отступление
+  // — свойство ID (D-111): доступ с `debt` — со своим `rule`, и этот ID не
+  // делят слой или доступ без `debt`.
   private static verified(
     providers: readonly GraphProvider[],
+    ids: ProviderIds,
   ): readonly GraphRule[] {
-    const ids = new ProviderIds();
     const all: GraphRule[] = [];
     for (const provider of providers) {
       for (const rule of provider.rules?.() ?? []) {
@@ -75,22 +81,24 @@ export class ProviderRuleChecker {
       }
       for (const layer of provider.layers?.() ?? []) {
         const at = `ARC-13: слой ${layer.name} поставщика ${provider.name}`;
-        ids.layer(layer.rule, provider.name, {
+        ids.layer(layer.rule, provider.name, false, {
           at,
-          form: `${at} — ID ${layer.rule} не по форме <ПРЕФИКС>-<NN>`,
-          twice: `${at} — ID ${layer.rule} объявлен дважды`,
+          ...ProviderIds.refusals(at, layer.rule),
         });
         const edges = [
           ...layer.sees.map((a) => ['sees', a] as const),
           ...(layer.seenBy ?? []).map((a) => ['seenBy', a] as const),
         ];
-        for (const [edge, { layer: to, rule }] of edges) {
-          if (rule === undefined) continue;
+        for (const [edge, { layer: to, rule, debt }] of edges) {
           const access = `ARC-13: доступ ${edge} ${to} слоя ${layer.name} поставщика ${provider.name}`;
-          ids.layer(rule, provider.name, {
+          if (rule === undefined) {
+            if (debt === true)
+              throw new Error(`${access} — debt без своего rule`);
+            continue;
+          }
+          ids.layer(rule, provider.name, debt === true, {
             at: access,
-            form: `${access} — ID ${rule} не по форме <ПРЕФИКС>-<NN>`,
-            twice: `${access} — ID ${rule} объявлен дважды`,
+            ...ProviderIds.refusals(access, rule),
           });
         }
       }
@@ -106,15 +114,33 @@ type IdRefusals = {
   readonly twice: string;
 };
 
+/** Отказы ID слоя или доступа: плюс ID делят доступ с `debt` и слой или доступ без него. */
+type LayerIdRefusals = IdRefusals & { readonly shared: string };
+
 /**
  * Занятые ID поставщиков (ARC-13): префикс принадлежит одному поставщику (по
  * `name`), префиксы пакета зарезервированы; ID правила — один на правило, ID
- * слоя и доступа слоя не совпадает с ID правила, а слои и доступы его делят.
- * Нарушение — исключение.
+ * слоя и доступа слоя не совпадает с ID правила, а слои и доступы его делят —
+ * все с `debt` или все без (D-111). Нарушение — исключение.
  */
 class ProviderIds {
   private readonly owners = new Map<string, string>();
   private readonly rules = new Set<string>();
+  private readonly plain = new Set<string>();
+  private readonly debt = new Set<string>();
+
+  /** Тексты отказа ID слоя или доступа `id`, объявленного в `at`. */
+  static refusals(at: string, id: string): Omit<LayerIdRefusals, 'at'> {
+    return {
+      form: `${at} — ID ${id} не по форме <ПРЕФИКС>-<NN>`,
+      twice: `${at} — ID ${id} объявлен дважды`,
+      shared: `${at} — ID ${id} делят доступ с debt и слой или доступ без него`,
+    };
+  }
+
+  get debtIds(): ReadonlySet<string> {
+    return this.debt;
+  }
 
   rule(id: string, provider: string, refusals: IdRefusals): void {
     this.prefix(id, provider, refusals);
@@ -122,9 +148,19 @@ class ProviderIds {
     this.rules.add(id);
   }
 
-  layer(id: string, provider: string, refusals: IdRefusals): void {
+  layer(
+    id: string,
+    provider: string,
+    debt: boolean,
+    refusals: LayerIdRefusals,
+  ): void {
     this.prefix(id, provider, refusals);
     if (this.rules.has(id)) throw new Error(refusals.twice);
+    const [own, other] = debt
+      ? [this.debt, this.plain]
+      : [this.plain, this.debt];
+    if (other.has(id)) throw new Error(refusals.shared);
+    own.add(id);
   }
 
   private prefix(id: string, provider: string, refusals: IdRefusals): void {

@@ -15,16 +15,18 @@ function run(apps: readonly ArchApp[], options?: { strict?: boolean }) {
   return { code, lines };
 }
 
-/** Проект модуля-заготовки: только файлы модуля в домене и реализации. */
+/** Проект модуля-заготовки: файлы модуля в домене и реализации, пустой вход графа. */
 const root = mkdtempSync(join(tmpdir(), 'arch-report-'));
+/** Пустой проект: каталогов слоёв нет; вход графа пуст. */
+const none = mkdtempSync(join(tmpdir(), 'arch-report-none-'));
 beforeAll(() => {
   for (const dir of ['domain', 'app']) {
     mkdirSync(join(root, dir, 'draft'), { recursive: true });
     writeFileSync(join(root, dir, 'draft', 'draft.module.ts'), '');
   }
+  writeFileSync(join(root, 'draft.graph.ts'), '');
+  writeFileSync(join(none, 'broken.graph.ts'), '');
 });
-/** Пустой проект: каталогов слоёв нет. */
-const none = mkdtempSync(join(tmpdir(), 'arch-report-none-'));
 afterAll(() => {
   rmSync(root, { recursive: true, force: true });
   rmSync(none, { recursive: true, force: true });

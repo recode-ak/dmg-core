@@ -60,8 +60,9 @@ export class ScreenProvider implements GraphProvider {
   }
 
   /**
-   * Слои образца (D-107, D-110): описание `screen` и исполнение
-   * `screen-code`, модуль которого — экран. Сессия — в описании: здесь классы
+   * Слои образца (D-107, D-110, D-111): описание `screen` и исполнение
+   * `screen-code`, модуль которого — экран; чужой экран — через `public.ts`,
+   * мимо — `SCR-04` с отступлением записью долга. Сессия — в описании: классы
    * поставщика — его «пакет», у потребителя он из npm и слоями не проверяется.
    */
   layers(): readonly SourceLayer[] {
@@ -83,7 +84,12 @@ export class ScreenProvider implements GraphProvider {
           { layer: 'screen' },
           { layer: 'kernel' },
           domain,
-          { layer: 'screen-code', entries: ['public'] },
+          {
+            layer: 'screen-code',
+            entries: ['public'],
+            rule: 'SCR-04',
+            debt: true,
+          },
         ],
       },
     ];

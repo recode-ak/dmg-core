@@ -1201,6 +1201,7 @@ describe('LayerChecker: слой по модулям поставщика', () =
         new LayerProvider('toy', [layer]),
       ]),
     ).toEqual([
+      'ARC-13: каталог pages/beta по шаблону слоя pages — beta не модуль слоя',
       'TOY-02: pages/alpha/x.ts (pages) импортирует domain beta: ../../domain/beta/item/item.ar',
       'ARC-04: pages/beta/x.ts (вне слоёв) импортирует domain beta мимо contract.ts: ../../domain/beta/item/item.ar',
     ]);
@@ -1343,7 +1344,7 @@ describe('LayerChecker: слой по модулям поставщика', () =
       'screen-code': [join(root, 'screen-code', '{m}')],
     };
     expect(check({ layers }, [screen])).toEqual([
-      'SCR-03: screen-code/tasks/tasks-screen.ts (screen-code) импортирует screen-code card мимо public.ts: ../card/card-view',
+      'SCR-04: screen-code/tasks/tasks-screen.ts (screen-code) импортирует screen-code card мимо public.ts: ../card/card-view',
       'SCR-03: screen-code/tasks/tasks-screen.ts (screen-code) импортирует assembly: ../../runners/assembly/app',
       'SCR-02: screen/screen-session.ts (screen) импортирует screen-code tasks: ../screen-code/tasks/tasks-screen',
     ]);
@@ -1365,5 +1366,54 @@ describe('LayerChecker: слой по модулям поставщика', () =
     expect(check({ layers }, [screen])).toEqual([
       'SCR-02: screen/screen-session.ts (screen) импортирует assembly: ../runners/assembly/app',
     ]);
+  });
+});
+
+describe('LayerMap: каталог по шаблону без модуля (ARC-13)', () => {
+  it('каталог по шаблону слоя фреймворка без модуля — ARC-13; backend/app — не нарушение', () => {
+    cleanTree();
+    write('domain/ghost/x.ts');
+    write('backend/ghost/x.ts');
+    write('backend/app/x.ts');
+    expect(check()).toEqual([
+      'ARC-13: каталог domain/ghost по шаблону слоя domain — ghost не модуль слоя',
+      'ARC-13: каталог backend/ghost по шаблону слоя backend — ghost не модуль слоя',
+    ]);
+  });
+
+  it('каталог, где лежит каталог другого слоя, — не нарушение; лишний каталог общего корня — одна строка', () => {
+    // `front/b` — не модуль chat, но в нём `front/b/logic`; `front/kit` — сам слой.
+    cleanTree();
+    write('front/a/logic/x.ts');
+    write('front/b/logic/x.ts');
+    write('front/a/chat/x.ts');
+    write('front/kit/x.ts');
+    write('front/ghost/x.ts');
+    const logic = views({ name: 'logic', perModule: ['a', 'b'] });
+    const chat = views({ name: 'chat', perModule: ['a'] });
+    const kit = views({ name: 'kit' });
+    const layers = {
+      logic: [join(root, 'front', '{m}', 'logic')],
+      chat: [join(root, 'front', '{m}', 'chat')],
+      kit: [join(root, 'front', 'kit')],
+    };
+    expect(
+      check({ layers }, [new LayerProvider('toy', [logic, chat, kit])]),
+    ).toEqual([
+      'ARC-13: каталог front/ghost по шаблону слоёв logic, chat — ghost не модуль этих слоёв',
+    ]);
+  });
+
+  it('скрытый каталог и node_modules на месте {m} — не нарушение', () => {
+    cleanTree();
+    write('domain/.cache/x.ts');
+    write('backend/node_modules/dep/index.ts');
+    write('pages/.draft/x.ts');
+    const layer = pages();
+    expect(
+      check({ layers: modularDirs(layer) }, [
+        new LayerProvider('toy', [layer]),
+      ]),
+    ).toEqual([]);
   });
 });
