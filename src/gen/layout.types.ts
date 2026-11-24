@@ -1,6 +1,6 @@
-/** Пакет workspaces прикладного слоя модуля (`gen.package`). */
+/** Пакет workspaces реализации модуля (`gen.package`). */
 export type ModulePackage = {
-  /** Каталог пакета: каталог прикладного слоя без `/src`. */
+  /** Каталог пакета реализации без `/src`. */
   readonly dir: string;
   /** Имя пакета модуля. */
   readonly name: string;

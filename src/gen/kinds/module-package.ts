@@ -1,5 +1,5 @@
 /**
- * `gen module <m>` с `gen.package` — пакет workspaces прикладного слоя
+ * `gen module <m>` с `gen.package` — пакет workspaces реализации
  * модуля над каталогом `src` (D-52): `package.json` с входом
  * `src/index.ts` и зависимостями, `tsconfig.json` поверх корневого. Без
  * `gen.package` пакета нет: заготовку пакета пишет проект.

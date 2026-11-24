@@ -14,10 +14,11 @@ import type { UnitPlaces } from './unit-checker.types';
 import { UnitMap } from './unit-map';
 import type { Violation } from './violation';
 
-// Мини-монорепо на изолированной установке Bun (D-108): единицы платформы приложения
-// (`platform/kernel`, `platform/domain`), реализации (`backend/alpha`),
-// раннеров (`runners/assembly`, `runners/cli`); корень — не единица. Модули —
-// `alpha` → `beta`. Вход графа — `scripts/app.graph.ts` → `@t/domain`.
+// Мини-монорепо на изолированной установке Bun (D-108): единицы платформы
+// приложения (`platform/kernel`, `platform/domain`), реализации
+// (`backend/alpha`), раннеров (`runners/assembly`, `runners/cli`); корень — не
+// единица. Модули — `alpha` → `beta`. Вход графа — `scripts/app.graph.ts` →
+// `@t/domain`.
 // Фикстура пишется целиком до `install()` (кэш резолвера Bun), каждый тест — в
 // своём каталоге. Нарушения: ARC-16 (а) по каталогу единицы, затем ARC-14/15
 // по пути файла и импортам, затем ARC-16 (б) в порядке обхода.

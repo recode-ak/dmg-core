@@ -205,7 +205,7 @@ export class AppWiring {
     return namedImport([`${this.P}ModuleDef`], `${domain}/contract`);
   }
 
-  /** Вход прикладного слоя модуля из каталога `fromDir`: имя пакета или путь. */
+  /** Вход пакета реализации модуля из каталога `fromDir`: имя пакета или путь. */
   private entry(fromDir: string): string {
     const pkg = this.args.layout.package(this.m);
     if (pkg !== undefined) return pkg.name;

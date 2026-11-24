@@ -31,7 +31,7 @@ export function planAppModule(args: GenArgs): GenPlan {
   ])}
 // gen:defs:imports
 
-/** Резолвер модуля: фреймворк + репозитории. */
+/** Резолвер модуля: зависимости фреймворка (ModuleDeps) + репозитории. */
 export type ${P}Deps = ModuleDeps & {
   // gen:deps
 };

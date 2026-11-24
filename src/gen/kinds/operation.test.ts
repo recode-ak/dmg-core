@@ -105,7 +105,7 @@ test('uc: тест реализации — модуль, пустые фаса�
   expect(src).toContain('new CompleteStudentUc(deps, StreamModuleDef)');
 });
 
-test('uc: правки домена (module, index) и прикладного модуля', () => {
+test('uc: правки домена (module, index) и пакета реализации', () => {
   const edits = plan('uc', 'complete-student').edits;
   expect(edits).toEqual([
     {
