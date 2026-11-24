@@ -1,4 +1,8 @@
-import { CreateTaskUcDef, ListTasksUcDef, TaskEvents } from '../todo/contract';
+import {
+  CreateTaskUcDef,
+  ListTasksUcDef,
+  TaskEvents,
+} from '../platform/domain/todo/contract';
 import { ScreenDef } from './screen-def';
 
 /** Манифест экрана «Мои задачи»: список обновляется по событию «задача создана». */

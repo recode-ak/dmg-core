@@ -22,7 +22,7 @@ import {
   GetTaskUcDef,
   TaskEvents,
   TodoModuleDef,
-} from '../../testing/example/todo';
+} from '../../testing/example/platform/domain/todo';
 import type { Graph } from '../graph';
 import type { GraphEdge } from '../graph.types';
 import { GraphBuilder } from '../graph-builder';

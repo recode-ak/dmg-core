@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { CoreErrors } from '../../kernel/errors/core-errors';
-import { ExampleAppDef } from '../../testing/example/example.app';
+import { ExampleAppDef } from '../../testing/example/platform/domain/example.app';
 import {
   ArchiveDoneTasksJobDef,
   CreateTaskUcDef,
@@ -10,7 +10,7 @@ import {
   TaskEvents,
   TaskRules,
   TodoModuleDef,
-} from '../../testing/example/todo';
+} from '../../testing/example/platform/domain/todo';
 import { DomainIds } from './domain-ids';
 import { DomainProvider } from './domain-provider';
 import {

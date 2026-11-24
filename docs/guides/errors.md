@@ -22,10 +22,10 @@ verified: 1d3e613
 
 ## 3. Образец
 
-- [task.errors.ts](../../src/testing/example/todo/task/task.errors.ts): отказы переходов (`conflict`), `NOT_FOUND` (`not_found`), ошибки доменных правил (`TOO_MANY_OPEN`, `ASSIGNEE_INACTIVE`); payload через `F.*`.
-- [task.errors.test.ts](../../src/testing/example/todo/task/task.errors.test.ts): коды с префиксом `TASK_`, `kind`, разбор payload, `make`.
-- [assign-task.uc.ts](../../src/testing/example/todo/task/uc/assign-task.uc.ts): `errors` UC — свои ошибки и `UserErrors.NOT_FOUND` по ссылке (ERR-03).
-- [user.errors.ts](../../src/testing/example/users/user/user.errors.ts): группа модуля-владельца, на которую ссылается зависимый модуль.
+- [task.errors.ts](../../src/testing/example/platform/domain/todo/task/task.errors.ts): отказы переходов (`conflict`), `NOT_FOUND` (`not_found`), ошибки доменных правил (`TOO_MANY_OPEN`, `ASSIGNEE_INACTIVE`); payload через `F.*`.
+- [task.errors.test.ts](../../src/testing/example/platform/domain/todo/task/task.errors.test.ts): коды с префиксом `TASK_`, `kind`, разбор payload, `make`.
+- [assign-task.uc.ts](../../src/testing/example/platform/domain/todo/task/uc/assign-task.uc.ts): `errors` UC — свои ошибки и `UserErrors.NOT_FOUND` по ссылке (ERR-03).
+- [user.errors.ts](../../src/testing/example/platform/domain/users/user/user.errors.ts): группа модуля-владельца, на которую ссылается зависимый модуль.
 
 ## 4. Чеклист правил
 

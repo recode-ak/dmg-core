@@ -3,7 +3,7 @@ covers:
   - src/domain/**
   - src/kernel/def/**
   - src/kernel/result/**
-  - src/testing/example/todo/**
+  - src/testing/example/platform/domain/todo/**
 verified: bf4e3b8
 ---
 
@@ -65,7 +65,7 @@ flowchart LR
 | транспорт, `Caller`, `Trace` | адаптеры входа и приложение; домен видит только субъекта |
 | окружение (`process.env`, конфиг) | раннер, `AppEnv` |
 
-Образец — модуль [todo](../../src/testing/example/todo/contract.ts); доказательство «без инфраструктуры» — его доменные тесты, например [task.ar.test.ts](../../src/testing/example/todo/task/task.ar.test.ts) и [task.rules.test.ts](../../src/testing/example/todo/task/task.rules.test.ts): ни репозитория, ни шины, ни часов.
+Образец — модуль [todo](../../src/testing/example/platform/domain/todo/contract.ts); доказательство «без инфраструктуры» — его доменные тесты, например [task.ar.test.ts](../../src/testing/example/platform/domain/todo/task/task.ar.test.ts) и [task.rules.test.ts](../../src/testing/example/platform/domain/todo/task/task.rules.test.ts): ни репозитория, ни шины, ни часов.
 
 ## Почему так
 

@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import { TaskAr, TaskArDef } from '#core/testing/example/todo/index';
+import {
+  TaskAr,
+  TaskArDef,
+} from '#core/testing/example/platform/domain/todo/index';
 import { expectOk } from '#core/testing/index';
 import {
   type StoredRecord,

@@ -17,7 +17,7 @@ type Import =
 
 /**
  * Исходники приложения в каркасе (D-50) — одни шаблоны на все профили, по
- * учебному приложению (`src/testing/example/{app,runner,shared}`): тип
+ * учебному приложению (`src/testing/example/{runners/assembly,runners/cli,platform/kernel}`): тип
  * пользователя, пустой корень сборки, раннер CLI и тесты. Пути — из
  * раскладки профиля, платформа — только через публичные входы пакета.
  * @see docs/guides/project.md

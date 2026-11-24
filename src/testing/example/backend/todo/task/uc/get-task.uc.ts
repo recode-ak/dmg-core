@@ -1,0 +1,36 @@
+import type { UnitOfWork } from '#core/app/uow/unit-of-work';
+import { UseCaseFromDef } from '#core/app/use-case/use-case-from-def';
+import { ok } from '#core/kernel/result/result';
+import type { TodoDeps } from '#core/testing/example/backend/todo/todo.module';
+import {
+  GetTaskUcDef,
+  type TaskAr,
+  TaskErrors,
+  type TodoModuleDef,
+} from '#core/testing/example/platform/domain/todo/index';
+
+type Loaded = { readonly task: TaskAr };
+
+/**
+ * Задача для других модулей (D-43): Policy `canManage` — по субъекту
+ * исходного человека (`SystemCaller.person()`).
+ */
+export class GetTaskUc extends UseCaseFromDef<
+  typeof GetTaskUcDef,
+  TodoDeps,
+  Loaded
+> {
+  constructor(deps: TodoDeps, module: typeof TodoModuleDef) {
+    super(GetTaskUcDef, deps, module);
+  }
+
+  protected async load({ taskId }: { taskId: string }) {
+    const task = await this.resolve.tasks.findById(taskId);
+    return task ? ok({ task }) : TaskErrors.NOT_FOUND.err({ taskId });
+  }
+
+  /** Выход — `view()` агрегата: вызывающий соберёт `TaskAr.readonly`. */
+  protected async execute(_: unknown, { task }: Loaded, __: UnitOfWork) {
+    return ok(task.view());
+  }
+}

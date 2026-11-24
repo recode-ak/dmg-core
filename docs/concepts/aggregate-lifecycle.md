@@ -39,7 +39,7 @@ flowchart TD
 
 **После сбоя.** Отката нет: если упала запись N-го агрегата, записанные до него остаются, их события уходят, а события N-го и следующих — нет. Сбой outbox после записи — исключение: данные записаны, события не считаются опубликованными. Упали и запись, и outbox — пробрасывается исключение записи со сбоем outbox в `cause`; `cause` занят или исключение не `Error` — `AggregateError` с обоими. Конфликт версии на N-м агрегате — `Err(VERSION_CONFLICT)`, но записанное до него тоже остаётся: повтор команды (D-56 его не отсеивает) исполнит её заново, и события записанных уйдут второй раз с новыми `eventId` — такой повтор отсеивает домен (D-47).
 
-Образцы: [task.ar.ts](../../src/testing/example/todo/task/task.ar.ts), [task.json-repo.ts](../../src/testing/example/app/todo/infra/task.json-repo.ts), [release-removed-user-tasks.er.ts](../../src/testing/example/app/todo/task/er/release-removed-user-tasks.er.ts).
+Образцы: [task.ar.ts](../../src/testing/example/platform/domain/todo/task/task.ar.ts), [task.json-repo.ts](../../src/testing/example/backend/todo/infra/task.json-repo.ts), [release-removed-user-tasks.er.ts](../../src/testing/example/backend/todo/task/er/release-removed-user-tasks.er.ts).
 
 ## Почему так
 

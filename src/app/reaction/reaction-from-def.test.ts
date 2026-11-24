@@ -17,12 +17,12 @@ import {
   TaskArDef,
   TaskEvents,
   TodoModuleDef,
-} from '#core/testing/example/todo/index';
+} from '#core/testing/example/platform/domain/todo/index';
 import {
   UserArDef,
   UserEvents,
   UsersModuleDef,
-} from '#core/testing/example/users/index';
+} from '#core/testing/example/platform/domain/users/index';
 import {
   expectErr,
   expectOk,

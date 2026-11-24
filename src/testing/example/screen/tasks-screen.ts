@@ -1,7 +1,11 @@
 import type { OutputOf } from '#core/index';
-import type { ExampleCallerResolver } from '../app/example-caller-resolver';
-import type { ExampleUser } from '../shared/app-user';
-import { ListTasksUcDef, TaskEvents, TodoModuleDef } from '../todo/contract';
+import {
+  ListTasksUcDef,
+  TaskEvents,
+  TodoModuleDef,
+} from '../platform/domain/todo/contract';
+import type { ExampleUser } from '../platform/kernel/app-user';
+import type { ExampleCallerResolver } from '../runners/assembly/example-caller-resolver';
 import type { ScreenSession } from './screen-session';
 
 /**

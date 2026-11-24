@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { EventEnvelope } from '../app/events/event-envelope';
 import { AwaitingBus } from './awaiting-bus';
-import { TaskEvents } from './example/todo/task/task.events';
+import { TaskEvents } from './example/platform/domain/todo/task/task.events';
 
 const envelope = (name: string, eventId: string): EventEnvelope => ({
   name,

@@ -1,5 +1,5 @@
 import type { GraphApp } from '#core/graph/domain/graph-app.types';
-import { ExampleAppDef } from './example.app';
+import { ExampleAppDef } from './platform/domain/example.app';
 
 /**
  * Учебный вход команды `dmg-core graph` (D-96): граф учебного приложения без

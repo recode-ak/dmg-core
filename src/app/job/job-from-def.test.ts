@@ -10,8 +10,8 @@ import {
   type TaskAr,
   TaskEvents,
   TodoModuleDef,
-} from '#core/testing/example/todo/index';
-import { UsersModuleDef } from '#core/testing/example/users/index';
+} from '#core/testing/example/platform/domain/todo/index';
+import { UsersModuleDef } from '#core/testing/example/platform/domain/users/index';
 import { expectErr, expectOk } from '#core/testing/index';
 import { MemoryTasks, T0, TASK, TASK_2, taskRow } from '../app.fixture';
 import type { ModuleDeps } from '../context';

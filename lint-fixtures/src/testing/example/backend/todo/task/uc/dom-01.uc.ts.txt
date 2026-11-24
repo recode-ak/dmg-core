@@ -1,0 +1,4 @@
+// expect: DOM-01 error
+import type { TaskState } from '#core/testing/example/platform/domain/todo/state';
+
+export type Row = TaskState;

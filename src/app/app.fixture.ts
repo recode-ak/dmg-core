@@ -1,6 +1,6 @@
 // Общие фикстуры тестов прикладного слоя DMG.
-import { TaskAr, TaskArDef } from '../testing/example/todo';
-import type { TaskState } from '../testing/example/todo/task/task.state';
+import { TaskAr, TaskArDef } from '../testing/example/platform/domain/todo';
+import type { TaskState } from '../testing/example/platform/domain/todo/task/task.state';
 import { type StoredRecord, VersionedRepository } from './uow/repository';
 
 export const TASK = '0b6f2c1e-8a4d-4f3b-9c2e-1d5a7b9e3f10';

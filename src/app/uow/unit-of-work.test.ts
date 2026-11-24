@@ -8,8 +8,8 @@ import {
   TaskArDef,
   TaskEvents,
   TodoModuleDef,
-} from '#core/testing/example/todo/index';
-import { UserArDef } from '#core/testing/example/users/user/user.ar';
+} from '#core/testing/example/platform/domain/todo/index';
+import { UserArDef } from '#core/testing/example/platform/domain/users/user/user.ar';
 import { expectErr, expectOk } from '#core/testing/index';
 import { RecordingBus } from '#core/testing/memory-bus';
 import type { EventEnvelope } from '../events/event-envelope';

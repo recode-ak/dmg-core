@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { TaskEvents } from '#core/testing/example/todo/task/task.events';
+import { TaskEvents } from '#core/testing/example/platform/domain/todo/task/task.events';
 import { MemoryBus, MemoryLogger } from '#core/testing/index';
 import type { EventEnvelope } from './event-envelope';
 import { EventSubscriber } from './event-subscriber';

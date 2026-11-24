@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import manifest from '../../../package.json' with { type: 'json' };
-import { ExampleAppDef } from '../../testing/example/example.app';
 import { ExampleGraph } from '../../testing/example/example.graph';
+import { ExampleAppDef } from '../../testing/example/platform/domain/example.app';
 import { toyProvider } from '../graph.fixture';
 import { GRAPH_FORMAT } from '../graph-document';
 import { AppGraph } from './app-graph';

@@ -22,10 +22,10 @@ verified: c2cf28c
 
 ## 3. Образец
 
-- [archive-done-tasks.job.ts (Def)](../../src/testing/example/todo/task/job/archive-done-tasks.job.ts): `schedule` (`dailyAt`, UTC), `scans: [TaskArDef]`, `emits: [TaskEvents.archived]`.
-- [archive-done-tasks.job.ts (реализация)](../../src/testing/example/app/todo/task/job/archive-done-tasks.job.ts): `run(job)` → выборка `findDone` → `job.forEach` (UoW на запись) → `TaskAr.archive` → `uow.register`.
-- [archive-done-tasks.job.test.ts](../../src/testing/example/app/todo/task/job/archive-done-tasks.job.test.ts): архив выполненных, повторный прогон пуст, сбой одной записи не прерывает обход (`failed: 1` и лог).
-- Запуск — `ModuleFromDef.runJob`, след — `Trace.forJob` ([todo.module.test.ts](../../src/testing/example/app/todo/todo.module.test.ts)).
+- [archive-done-tasks.job.ts (Def)](../../src/testing/example/platform/domain/todo/task/job/archive-done-tasks.job.ts): `schedule` (`dailyAt`, UTC), `scans: [TaskArDef]`, `emits: [TaskEvents.archived]`.
+- [archive-done-tasks.job.ts (реализация)](../../src/testing/example/backend/todo/task/job/archive-done-tasks.job.ts): `run(job)` → выборка `findDone` → `job.forEach` (UoW на запись) → `TaskAr.archive` → `uow.register`.
+- [archive-done-tasks.job.test.ts](../../src/testing/example/backend/todo/task/job/archive-done-tasks.job.test.ts): архив выполненных, повторный прогон пуст, сбой одной записи не прерывает обход (`failed: 1` и лог).
+- Запуск — `ModuleFromDef.runJob`, след — `Trace.forJob` ([todo.module.test.ts](../../src/testing/example/backend/todo/todo.module.test.ts)).
 
 ## 4. Чеклист правил
 
@@ -41,7 +41,7 @@ verified: c2cf28c
 
 ## 6. Как тестировать
 
-Обработка подходящих записей и пропуск остальных; повторный прогон ничего не пишет; сбой одной записи — остальные обработаны, отчёт `failed` и `logger.error`; запуск через модуль — `runJob`. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts)): выборку задаёт тест присваиванием, сбой записи — `failOn(uuid)` ([testing.md](../reference/testing.md)).
+Обработка подходящих записей и пропуск остальных; повторный прогон ничего не пишет; сбой одной записи — остальные обработаны, отчёт `failed` и `logger.error`; запуск через модуль — `runJob`. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/backend/todo/task/task.repo.fake.ts)): выборку задаёт тест присваиванием, сбой записи — `failOn(uuid)` ([testing.md](../reference/testing.md)).
 
 ## 7. Запуск по расписанию
 

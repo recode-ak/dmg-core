@@ -1,5 +1,5 @@
 import type { GraphApp } from '#core/graph/index';
-import { ExampleAppDef } from '../example.app';
+import { ExampleAppDef } from '../platform/domain/example.app';
 import { ScreenProvider } from './screen-provider';
 import { TasksScreenDef } from './tasks.screen';
 

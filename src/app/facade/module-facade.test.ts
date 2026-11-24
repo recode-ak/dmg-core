@@ -13,11 +13,11 @@ import {
   CreateTaskUcDef,
   GetTaskUcDef,
   TodoModuleDef,
-} from '#core/testing/example/todo/index';
+} from '#core/testing/example/platform/domain/todo/index';
 import {
   RemoveUserUcDef,
   UsersModuleDef,
-} from '#core/testing/example/users/index';
+} from '#core/testing/example/platform/domain/users/index';
 import { expectOk } from '#core/testing/expect-result';
 import { StubFacade } from '#core/testing/stub-facade';
 import { OWNER, TASK, taskRow } from '../app.fixture';

@@ -24,8 +24,8 @@ import {
   ListTasksUcDef,
   ReleaseRemovedUserTasksErDef,
   TaskErrors,
-} from '#core/testing/example/todo/index';
-import { UserEvents } from '#core/testing/example/users/index';
+} from '#core/testing/example/platform/domain/todo/index';
+import { UserEvents } from '#core/testing/example/platform/domain/users/index';
 import { expectErr, expectOk } from '#core/testing/index';
 import { MemoryBus } from '#core/testing/memory-bus';
 import { T0, TASK } from '../app.fixture';

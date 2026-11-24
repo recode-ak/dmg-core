@@ -37,7 +37,7 @@ flowchart LR
 5. **Job — система, а не гость.** Гость — реальный посетитель без регистрации; у Job субъекта нет, поэтому системные UC без субъекта разрешаются явно (`callers: ['system']`, `allowAll`), а не молчаливым пропуском Policy.
 6. **Вход решает один раз.** Адаптер строит `Caller` и `Trace` из своих данных (пользователь канала, токен) и дальше передаёт их неизменными; UC не узнаёт, бот это, HTTP или CLI.
 
-Образцы: межмодульный вызов — [assign-task.uc.ts](../../src/testing/example/app/todo/task/uc/assign-task.uc.ts), реакция — [release-removed-user-tasks.er.ts](../../src/testing/example/app/todo/task/er/release-removed-user-tasks.er.ts).
+Образцы: межмодульный вызов — [assign-task.uc.ts](../../src/testing/example/backend/todo/task/uc/assign-task.uc.ts), реакция — [release-removed-user-tasks.er.ts](../../src/testing/example/backend/todo/task/er/release-removed-user-tasks.er.ts).
 
 ## Почему так
 

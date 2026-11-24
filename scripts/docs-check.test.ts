@@ -6,7 +6,7 @@ const RULES = new Set(['DOM-02', 'API-01']);
 const EXISTING = new Set([
   'docs/guides/aggregate.md',
   'docs/reference/rules.md',
-  'src/testing/example/todo/task/task.ar.ts',
+  'src/testing/example/platform/domain/todo/task/task.ar.ts',
 ]);
 const exists = (path: string) => EXISTING.has(path);
 
@@ -19,7 +19,7 @@ describe('checkDocs: ссылки и ID правил', () => {
   it('живые ссылки и ID правил — без нарушений', () => {
     const files = [
       doc(
-        '[Ar](../../src/testing/example/todo/task/task.ar.ts) DOM-02\n' +
+        '[Ar](../../src/testing/example/platform/domain/todo/task/task.ar.ts) DOM-02\n' +
           '[rules](../reference/rules.md#dom) [сайт](https://example.com) [тут](#1-когда)\n' +
           '## 1. Когда',
       ),
@@ -28,9 +28,11 @@ describe('checkDocs: ссылки и ID правил', () => {
   });
 
   it('битая ссылка на файл — нарушение с путём', () => {
-    const files = [doc('[Ar](../../src/testing/example/todo/a-root.ts)')];
+    const files = [
+      doc('[Ar](../../src/testing/example/platform/domain/todo/a-root.ts)'),
+    ];
     expect(checkDocs(files, exists, RULES)).toEqual([
-      'docs/guides/aggregate.md: ссылка ведёт в несуществующий файл ../../src/testing/example/todo/a-root.ts',
+      'docs/guides/aggregate.md: ссылка ведёт в несуществующий файл ../../src/testing/example/platform/domain/todo/a-root.ts',
     ]);
   });
 
@@ -91,7 +93,7 @@ describe('checkDocs: направление ссылок', () => {
         '../reference/rules.md',
         '../decisions.md',
         './layers.md',
-        '../../src/testing/example/todo/task/task.ar.ts',
+        '../../src/testing/example/platform/domain/todo/task/task.ar.ts',
       ),
     ];
     expect(checkDocs(files, all, RULES)).toEqual([]);

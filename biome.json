@@ -85,9 +85,7 @@
       "includes": [
         "src/kernel/**",
         "src/domain/**",
-        "src/testing/example/todo/**",
-        "src/testing/example/users/**",
-        "src/testing/example/shared/**",
+        "src/testing/example/platform/**",
         "!**/*.test.ts"
       ],
       "linter": {
@@ -131,7 +129,8 @@
     },
     {
       "includes": [
-        "src/testing/example/app/**",
+        "src/testing/example/backend/**",
+        "src/testing/example/runners/assembly/**",
         "!**/*.test.ts",
         "!**/infra/**"
       ],
@@ -171,7 +170,8 @@
     },
     {
       "includes": [
-        "src/testing/example/app/**",
+        "src/testing/example/backend/**",
+        "src/testing/example/runners/assembly/**",
         "!**/*.test.ts",
         "!**/infra/**",
         "!**/*.repo.fake.ts"
@@ -224,9 +224,7 @@
       "includes": [
         "src/kernel/**",
         "src/domain/**",
-        "src/testing/example/todo/**",
-        "src/testing/example/users/**",
-        "src/testing/example/shared/**",
+        "src/testing/example/platform/**",
         "!**/*.test.ts"
       ],
       "plugins": ["./biome-plugins/dom-14-no-clock.grit"]
@@ -235,7 +233,7 @@
       "includes": [
         "src/**",
         "!**/*.test.ts",
-        "!src/testing/example/runner/main.ts"
+        "!src/testing/example/runners/cli/main.ts"
       ],
       "plugins": ["./biome-plugins/arc-09-no-env.grit"]
     },

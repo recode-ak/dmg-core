@@ -2,9 +2,12 @@
 // его Def и публичные контракты модулей todo и users (D-45). Глубокие пути
 // `dmg-core/testing/example/*` работают, но стабильными не считаются.
 
-export { ExampleApp } from './app/example-app';
-export type { ExampleAppEnv, ExampleAppPorts } from './app/example-app.types';
-export { ExampleAppDef } from './example.app';
-export type { ExampleUser } from './shared/app-user';
-export * from './todo/contract';
-export * from './users/contract';
+export { ExampleAppDef } from './platform/domain/example.app';
+export * from './platform/domain/todo/contract';
+export * from './platform/domain/users/contract';
+export type { ExampleUser } from './platform/kernel/app-user';
+export { ExampleApp } from './runners/assembly/example-app';
+export type {
+  ExampleAppEnv,
+  ExampleAppPorts,
+} from './runners/assembly/example-app.types';

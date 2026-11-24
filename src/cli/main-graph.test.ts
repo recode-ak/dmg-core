@@ -177,7 +177,7 @@ describe('dmg-core graph', () => {
     const file = writeEntry(
       'conflict.ts',
       `import * as v from '${VALIBOT}';
-import { ExampleAppDef } from '${join(import.meta.dir, '../testing/example/example.app.ts')}';
+import { ExampleAppDef } from '${join(import.meta.dir, '../testing/example/platform/domain/example.app.ts')}';
 export default {
   def: ExampleAppDef,
   providers: [

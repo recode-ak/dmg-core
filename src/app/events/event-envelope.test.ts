@@ -4,7 +4,7 @@ import {
   TaskAr,
   TaskArDef,
   TodoModuleDef,
-} from '#core/testing/example/todo/index';
+} from '#core/testing/example/platform/domain/todo/index';
 import { expectOk, RecordingBus } from '#core/testing/index';
 import type { Repository } from '../uow/repository';
 import { UnitOfWork } from '../uow/unit-of-work';

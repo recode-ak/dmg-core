@@ -7,14 +7,14 @@ import { ArchChecker, reportArchCheck } from '#core/arch/index';
 import { AppGraph } from '#core/graph/index';
 import { UserCaller } from '#core/index';
 import { AwaitingBus, expectOk, MemoryLogger } from '#core/testing/index';
-import { ExampleApp } from '../app/example-app';
-import { ExampleAppDef } from '../example.app';
+import { ExampleAppDef } from '../platform/domain/example.app';
 import {
   CompleteTaskUcDef,
   CreateTaskUcDef,
   TaskEvents,
   TodoModuleDef,
-} from '../todo/contract';
+} from '../platform/domain/todo/contract';
+import { ExampleApp } from '../runners/assembly/example-app';
 import { ScreenArch } from './screen.arch';
 import { ScreenGraph } from './screen.graph';
 import { ScreenDef } from './screen-def';

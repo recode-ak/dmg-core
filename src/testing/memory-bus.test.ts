@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { EventEnvelope } from '../app/events/event-envelope';
-import { TaskEvents } from './example/todo/task/task.events';
+import { TaskEvents } from './example/platform/domain/todo/task/task.events';
 import { MemoryBus, RecordingBus } from './memory-bus';
 
 const envelope = (name: string, eventId: string): EventEnvelope => ({

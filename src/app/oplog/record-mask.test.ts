@@ -9,7 +9,7 @@ import { CoreErrors } from '#core/kernel/errors/core-errors';
 import type { DomainError } from '#core/kernel/errors/error';
 import { ErrorDef } from '#core/kernel/errors/error-def';
 import { F } from '#core/kernel/fields/fields';
-import { TaskArDef } from '#core/testing/example/todo/index';
+import { TaskArDef } from '#core/testing/example/platform/domain/todo/index';
 import type { OperationRecord } from './operation-record';
 import { RecordMask } from './record-mask';
 

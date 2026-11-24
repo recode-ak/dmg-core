@@ -1,4 +1,0 @@
-// expect: DOM-01 error
-import type { TaskState } from '#core/testing/example/todo/state';
-
-export type Row = TaskState;

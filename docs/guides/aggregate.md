@@ -21,7 +21,7 @@ verified: c2cf28c
 
 `dmg-core gen aggregate <m>.<a> --write` создаёт state, events, errors, Ar, Policy и repo; в корне сборки — репозиторий в фабрике модуля ([project.md](./project.md) §4). Заполни TODO в Def (`statuses`, `transitions` с `from`/`to`/`rejects`) и методы Ar. Генератору нужен паспорт `<m>.module.ts`. Событие `created` публикует UC создания — `gen uc <m>.<a> create`; каждое объявленное событие должен эмитить какой-то UC/ER/Job (MAN-06), иначе `arch:check` красный.
 
-Переход — в Def, метод — в Ar ([task.ar.ts](../../src/testing/example/todo/task/task.ar.ts)):
+Переход — в Def, метод — в Ar ([task.ar.ts](../../src/testing/example/platform/domain/todo/task/task.ar.ts)):
 
 ```ts
 statuses: { open: { label: 'Открыта' }, done: { label: 'Выполнена' } },
@@ -43,10 +43,10 @@ complete(at: Timestamp): Result<void, RejectOf<typeof TaskArDef, 'complete'>> {
 
 ## 3. Образец
 
-- [task.ar.ts](../../src/testing/example/todo/task/task.ar.ts): `TaskArDef` (3 статуса, 2 перехода, `rejects` для каждого статуса вне `from`); `TaskAr` — `create`/`restore`, переходы `complete`/`archive` через `this.transition`, мутации без смены статуса `assign`/`unassign` через `this.change`; отказы метода — `RejectOf<…, 'complete'>`, а не вся группа.
-- [task.ar.test.ts](../../src/testing/example/todo/task/task.ar.test.ts): `create`, round trip `snapshot`, запись не по схеме — исключение, успех и каждый отказ перехода, повтор без изменений, методы-вопросы.
-- [user.ar.ts](../../src/testing/example/users/user/user.ar.ts) и [тест](../../src/testing/example/users/user/user.ar.test.ts): минимальный агрегат — один переход `remove` и метод-вопрос `isActive`.
-- [task.errors.ts](../../src/testing/example/todo/task/task.errors.ts) и [task.events.ts](../../src/testing/example/todo/task/task.events.ts): группы, на которые ссылаются `rejects` и `emit`.
+- [task.ar.ts](../../src/testing/example/platform/domain/todo/task/task.ar.ts): `TaskArDef` (3 статуса, 2 перехода, `rejects` для каждого статуса вне `from`); `TaskAr` — `create`/`restore`, переходы `complete`/`archive` через `this.transition`, мутации без смены статуса `assign`/`unassign` через `this.change`; отказы метода — `RejectOf<…, 'complete'>`, а не вся группа.
+- [task.ar.test.ts](../../src/testing/example/platform/domain/todo/task/task.ar.test.ts): `create`, round trip `snapshot`, запись не по схеме — исключение, успех и каждый отказ перехода, повтор без изменений, методы-вопросы.
+- [user.ar.ts](../../src/testing/example/platform/domain/users/user/user.ar.ts) и [тест](../../src/testing/example/platform/domain/users/user/user.ar.test.ts): минимальный агрегат — один переход `remove` и метод-вопрос `isActive`.
+- [task.errors.ts](../../src/testing/example/platform/domain/todo/task/task.errors.ts) и [task.events.ts](../../src/testing/example/platform/domain/todo/task/task.events.ts): группы, на которые ссылаются `rejects` и `emit`.
 
 ## 4. Чеклист правил
 

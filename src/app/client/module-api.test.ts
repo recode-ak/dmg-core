@@ -10,8 +10,8 @@ import {
   GetTaskUcDef,
   TaskErrors,
   TodoModuleDef,
-} from '#core/testing/example/todo/index';
-import { RemoveUserUcDef } from '#core/testing/example/users/index';
+} from '#core/testing/example/platform/domain/todo/index';
+import { RemoveUserUcDef } from '#core/testing/example/platform/domain/users/index';
 import { type LogRecord, MemoryLogger } from '#core/testing/memory-logger';
 import { OWNER, TASK, taskRow } from '../app.fixture';
 import { type CommandTransport, ModuleApi } from './module-api';

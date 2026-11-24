@@ -39,7 +39,7 @@ flowchart LR
 5. **Граф — для людей и машин.** Корень графа — приложение (`AppDef`); узлы и рёбра приносят поставщики: домен — по Def модулей, другие пакеты (экраны, размещение) — свои виды, ссылаясь на узлы домена. Карта модулей, модуль и агрегат — не отдельные графы, а уровни подъёма одного. По графу каскад «экран → UC → агрегат → событие → реакция → …» прослеживается сквозь модули, а PO и LLM видят модель, а не список ручек (`dmg-core graph` пишет его в `graph.json`).
 6. **Декларация проверяется.** Что можно проверить типом — проверяет компилятор; что нельзя (`emits`, `touches`, `dependsOn`, описания, JSON Schema) — `ArchChecker` и рантайм-сверка в тестах; инварианты поставщика, видимые только на графе целиком, — его правила в том же отчёте `ArchChecker`. Def, расходящийся с кодом, не доживает до релиза.
 
-Образцы: [task.ar.ts](../../src/testing/example/todo/task/task.ar.ts) (Def агрегата и переходы), [complete-task.uc.ts](../../src/testing/example/todo/task/uc/complete-task.uc.ts) (Def UC), [todo.module.ts](../../src/testing/example/todo/todo.module.ts) (паспорт модуля), [screen-provider.ts](../../src/testing/example/screen/screen-provider.ts) (поставщик графа сверх домена).
+Образцы: [task.ar.ts](../../src/testing/example/platform/domain/todo/task/task.ar.ts) (Def агрегата и переходы), [complete-task.uc.ts](../../src/testing/example/platform/domain/todo/task/uc/complete-task.uc.ts) (Def UC), [todo.module.ts](../../src/testing/example/platform/domain/todo/todo.module.ts) (паспорт модуля), [screen-provider.ts](../../src/testing/example/screen/screen-provider.ts) (поставщик графа сверх домена).
 
 ## Почему так
 

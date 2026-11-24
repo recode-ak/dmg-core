@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { TaskAr } from '#core/testing/example/todo/index';
+import { TaskAr } from '#core/testing/example/platform/domain/todo/index';
 import { expectOk } from '#core/testing/index';
 
 const AT = Date.UTC(2026, 9, 18, 12, 0);

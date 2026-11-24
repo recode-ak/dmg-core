@@ -25,8 +25,8 @@ import {
   TaskArDef,
   TaskErrors,
   TodoModuleDef,
-} from '#core/testing/example/todo/index';
-import { UserEvents } from '#core/testing/example/users/index';
+} from '#core/testing/example/platform/domain/todo/index';
+import { UserEvents } from '#core/testing/example/platform/domain/users/index';
 import { expectErr, expectOk, testAppContext } from '#core/testing/index';
 import { StubFacade } from '#core/testing/stub-facade';
 import { MemoryTasks, OWNER, T0, TASK, taskRow } from '../app.fixture';

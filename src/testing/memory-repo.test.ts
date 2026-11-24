@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { VersionConflict } from '#core/app/uow/repository';
-import { TaskRepoFake } from '#core/testing/example/app/todo/task/task.repo.fake';
-import { TaskAr, TaskArDef } from '#core/testing/example/todo/index';
+import { TaskRepoFake } from '#core/testing/example/backend/todo/task/task.repo.fake';
+import {
+  TaskAr,
+  TaskArDef,
+} from '#core/testing/example/platform/domain/todo/index';
 import { OWNER, T0, TASK, TASK_2, taskRow } from '../app/app.fixture';
 import { expectOk } from './expect-result';
 import { MemoryRepo } from './memory-repo';

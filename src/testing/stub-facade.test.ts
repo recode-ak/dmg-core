@@ -8,8 +8,8 @@ import {
   ListTasksUcDef,
   TaskErrors,
   TodoModuleDef,
-} from '#core/testing/example/todo/index';
-import { RemoveUserUcDef } from '#core/testing/example/users/index';
+} from '#core/testing/example/platform/domain/todo/index';
+import { RemoveUserUcDef } from '#core/testing/example/platform/domain/users/index';
 import { OWNER, TASK, taskRow } from '../app/app.fixture';
 import { expectErr, expectOk } from './expect-result';
 import { StubFacade } from './stub-facade';

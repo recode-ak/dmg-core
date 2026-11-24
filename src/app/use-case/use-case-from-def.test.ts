@@ -29,8 +29,8 @@ import {
   TaskErrors,
   TaskEvents,
   TodoModuleDef,
-} from '#core/testing/example/todo/index';
-import type { TaskState } from '#core/testing/example/todo/task/task.state';
+} from '#core/testing/example/platform/domain/todo/index';
+import type { TaskState } from '#core/testing/example/platform/domain/todo/task/task.state';
 import { expectErr, expectOk, testAppContext } from '#core/testing/index';
 import { MemoryTasks, OWNER, T0, TASK, taskRow } from '../app.fixture';
 

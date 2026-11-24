@@ -35,7 +35,7 @@ flowchart TD
 5. **Нарушение контракта без вреда — громко в разработке, тихо в бою.** Расхождение реализации с Def (событие вне `emits`, агрегат вне `touches`) — баг, но ронять из-за него операцию пользователя в production хуже, чем дописать предупреждение. В тестах это исключение, поэтому баг не доживает до релиза.
 6. **Выход — тоже контракт.** Невалидный выход UC — баг реализации: операция отказывает целиком до фиксации, клиент безопасно повторяет. Частичный ответ сломал бы клиента и мог раскрыть лишние поля.
 
-Образцы: [task.errors.ts](../../src/testing/example/todo/task/task.errors.ts), отказы UC по конкретному `code` — [complete-task.uc.test.ts](../../src/testing/example/app/todo/task/uc/complete-task.uc.test.ts).
+Образцы: [task.errors.ts](../../src/testing/example/platform/domain/todo/task/task.errors.ts), отказы UC по конкретному `code` — [complete-task.uc.test.ts](../../src/testing/example/backend/todo/task/uc/complete-task.uc.test.ts).
 
 ## Почему так
 

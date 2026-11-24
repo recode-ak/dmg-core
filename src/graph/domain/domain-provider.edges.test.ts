@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { ExampleAppDef } from '../../testing/example/example.app';
+import { ExampleAppDef } from '../../testing/example/platform/domain/example.app';
 import type { Graph } from '../graph';
 import {
   CartAppDef,

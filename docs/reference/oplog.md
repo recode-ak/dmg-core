@@ -51,7 +51,7 @@ export const TaskState = v.object({
 });
 ```
 
-Образец — `TaskState` учебного модуля (`src/testing/example/todo/task/task.state.ts`), сквозной тест «в строке JSONL нет значения» — `example-app.test.ts`.
+Образец — `TaskState` учебного модуля (`src/testing/example/platform/domain/todo/task/task.state.ts`), сквозной тест «в строке JSONL нет значения» — `example-app.test.ts`.
 
 Пометка — метаданные схемы, поэтому переходит во все схемы, собранные из этих полей: выход UC из state или `view()`, вход из VO, payload событий и ошибок. Схема, написанная заново (не из полей state/VO), пометку не наследует — её помечают сами.
 

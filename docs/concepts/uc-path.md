@@ -45,7 +45,7 @@ sequenceDiagram
 5. **Фиксация.** Выход проверяется схемой до записи: невалидный ответ — баг реализации, и данные не меняются. Затем `commit` пишет агрегаты и отдаёт их события в outbox ([жизненный цикл агрегата](./aggregate-lifecycle.md)).
 6. **След.** Запись в лог операций — последним шагом при любом исходе исполнения UC: записанные агрегаты (`writes`, версии до и после и патч полей `changes`, D-86), выход команды целиком, выход query — сводкой размера (D-73); поля `F.sensitive` во входе, выходе, ошибке и патче скрыты ([oplog.md](../reference/oplog.md)); отказы шагов 1–2 (адрес, повтор) UC не вызывают и в лог операций не попадают. Непредвиденное исключение становится `SERVER_INTERNAL`, детали — в логгер.
 
-Образец: [assign-task.uc.ts](../../src/testing/example/app/todo/task/uc/assign-task.uc.ts) — `load`, `fetch` через фасад `users`, `execute`.
+Образец: [assign-task.uc.ts](../../src/testing/example/backend/todo/task/uc/assign-task.uc.ts) — `load`, `fetch` через фасад `users`, `execute`.
 
 ## Почему так
 

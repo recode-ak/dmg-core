@@ -2,10 +2,10 @@
 covers:
   - src/domain/policy/**
   - src/domain/rules/**
-  - src/testing/example/todo/task/task.policy.ts
-  - src/testing/example/todo/task/task.rules.ts
-  - src/testing/example/todo/task/uc/assign-task.uc.ts
-  - src/testing/example/app/todo/infra/task.json-repo.ts
+  - src/testing/example/platform/domain/todo/task/task.policy.ts
+  - src/testing/example/platform/domain/todo/task/task.rules.ts
+  - src/testing/example/platform/domain/todo/task/uc/assign-task.uc.ts
+  - src/testing/example/backend/todo/infra/task.json-repo.ts
 verified: 517415a
 ---
 
@@ -49,7 +49,7 @@ flowchart TD
 
 Итог: Policy `todo` — только права субъекта: `canManage` (владелец или администратор) и `canManageAll` — то же над набором задач (`completeTasks`; Policy вправе смотреть на несколько агрегатов, D-40). UC в шаге `fetch`, после Policy, вызывает UC `users` и кладёт ответ в контекст; доменное правило `assigneeActive` решает о допуске. Отказ «пользователя нет» пробрасывается как есть — это факт `users`; «пользователь неактивен» переводится в ошибку `todo`: в задаче он значит «назначить нельзя».
 
-Образцы: [task.policy.ts](../../src/testing/example/todo/task/task.policy.ts), [task.rules.ts](../../src/testing/example/todo/task/task.rules.ts), [assign-task.uc.ts](../../src/testing/example/todo/task/uc/assign-task.uc.ts).
+Образцы: [task.policy.ts](../../src/testing/example/platform/domain/todo/task/task.policy.ts), [task.rules.ts](../../src/testing/example/platform/domain/todo/task/task.rules.ts), [assign-task.uc.ts](../../src/testing/example/platform/domain/todo/task/uc/assign-task.uc.ts).
 
 ## Правило и выборка
 

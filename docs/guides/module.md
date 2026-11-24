@@ -26,12 +26,12 @@ covers:
 
 ## 3. Образец
 
-- [todo.module.ts (Def)](../../src/testing/example/todo/todo.module.ts): `dependsOn: [UsersModuleDef]` из контракта `users`, пять UC, одна ER, один Job.
-- [todo/contract.ts](../../src/testing/example/todo/contract.ts) и [users/contract.ts](../../src/testing/example/users/contract.ts): входы модулей с JSDoc на каждом экспорте; `todo` отдаёт и `TaskAr`, `TaskPolicy`, `TaskRules` с типами контекстов и `OPEN_TASKS_LIMIT` — клиентскому коду (D-104), но не state, ArDef и DCS; `users` отдаёт `GetUserUcDef` и тип ответа `UserActivity`, но не state, Ar и Policy.
-- [todo.module.ts (реализация)](../../src/testing/example/app/todo/todo.module.ts): `TodoDeps = ModuleDeps & { tasks }`, `todoMap … satisfies ModuleMap<…>`, `createTodoModule(deps)` → `ModuleFromDef`.
+- [todo.module.ts (Def)](../../src/testing/example/platform/domain/todo/todo.module.ts): `dependsOn: [UsersModuleDef]` из контракта `users`, пять UC, одна ER, один Job.
+- [todo/contract.ts](../../src/testing/example/platform/domain/todo/contract.ts) и [users/contract.ts](../../src/testing/example/platform/domain/users/contract.ts): входы модулей с JSDoc на каждом экспорте; `todo` отдаёт и `TaskAr`, `TaskPolicy`, `TaskRules` с типами контекстов и `OPEN_TASKS_LIMIT` — клиентскому коду (D-104), но не state, ArDef и DCS; `users` отдаёт `GetUserUcDef` и тип ответа `UserActivity`, но не state, Ar и Policy.
+- [todo.module.ts (реализация)](../../src/testing/example/backend/todo/todo.module.ts): `TodoDeps = ModuleDeps & { tasks }`, `todoMap … satisfies ModuleMap<…>`, `createTodoModule(deps)` → `ModuleFromDef`.
 - [example.arch.ts](../../src/testing/example/example.arch.ts): `ArchApp` учебного приложения — раскладка и `entry: 'contract'` для ARC-04.
-- [example.app.ts](../../src/testing/example/example.app.ts): `AppDef` — полный состав модулей приложения; `gen module` добавляет в него Def нового модуля.
-- Минимальный модуль-владелец: [users.module.ts](../../src/testing/example/users/users.module.ts) и [реализация](../../src/testing/example/app/users/users.module.ts).
+- [example.app.ts](../../src/testing/example/platform/domain/example.app.ts): `AppDef` — полный состав модулей приложения; `gen module` добавляет в него Def нового модуля.
+- Минимальный модуль-владелец: [users.module.ts](../../src/testing/example/platform/domain/users/users.module.ts) и [реализация](../../src/testing/example/backend/users/users.module.ts).
 
 ## 4. Чеклист правил
 
@@ -52,4 +52,4 @@ covers:
 
 ## 6. Как тестировать
 
-Домен — `normalize(<M>ModuleDef)` (состав паспорта) и `ArchChecker.defsOf([…]).report()` без нарушений ([todo.module.test.ts](../../src/testing/example/todo/todo.module.test.ts), [users.module.test.ts](../../src/testing/example/users/users.module.test.ts)). Прикладной пакет — модуль на настоящем репозитории во временном каталоге (в тестах UC/ER/Job — фейк порта, [testing.md](../reference/testing.md) §4), фасады — `StubFacade` по Def, вызовы через `dispatch` команды, `runJob`, доставка события через `subscribe` ([todo.module.test.ts](../../src/testing/example/app/todo/todo.module.test.ts)).
+Домен — `normalize(<M>ModuleDef)` (состав паспорта) и `ArchChecker.defsOf([…]).report()` без нарушений ([todo.module.test.ts](../../src/testing/example/platform/domain/todo/todo.module.test.ts), [users.module.test.ts](../../src/testing/example/platform/domain/users/users.module.test.ts)). Прикладной пакет — модуль на настоящем репозитории во временном каталоге (в тестах UC/ER/Job — фейк порта, [testing.md](../reference/testing.md) §4), фасады — `StubFacade` по Def, вызовы через `dispatch` команды, `runJob`, доставка события через `subscribe` ([todo.module.test.ts](../../src/testing/example/backend/todo/todo.module.test.ts)).

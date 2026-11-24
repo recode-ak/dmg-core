@@ -1,8 +1,8 @@
 ---
 covers:
   - src/app/delegation/**
-  - src/testing/example/app/example-caller-resolver.ts
-  - src/testing/example/app/example-delegation-store.ts
+  - src/testing/example/runners/assembly/example-caller-resolver.ts
+  - src/testing/example/runners/assembly/example-delegation-store.ts
 ---
 
 # Делегирование — гайд
@@ -29,9 +29,9 @@ covers:
 
 ## 3. Образец
 
-- [example-delegation-store.ts](../../src/testing/example/app/example-delegation-store.ts) — порт в памяти: записи из конструктора, только чтение.
-- [example-caller-resolver.ts](../../src/testing/example/app/example-caller-resolver.ts) — резолвер с заявкой: пустые поля → личность от транспорта совпадает с заместителем → `DelegationCheck.verify` → оба пользователя активны → `DelegateCaller` с `readOnly` из записи; иначе `DELEGATION_DENIED`, исключение порта — дефект (ERR-01).
-- [example-cli.ts](../../src/testing/example/runner/example-cli.ts) — опции `--on-behalf <uuid> --delegation <id>` при `--user`; отказ резолвера — JSON отказа и код «отклонено».
+- [example-delegation-store.ts](../../src/testing/example/runners/assembly/example-delegation-store.ts) — порт в памяти: записи из конструктора, только чтение.
+- [example-caller-resolver.ts](../../src/testing/example/runners/assembly/example-caller-resolver.ts) — резолвер с заявкой: пустые поля → личность от транспорта совпадает с заместителем → `DelegationCheck.verify` → оба пользователя активны → `DelegateCaller` с `readOnly` из записи; иначе `DELEGATION_DENIED`, исключение порта — дефект (ERR-01).
+- [example-cli.ts](../../src/testing/example/runners/cli/example-cli.ts) — опции `--on-behalf <uuid> --delegation <id>` при `--user`; отказ резолвера — JSON отказа и код «отклонено».
 - `DelegationCheck` (`dmg-core/app`) — причины отказа и их порядок: [reference/caller.md](../reference/caller.md) §4.
 - Каркас `dmg-core init`: заглушка резолвера на заявку отвечает `disabled` — порта нет ([project.md](./project.md)).
 
@@ -63,5 +63,5 @@ covers:
 
 ## 7. Как тестировать
 
-- Резолвер приложения: успех, отказ проверки как есть, чужой заместитель, нет пользователя, `readOnly` из записи — образец [example-delegation.test.ts](../../src/testing/example/app/example-delegation.test.ts). Причины `DelegationCheck` не повторять — их держит тест пакета.
+- Резолвер приложения: успех, отказ проверки как есть, чужой заместитель, нет пользователя, `readOnly` из записи — образец [example-delegation.test.ts](../../src/testing/example/runners/assembly/example-delegation.test.ts). Причины `DelegationCheck` не повторять — их держит тест пакета.
 - UC с `personal` — один тест отказа заместителю на модуль, не на каждый UC: проверку делает платформа (TST-09).

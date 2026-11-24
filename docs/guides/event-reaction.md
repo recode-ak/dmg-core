@@ -35,10 +35,10 @@ covers:
 
 ## 4. Образец
 
-- [release-removed-user-tasks.er.ts (Def)](../../src/testing/example/todo/task/er/release-removed-user-tasks.er.ts): `on: [UserEvents.removed]` (событие модуля `users` из его контракта), `touches: [TaskArDef]`, `emits` — `archived` и `unassigned`.
-- [release-removed-user-tasks.er.ts (реализация)](../../src/testing/example/app/todo/task/er/release-removed-user-tasks.er.ts): одна выборка `findActiveByParticipant` → `TaskReleaseDcs.release(this.now())` → `uow.register` каждой изменённой задачи.
-- [task-release.dcs.ts](../../src/testing/example/todo/task-release.dcs.ts): решение по каждой задаче принимает её Ar; повтор ничего не меняет.
-- [release-removed-user-tasks.er.test.ts](../../src/testing/example/app/todo/task/er/release-removed-user-tasks.er.test.ts): обе группы задач, «своя и назначена себе», пусто, `expectIdempotentReaction` (`dmg-core/testing`).
+- [release-removed-user-tasks.er.ts (Def)](../../src/testing/example/platform/domain/todo/task/er/release-removed-user-tasks.er.ts): `on: [UserEvents.removed]` (событие модуля `users` из его контракта), `touches: [TaskArDef]`, `emits` — `archived` и `unassigned`.
+- [release-removed-user-tasks.er.ts (реализация)](../../src/testing/example/backend/todo/task/er/release-removed-user-tasks.er.ts): одна выборка `findActiveByParticipant` → `TaskReleaseDcs.release(this.now())` → `uow.register` каждой изменённой задачи.
+- [task-release.dcs.ts](../../src/testing/example/platform/domain/todo/task-release.dcs.ts): решение по каждой задаче принимает её Ar; повтор ничего не меняет.
+- [release-removed-user-tasks.er.test.ts](../../src/testing/example/backend/todo/task/er/release-removed-user-tasks.er.test.ts): обе группы задач, «своя и назначена себе», пусто, `expectIdempotentReaction` (`dmg-core/testing`).
 
 ## 5. Чеклист правил
 
@@ -62,4 +62,4 @@ covers:
 
 ## 7. Как тестировать
 
-Каждый случай реакции; повторное событие — ни записи, ни вызовов (`expectIdempotentReaction`); нет кандидатов — вызовов нет (`StubFacade.received`); отказ и исключение чужого UC — ошибка или `SERVER_INTERNAL`, ничего не записано, `logger.error` с именем ER, запись в `MemoryOperationLog`; доставка через `subscribe` на `MemoryBus`. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts)), ответ `find*` — присваиванием в тесте; домен — unit-тесты DCS ([task-release.dcs.test.ts](../../src/testing/example/todo/task-release.dcs.test.ts)). Общее — [testing.md](../reference/testing.md).
+Каждый случай реакции; повторное событие — ни записи, ни вызовов (`expectIdempotentReaction`); нет кандидатов — вызовов нет (`StubFacade.received`); отказ и исключение чужого UC — ошибка или `SERVER_INTERNAL`, ничего не записано, `logger.error` с именем ER, запись в `MemoryOperationLog`; доставка через `subscribe` на `MemoryBus`. Репозиторий — фейк порта ([task.repo.fake.ts](../../src/testing/example/backend/todo/task/task.repo.fake.ts)), ответ `find*` — присваиванием в тесте; домен — unit-тесты DCS ([task-release.dcs.test.ts](../../src/testing/example/platform/domain/todo/task-release.dcs.test.ts)). Общее — [testing.md](../reference/testing.md).

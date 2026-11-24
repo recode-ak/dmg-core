@@ -24,11 +24,11 @@ covers:
 
 ## 3. Образец
 
-- [task.repo.ts](../../src/testing/example/app/todo/task/task.repo.ts): `Repository<TaskAr>` и выборки `find*` — вход и выход `TaskAr`, `undefined` при отсутствии; `Result` в порте нет — `save` бросает `VersionConflict`, UoW превращает его в `VERSION_CONFLICT`.
-- [task.json-repo.ts](../../src/testing/example/app/todo/infra/task.json-repo.ts): наследник `VersionedRepository<TaskAr>` — `aggregate = TaskArDef`, `stored(uuid)` (запись файла по uuid) и `write(ar)` (запись `ar.snapshot()`); замок и сверку версии делает база; разбор через `TaskArDef.state`. Выборки `find*Active*` — кандидаты по ключам (`ownerId`, исполнитель), признак — `task.isActive()`, условия по `status` в репозитории нет.
-- [task.repo.fake.ts](../../src/testing/example/app/todo/task/task.repo.fake.ts): `TaskRepoFake extends MemoryRepo` для тестов UC/ER/Job — `findById` через `restored`, прочие `find*` — `unanswered`, ответ задаёт тест; тривиальную выборку фейк может отдать через `where` ([testing.md](../reference/testing.md) §4).
-- [task.json-repo.test.ts](../../src/testing/example/app/todo/infra/task.json-repo.test.ts): round trip, конфликт версии, параллельные записи, каждая выборка (`findActiveByParticipant` — без дублей).
-- [task-release.dcs.ts](../../src/testing/example/todo/task-release.dcs.ts), [task-release.types.ts](../../src/testing/example/todo/task-release.types.ts) и [тест](../../src/testing/example/todo/task-release.dcs.test.ts): DCS над несколькими задачами — свои в архив, назначенные возвращаются владельцам; решает каждый Ar, выборке вызывающего сервис не верит; повтор ничего не меняет.
+- [task.repo.ts](../../src/testing/example/backend/todo/task/task.repo.ts): `Repository<TaskAr>` и выборки `find*` — вход и выход `TaskAr`, `undefined` при отсутствии; `Result` в порте нет — `save` бросает `VersionConflict`, UoW превращает его в `VERSION_CONFLICT`.
+- [task.json-repo.ts](../../src/testing/example/backend/todo/infra/task.json-repo.ts): наследник `VersionedRepository<TaskAr>` — `aggregate = TaskArDef`, `stored(uuid)` (запись файла по uuid) и `write(ar)` (запись `ar.snapshot()`); замок и сверку версии делает база; разбор через `TaskArDef.state`. Выборки `find*Active*` — кандидаты по ключам (`ownerId`, исполнитель), признак — `task.isActive()`, условия по `status` в репозитории нет.
+- [task.repo.fake.ts](../../src/testing/example/backend/todo/task/task.repo.fake.ts): `TaskRepoFake extends MemoryRepo` для тестов UC/ER/Job — `findById` через `restored`, прочие `find*` — `unanswered`, ответ задаёт тест; тривиальную выборку фейк может отдать через `where` ([testing.md](../reference/testing.md) §4).
+- [task.json-repo.test.ts](../../src/testing/example/backend/todo/infra/task.json-repo.test.ts): round trip, конфликт версии, параллельные записи, каждая выборка (`findActiveByParticipant` — без дублей).
+- [task-release.dcs.ts](../../src/testing/example/platform/domain/todo/task-release.dcs.ts), [task-release.types.ts](../../src/testing/example/platform/domain/todo/task-release.types.ts) и [тест](../../src/testing/example/platform/domain/todo/task-release.dcs.test.ts): DCS над несколькими задачами — свои в архив, назначенные возвращаются владельцам; решает каждый Ar, выборке вызывающего сервис не верит; повтор ничего не меняет.
 
 ## 4. Чеклист правил
 

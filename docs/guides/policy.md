@@ -46,10 +46,10 @@ verified: c2cf28c
 
 ## 4. Образец
 
-- [task.policy.ts](../../src/testing/example/todo/task/task.policy.ts): `Rule.of` `isOwner` с `label`/`denyMessage`, композиция `canManage` (`Rule.anyOf` с `Rule.hasRole`); контекст — `ReadonlyAr<TaskAr>`, правило спрашивает Ar (`isOwnedBy`), а не читает поля.
-- [task.policy.test.ts](../../src/testing/example/todo/task/task.policy.test.ts): владелец и администратор — разрешено, чужой — отказ с `denyMessage`.
-- [user.policy.ts](../../src/testing/example/users/user/user.policy.ts) и [тест](../../src/testing/example/users/user/user.policy.test.ts): второй образец — `canView` (`Rule.anyOf` из `isSelf` и `Rule.hasRole('admin')`), контекст `{ user: ReadonlyAr<UserAr> }`; сам и администратор — разрешено, чужой и без субъекта — отказ.
-- [task.rules.ts](../../src/testing/example/todo/task/task.rules.ts) и [тест](../../src/testing/example/todo/task/task.rules.test.ts): `withinOpenLimit` над задачами владельца (порог — экспортируемая константа `OPEN_TASKS_LIMIT`) и `assigneeActive` над ответом чужого модуля (`UserActivity` из контракта `users`).
+- [task.policy.ts](../../src/testing/example/platform/domain/todo/task/task.policy.ts): `Rule.of` `isOwner` с `label`/`denyMessage`, композиция `canManage` (`Rule.anyOf` с `Rule.hasRole`); контекст — `ReadonlyAr<TaskAr>`, правило спрашивает Ar (`isOwnedBy`), а не читает поля.
+- [task.policy.test.ts](../../src/testing/example/platform/domain/todo/task/task.policy.test.ts): владелец и администратор — разрешено, чужой — отказ с `denyMessage`.
+- [user.policy.ts](../../src/testing/example/platform/domain/users/user/user.policy.ts) и [тест](../../src/testing/example/platform/domain/users/user/user.policy.test.ts): второй образец — `canView` (`Rule.anyOf` из `isSelf` и `Rule.hasRole('admin')`), контекст `{ user: ReadonlyAr<UserAr> }`; сам и администратор — разрешено, чужой и без субъекта — отказ.
+- [task.rules.ts](../../src/testing/example/platform/domain/todo/task/task.rules.ts) и [тест](../../src/testing/example/platform/domain/todo/task/task.rules.test.ts): `withinOpenLimit` над задачами владельца (порог — экспортируемая константа `OPEN_TASKS_LIMIT`) и `assigneeActive` над ответом чужого модуля (`UserActivity` из контракта `users`).
 
 ## 5. Чеклист правил
 

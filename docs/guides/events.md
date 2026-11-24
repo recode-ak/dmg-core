@@ -24,10 +24,10 @@ verified: c2cf28c
 
 ## 3. Образец
 
-- [task.events.ts](../../src/testing/example/todo/task/task.events.ts): пять событий; общие поля payload вынесены в константу, поля — через `F.*`; `assigned`/`unassigned` — без смены статуса.
-- [task.ar.ts](../../src/testing/example/todo/task/task.ar.ts): `complete` порождает `completed` через `emit` в `transition`; `assign` — `unassigned` прежнего и `assigned` нового в одной `change`.
-- [task.events.test.ts](../../src/testing/example/todo/task/task.events.test.ts): FQN, допустимый и недопустимый payload.
-- Подписчик из другого модуля: [release-removed-user-tasks.er.ts](../../src/testing/example/todo/task/er/release-removed-user-tasks.er.ts) — `on: [UserEvents.removed]` из контракта `users`.
+- [task.events.ts](../../src/testing/example/platform/domain/todo/task/task.events.ts): пять событий; общие поля payload вынесены в константу, поля — через `F.*`; `assigned`/`unassigned` — без смены статуса.
+- [task.ar.ts](../../src/testing/example/platform/domain/todo/task/task.ar.ts): `complete` порождает `completed` через `emit` в `transition`; `assign` — `unassigned` прежнего и `assigned` нового в одной `change`.
+- [task.events.test.ts](../../src/testing/example/platform/domain/todo/task/task.events.test.ts): FQN, допустимый и недопустимый payload.
+- Подписчик из другого модуля: [release-removed-user-tasks.er.ts](../../src/testing/example/platform/domain/todo/task/er/release-removed-user-tasks.er.ts) — `on: [UserEvents.removed]` из контракта `users`.
 
 ## 4. Чеклист правил
 

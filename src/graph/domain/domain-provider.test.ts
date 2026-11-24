@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import manifest from '../../../package.json' with { type: 'json' };
-import { ExampleAppDef } from '../../testing/example/example.app';
+import { ExampleAppDef } from '../../testing/example/platform/domain/example.app';
 import { DomainProvider } from './domain-provider';
 import {
   CartAppDef,

@@ -10,23 +10,23 @@ import {
   UserCaller,
 } from '#core/kernel/caller/caller';
 import { Trace } from '#core/kernel/trace/trace';
-import { TaskJsonRepo } from '#core/testing/example/app/todo/infra/task.json-repo';
-import { createTodoModule } from '#core/testing/example/app/todo/todo.module';
-import { UserMemoryRepo } from '#core/testing/example/app/users/infra/user.memory-repo';
-import { createUsersModule } from '#core/testing/example/app/users/users.module';
-import type { ExampleUser } from '#core/testing/example/shared/app-user';
+import { TaskJsonRepo } from '#core/testing/example/backend/todo/infra/task.json-repo';
+import { createTodoModule } from '#core/testing/example/backend/todo/todo.module';
+import { UserMemoryRepo } from '#core/testing/example/backend/users/infra/user.memory-repo';
+import { createUsersModule } from '#core/testing/example/backend/users/users.module';
 import {
   ArchiveDoneTasksJobDef,
   AssignTaskUcDef,
   CompleteTaskUcDef,
   CreateTaskUcDef,
   TodoModuleDef,
-} from '#core/testing/example/todo/index';
+} from '#core/testing/example/platform/domain/todo/index';
 import {
   GetUserUcDef,
   RemoveUserUcDef,
   UsersModuleDef,
-} from '#core/testing/example/users/contract';
+} from '#core/testing/example/platform/domain/users/contract';
+import type { ExampleUser } from '#core/testing/example/platform/kernel/app-user';
 import {
   AwaitingBus,
   expectErr,

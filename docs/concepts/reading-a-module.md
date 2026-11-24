@@ -1,7 +1,7 @@
 ---
 covers:
-  - src/testing/example/todo/**
-  - src/testing/example/app/todo/**
+  - src/testing/example/platform/domain/todo/**
+  - src/testing/example/backend/todo/**
   - src/gen/kinds/**
 verified: 517415a
 ---
@@ -20,18 +20,18 @@ flowchart TD
   K --> S["3. task.state.ts и TaskArDef — данные и статусы"]
   S --> R["4. task.ar.ts, task.policy.ts, task.rules.ts — правила"]
   R --> U["5. uc/*.uc.ts домена — контракт операции"]
-  U --> I["6. app/todo/task/uc/*.uc.ts — реализация: load, fetch, execute"]
+  U --> I["6. backend/todo/task/uc/*.uc.ts — реализация: load, fetch, execute"]
   I --> T["7. тесты рядом — сценарии и отказы"]
 ```
 
 ## Как это работает
 
-1. **Паспорт** — [todo.module.ts](../../src/testing/example/todo/todo.module.ts): от кого модуль зависит, какие операции и реакции у него есть. Это оглавление: всё остальное — расшифровка его строк.
-2. **Контракт** — [contract.ts](../../src/testing/example/todo/contract.ts): Def UC, события и ошибки, которые видит остальной код, и Ar, Policy, правила — по нужде адаптеров (D-69, D-104), с пометкой «кто и зачем». Чего нет в контракте, снаружи не используют.
-3. **Данные** — [task.state.ts](../../src/testing/example/todo/task/task.state.ts) и Def агрегата (`TaskArDef` в начале `task.ar.ts`): поля, статусы и разрешённые переходы с отказами. Жизненный цикл читается из Def, а не из кода методов.
-4. **Правила** — [task.ar.ts](../../src/testing/example/todo/task/task.ar.ts) (операции и методы-вопросы), [task.policy.ts](../../src/testing/example/todo/task/task.policy.ts) (кто может), [task.rules.ts](../../src/testing/example/todo/task/task.rules.ts) (что допустимо при текущих состояниях). Решения модуля — только здесь и в DCS/DQS.
-5. **Операции домена** — `todo/task/uc/*.uc.ts`: Def UC — вход, выход, ошибки, вызывающие, Policy, правила, события. Этого хватает, чтобы понять операцию без реализации.
-6. **Реализация** — `app/todo/task/uc/*.uc.ts`: что загружается, что спрашивается у других модулей, какой метод Ar вызывается. Ветвлений по полям здесь нет (API-01). Карта «Def → класс» — [app/todo/todo.module.ts](../../src/testing/example/app/todo/todo.module.ts).
+1. **Паспорт** — [todo.module.ts](../../src/testing/example/platform/domain/todo/todo.module.ts): от кого модуль зависит, какие операции и реакции у него есть. Это оглавление: всё остальное — расшифровка его строк.
+2. **Контракт** — [contract.ts](../../src/testing/example/platform/domain/todo/contract.ts): Def UC, события и ошибки, которые видит остальной код, и Ar, Policy, правила — по нужде адаптеров (D-69, D-104), с пометкой «кто и зачем». Чего нет в контракте, снаружи не используют.
+3. **Данные** — [task.state.ts](../../src/testing/example/platform/domain/todo/task/task.state.ts) и Def агрегата (`TaskArDef` в начале `task.ar.ts`): поля, статусы и разрешённые переходы с отказами. Жизненный цикл читается из Def, а не из кода методов.
+4. **Правила** — [task.ar.ts](../../src/testing/example/platform/domain/todo/task/task.ar.ts) (операции и методы-вопросы), [task.policy.ts](../../src/testing/example/platform/domain/todo/task/task.policy.ts) (кто может), [task.rules.ts](../../src/testing/example/platform/domain/todo/task/task.rules.ts) (что допустимо при текущих состояниях). Решения модуля — только здесь и в DCS/DQS.
+5. **Операции домена** — `platform/domain/todo/task/uc/*.uc.ts`: Def UC — вход, выход, ошибки, вызывающие, Policy, правила, события. Этого хватает, чтобы понять операцию без реализации.
+6. **Реализация** — `backend/todo/task/uc/*.uc.ts`: что загружается, что спрашивается у других модулей, какой метод Ar вызывается. Ветвлений по полям здесь нет (API-01). Карта «Def → класс» — [backend/todo/todo.module.ts](../../src/testing/example/backend/todo/todo.module.ts).
 7. **Тесты** рядом с файлами: именованные сценарии отказов и сбоев — самое точное описание поведения.
 
 Файл, которого нет в этой раскладке, — сигнал: либо модуль отклонился от правил, либо это инфраструктура (`infra/`, репозитории).
