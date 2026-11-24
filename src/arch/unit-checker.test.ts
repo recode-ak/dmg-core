@@ -14,7 +14,7 @@ import type { UnitPlaces } from './unit-checker.types';
 import { UnitMap } from './unit-map';
 import type { Violation } from './violation';
 
-// Мини-монорепо на изолированной установке Bun (D-108): единицы платформы
+// Мини-монорепо на изолированной установке Bun (D-108): единицы платформы приложения
 // (`platform/kernel`, `platform/domain`), реализации (`backend/alpha`),
 // раннеров (`runners/assembly`, `runners/cli`); корень — не единица. Модули —
 // `alpha` → `beta`. Вход графа — `scripts/app.graph.ts` → `@t/domain`.
@@ -344,7 +344,7 @@ describe('UnitChecker: ARC-15 — между пакетами только им�
   });
 });
 
-describe('UnitChecker: ARC-16 (а) — платформа не объявляет реализаций и раннеров', () => {
+describe('UnitChecker: ARC-16 (а) — платформа приложения не объявляет реализаций и раннеров', () => {
   it('ARC-16: package.json домена объявляет реализацию в dependencies и раннер в devDependencies', () => {
     standard();
     repo.unit('platform/domain', {
@@ -358,7 +358,7 @@ describe('UnitChecker: ARC-16 (а) — платформа не объявляе�
     ]);
   });
 
-  it('ARC-16: единица платформы — по оси слоя, не по каталогу: kernel в core/kernel объявляет реализацию', () => {
+  it('ARC-16: единица платформы приложения — по оси слоя, не по каталогу: kernel в core/kernel объявляет реализацию', () => {
     standard('core/kernel');
     repo.unit('core/kernel', { ...KERNEL, peerDependencies: ['@t/be-alpha'] });
     const layout = { ...places().layout, kernel: at('core/kernel/src') };
@@ -378,7 +378,7 @@ describe('UnitChecker: ARC-16 (а) — платформа не объявляе�
     expect(check()).toEqual([]);
   });
 
-  it('ARC-16: единица со слоем поставщика на оси платформы объявляет раннер', () => {
+  it('ARC-16: единица со слоем поставщика на оси платформы приложения объявляет раннер', () => {
     standard();
     repo
       .unit('platform/ui', { name: '@t/ui', dependencies: ['@t/cli'] })

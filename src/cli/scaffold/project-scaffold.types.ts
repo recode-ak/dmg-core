@@ -79,7 +79,7 @@ export type ScaffoldLayoutData = {
   readonly gen: GenLayoutSettings;
   readonly imports: ScaffoldImports;
   readonly appDef: ScaffoldAppDef;
-  /** Вход прикладного пакета модуля — в подсказке корня сборки. */
+  /** Вход пакета реализации модуля — в подсказке корня сборки. */
   readonly moduleEntry: string;
   /** Глобы workspaces корневого package.json; нет — проект из одного пакета. */
   readonly workspaces?: readonly string[];

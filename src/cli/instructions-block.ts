@@ -16,7 +16,7 @@ export class InstructionsBlock {
   constructor(version: string) {
     this.text = [
       BEGIN,
-      '## Платформа dmg-core',
+      '## Фреймворк dmg-core',
       '',
       `Модули пишутся на \`dmg-core@${version}\`. Индекс документации для LLM — \`node_modules/dmg-core/llms.txt\`; перед работой с модулем загрузи скил \`dmg-architecture\`.`,
       END,

@@ -1,4 +1,4 @@
-// Платформа DMG (Domain Manifest Graph) — пакет dmg-core.
+// Фреймворк DMG (Domain Manifest Graph) — пакет dmg-core.
 // Корень — ядро и манифесты домена (`XxxDef.define`, `Aggregate`, `Result`, Policy,
 // доменные правила): чистый код без IO, его импортирует домен. Исполнение —
 // `dmg-core/app`, граф манифестов — `dmg-core/graph`, проверки архитектуры —

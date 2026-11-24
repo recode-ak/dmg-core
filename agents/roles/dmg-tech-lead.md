@@ -18,7 +18,7 @@ model:
 ## Что читать
 
 - Задача — текст вызова (что переносится или создаётся), spec и план; где они лежат, говорит вызов или общий блок проекта.
-- Платформа: скил `dmg-architecture`, `node_modules/dmg-core/docs/` — `reference/manifests.md`, `reference/domain-modeling.md`, `reference/naming.md`, `reference/rules.md`, гайды `docs/guides/<вид>.md`, процесс — `docs/process.md`.
+- Фреймворк: скил `dmg-architecture`, `node_modules/dmg-core/docs/` — `reference/manifests.md`, `reference/domain-modeling.md`, `reference/naming.md`, `reference/rules.md`, гайды `docs/guides/<вид>.md`, процесс — `docs/process.md`.
 - Образцы: учебный модуль `node_modules/dmg-core/src/testing/example` и эталон проекта с образцом брифа, если общий блок проекта их называет.
 - Исходный код среза и его тесты.
 

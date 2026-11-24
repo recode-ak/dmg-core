@@ -2,7 +2,7 @@
 // `GraphRule`; ядро графа его не читает. Слои фреймворка — `FRAMEWORK_LAYERS`
 // (`dmg-core/arch`), слои поставщика — `GraphProvider.layers()`.
 
-/** Ось слоя: платформа (kernel, домен), реализации, раннеры. */
+/** Ось слоя: платформа приложения (kernel, домен), реализации, раннеры. */
 export type LayerAxis = 'platform' | 'implementation' | 'runner';
 
 /** `public` — вход модуля для чужого кода (`ArchApp.entry`), `index` — `index.ts` или сам каталог. */

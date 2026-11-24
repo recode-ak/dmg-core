@@ -19,7 +19,7 @@ type Import =
  * Исходники приложения в каркасе (D-50) — одни шаблоны на все профили, по
  * учебному приложению (`src/testing/example/{runners/assembly,runners/cli,platform/kernel}`): тип
  * пользователя, пустой корень сборки, раннер CLI и тесты. Пути — из
- * раскладки профиля, платформа — только через публичные входы пакета.
+ * раскладки профиля, фреймворк — только через публичные входы пакета.
  * @see docs/guides/project.md
  */
 export class AppSources {
@@ -65,7 +65,7 @@ export class AppSources {
         content: `/**
  * Вход пакета домена: \`AppDef\` приложения (D-93). Модули — подпутями
  * пакета: \`<пакет>/<m>/contract\` для другого кода, \`<пакет>/<m>\` — для
- * своего прикладного пакета.
+ * своего пакета реализации.
  */
 export { ${appDef.constant} } from './${appDef.name}.app';
 `,
@@ -238,7 +238,7 @@ export class App {
 
   constructor(env: AppEnv, ports: AppPorts = {}) {
     const context = App.context(env, ports);
-    // Фабрики модулей — из входа прикладного пакета ${this.layout.moduleEntry}
+    // Фабрики модулей — из входа пакета реализации ${this.layout.moduleEntry}
     // с замыканием на репозитории. Вставляет \`dmg-core gen module\`
     // (Def — и в состав \`AppDef\`, \`gen.appDef\`), репозитории — \`gen aggregate\`.
     const modules: ModuleFactory<AppUser>[] = [

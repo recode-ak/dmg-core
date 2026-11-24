@@ -17,7 +17,7 @@ import { GetTaskAssigneeUc } from './task/uc/get-task-assignee.uc';
 import { ListAssignedTasksUc } from './task/uc/list-assigned-tasks.uc';
 import { ListTasksUc } from './task/uc/list-tasks.uc';
 
-/** Резолвер модуля: платформа + репозитории. */
+/** Резолвер модуля: фреймворк + репозитории. */
 export type TodoDeps = ModuleDeps & { readonly tasks: TaskRepo };
 
 /** Карта «Def → класс» модуля todo (API-05). */

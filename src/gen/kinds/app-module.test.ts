@@ -24,7 +24,7 @@ const plan = (
 const content = (p: ReturnType<typeof plan>, rel: string) =>
   p.files.find((f) => f.path === join(root, 'stream', rel))?.content ?? '';
 
-test('исходники модуля и вход прикладного пакета (пакет — module-package)', () => {
+test('исходники модуля и вход пакета реализации (пакет — module-package)', () => {
   expect(plan().files.map((f) => f.path.slice(root.length + 1))).toEqual([
     'stream/src/stream.module.ts',
     'stream/src/stream.module.test.ts',
@@ -34,7 +34,7 @@ test('исходники модуля и вход прикладного пак�
 
 test('index.ts — вход для корня сборки (D-52): фабрика, Deps и маркер', () => {
   expect(content(plan(), 'src/index.ts')).toBe(
-    `// Вход прикладного пакета stream для корня сборки (ARC-07, D-52): фабрика
+    `// Вход пакета реализации stream для корня сборки (ARC-07, D-52): фабрика
 // модуля и репозитории. UC, ER и Job снаружи не видны.
 export { createStreamModule, type StreamDeps } from './stream.module';
 // gen:exports

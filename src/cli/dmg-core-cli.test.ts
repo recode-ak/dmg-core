@@ -79,7 +79,7 @@ describe('PackageSource', () => {
     expect(pkg.common).toBe('Общий блок пакета.\n');
   });
 
-  test('настоящий пакет: роли платформы и скил dmg-architecture', async () => {
+  test('настоящий пакет: роли фреймворка и скил dmg-architecture', async () => {
     const pkg = await PackageSource.load(join(import.meta.dir, '../..'));
     expect(pkg.roles.map((r) => r.name).sort()).toEqual([
       'dmg-api-author',

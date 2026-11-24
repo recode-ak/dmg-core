@@ -15,7 +15,7 @@ const Users = ModuleDef.define({
   jobs: [],
 });
 
-const texts = { label: 'Школа', description: 'Платформа школы.' };
+const texts = { label: 'Школа', description: 'Описание школы.' };
 
 const School = AppDef.define({
   name: 'school',

@@ -71,7 +71,7 @@ export class FileChecker {
     };
 
     for (const [m, dir] of dirs) {
-      // Внешний модуль реализован вне приложения: прикладного пакета у него
+      // Внешний модуль реализован вне приложения: пакета реализации у него
       // нет, в домене — только контракт.
       const sides = m.external ? [dir.domain] : [dir.domain, dir.backend];
       for (const base of sides) {

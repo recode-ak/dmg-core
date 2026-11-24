@@ -24,7 +24,7 @@ function classHeader(name: string, base: string, port: string): string {
     : `export class ${name}\n  extends ${base}\n  implements ${port}\n{`;
 }
 
-/** Путь фейка порта от каталога прикладного пакета: рядом с портом. */
+/** Путь фейка порта от каталога пакета реализации: рядом с портом. */
 export const repoFakeRel = (a: string): string => join(a, `${a}.repo.fake.ts`);
 
 /**

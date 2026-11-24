@@ -46,7 +46,7 @@ export const ${P}ModuleDef = ModuleDef.define({
 export { ${P}ModuleDef } from './${m}.module';
 `;
 
-  const indexSrc = `// API домена модуля ${m} для своего прикладного пакета (включая контракт).
+  const indexSrc = `// API домена модуля ${m} для своего пакета реализации (включая контракт).
 
 export * from './contract';
 // gen:exports

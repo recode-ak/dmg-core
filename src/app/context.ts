@@ -9,7 +9,7 @@ import type { ReplayStore } from './replay/replay-store';
 /** Режим запуска приложения. */
 export type AppMode = 'test' | 'development' | 'production';
 
-/** Порт логгера: платформе нужны только записи, уровнями управляет потребитель. */
+/** Порт логгера: фреймворку нужны только записи, уровнями управляет потребитель. */
 export type Logger = {
   debug(source: string, message: string, meta?: Record<string, unknown>): void;
   info(source: string, message: string, meta?: Record<string, unknown>): void;
@@ -26,7 +26,7 @@ export type Clock = () => Timestamp;
 /** Системные часы. */
 export const systemClock: Clock = () => Date.now();
 
-/** Платформенные зависимости приложения, общие для всех модулей DMG. */
+/** Зависимости фреймворка в приложении, общие для всех модулей DMG. */
 export type AppContext = {
   /** Шина: подписка реакций; публикует в неё outbox (relay). */
   readonly bus: EventBus;
@@ -44,7 +44,7 @@ export type AppContext = {
 };
 
 /**
- * Резолвер модуля DMG: платформа и фасады модулей из `dependsOn` (у модуля
+ * Резолвер модуля DMG: фреймворк и фасады модулей из `dependsOn` (у модуля
  * без зависимостей — пустой `ModuleFacades`); модуль расширяет его
  * репозиториями.
  */

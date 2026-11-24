@@ -1,4 +1,4 @@
-// Тестовые хелперы платформы DMG: dmg-core/testing.
+// Тестовые хелперы фреймворка DMG: dmg-core/testing.
 
 export {
   MemoryTasks,

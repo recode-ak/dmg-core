@@ -31,7 +31,7 @@ export function planAppModule(args: GenArgs): GenPlan {
   ])}
 // gen:defs:imports
 
-/** Резолвер модуля: платформа + репозитории. */
+/** Резолвер модуля: фреймворк + репозитории. */
 export type ${P}Deps = ModuleDeps & {
   // gen:deps
 };
@@ -73,7 +73,7 @@ ${list('    ', `expect(create${P}Module(deps).def.name).toBe(`, [`'${m}'`], ');'
 `;
 
   // Вход пополняет `gen aggregate` (репозитории) по маркеру.
-  const indexSrc = `// Вход прикладного пакета ${m} для корня сборки (ARC-07, D-52): фабрика
+  const indexSrc = `// Вход пакета реализации ${m} для корня сборки (ARC-07, D-52): фабрика
 // модуля и репозитории. UC, ER и Job снаружи не видны.
 ${namedExport(factory, `./${m}.module`)}
 // gen:exports

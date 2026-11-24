@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { type GenArgs, PackageDefectError } from '../cli';
 import type { GenPlan } from '../plan';
 
-/** Внешние зависимости пакета модуля: платформа и схемы JSON-репозиториев. */
+/** Внешние зависимости пакета модуля: фреймворк и схемы JSON-репозиториев. */
 const EXTERNAL = ['dmg-core', 'valibot'];
 
 /** Скрипт тестов пакета workspaces: пакет без тестов — не ошибка. */

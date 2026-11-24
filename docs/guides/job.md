@@ -7,7 +7,7 @@ verified: c2cf28c
 
 # Job — гайд
 
-**Назначение:** периодическая операция модуля — контракт `<N>JobDef = JobDef.define(...)` (`<domain>/<m>/<a>/job/<n>.job.ts`) и реализация `<N>Job extends JobFromDef` (`<app>/<m>/<a>/job/<n>.job.ts`).
+**Назначение:** периодическая операция модуля — контракт `<N>JobDef = JobDef.define(...)` (`<domain>/<m>/<a>/job/<n>.job.ts`) и реализация `<N>Job extends JobFromDef` (`<backend>/<m>/<a>/job/<n>.job.ts`).
 
 ---
 
@@ -45,7 +45,7 @@ verified: c2cf28c
 
 ## 7. Запуск по расписанию
 
-Планировщик — часть платформы (`dmg-core/app`), приложение его собирает и запускает (D-71).
+Планировщик — часть фреймворка (`dmg-core/app`), приложение его собирает и запускает (D-71).
 
 - **Вход.** `new InProcJobScheduler({ api, modules, clock, logger, store?, startDelayMs? })`: `api` — `Pick<ApiApp, 'runJob'>`, `modules` — Def подключённых модулей, задания берутся из их `jobs`; `store` — история прогонов (`JobRunRepo`), по умолчанию `MemoryJobRunRepo` (живёт до рестарта). Порт — `JobScheduler { start(); stop() }`: повторный `start()` без `stop()` — исключение, `stop()` идущий прогон не прерывает.
 - **Время — `Timestamp`** (мс UTC, D-34): `JobSchedulePlanner.nextRunAfter(schedule, after): Timestamp`, `JobRunRepo.getLastRunAt(name): Timestamp | undefined`; `Date` — только внутри календарной арифметики (`Date.UTC`, `getUTC*`).

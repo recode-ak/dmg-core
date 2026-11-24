@@ -59,12 +59,12 @@ type PersonCaller<U> = GuestCaller<U> | UserCaller<U> | DelegateCaller<U>;
 
 ## 4. Делегирование
 
-Записи делегирований, их выдача и отзыв — модуль приложения; платформа читает запись через порт и строит вызывающего (D-89).
+Записи делегирований, их выдача и отзыв — модуль приложения; фреймворк читает запись через порт и строит вызывающего (D-89).
 
 | Тип (`dmg-core/app`) | Что |
 |---|---|
 | `DelegationClaim` | заявка транспорта: `principalId`, `actorId`, `delegationId` |
-| `DelegationRecord` | что читает платформа: пара, `expiresAt`, `revoked`, `readOnly` |
+| `DelegationRecord` | что читает фреймворк: пара, `expiresAt`, `revoked`, `readOnly` |
 | `DelegationStore` | порт приложения: `find(delegationId)` → запись или `undefined` |
 | `DelegationCheck(store?, clock)` | `verify(claim)` → запись или `DELEGATION_DENIED`: `disabled` → `invalid` (нет записи или чужая пара) → `revoked` → `expired` (`!(now < expiresAt)`) |
 

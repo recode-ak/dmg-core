@@ -65,7 +65,7 @@ covers:
 
 ## 5. Чеклист правил
 
-- ARC-04, ARC-08 — домен — через `contract`, платформа — через публичные входы (`dmg-core`, `dmg-core/app`, `dmg-core/graph`, `dmg-core/arch`); UC — только `api.dispatch`.
+- ARC-04, ARC-08 — домен — через `contract`, фреймворк — через публичные входы (`dmg-core`, `dmg-core/app`, `dmg-core/graph`, `dmg-core/arch`); UC — только `api.dispatch`.
 - ARC-13 — свой префикс ID правил и слоёв, не из префиксов пакета (`PACKAGE_RULE_PREFIXES`), один префикс — один поставщик; у каждого слоя — каталог в `ArchApp.layers`, у каждого ключа `layers` — объявленный слой.
 - CODE-01 — типы вида и спеки — в `*.types.ts`; CODE-04 — JSDoc до 6 строк, `D-NN` — в шапке юнита.
 - TST-08, TST-09 — тест расширения проверяет своё (вид, вклад, правило, сессию) и один сквозной сценарий; подъём рёбер, отписку и лог сбоя `EventSubscriber`, сверку `DeclaredSet` проверяет пакет.

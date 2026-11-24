@@ -1,6 +1,6 @@
 # DMG — Domain Manifest Graph
 
-**Назначение:** вход в документацию платформы `dmg-core`: суть подхода и карта документов. Образец во всех документах — учебный модуль пакета [src/testing/example](../src/testing/example/example.arch.ts) (модули `todo` и `users`); образец расширения графа и проверок — [example/screen](../src/testing/example/screen/screen.graph.ts).
+**Назначение:** вход в документацию фреймворка `dmg-core`: суть подхода и карта документов. Образец во всех документах — учебный модуль пакета [src/testing/example](../src/testing/example/example.arch.ts) (модули `todo` и `users`); образец расширения графа и проверок — [example/screen](../src/testing/example/screen/screen.graph.ts).
 
 ---
 
@@ -36,7 +36,7 @@
 
 **Как устроено и почему**
 - [concepts/](./concepts/index.md) — потоки, жизненный цикл, схемы
-- [decisions.md](./decisions.md) — реестр решений платформы D-NN
+- [decisions.md](./decisions.md) — реестр решений фреймворка D-NN
 - [process.md](./process.md) — процесс разработки: постановка, роли, срез, проверки
 
 **Как сделать**

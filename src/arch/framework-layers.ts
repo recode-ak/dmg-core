@@ -5,7 +5,7 @@ import type { LayerAccess, SourceLayer } from '../graph/source-layer.types';
 const domainEntry: LayerAccess = { layer: 'domain', entries: ['public'] };
 
 /**
- * Слои фреймворка по осям: платформа, реализации, раннеры (D-107). Доступ к
+ * Слои фреймворка по осям: платформа приложения, реализации, раннеры (D-107). Доступ к
  * домену из сборки и раннера — с ID своего слоя (ARC-07/08), из домена и
  * реализации — ARC-04 и только по `dependsOn`.
  */

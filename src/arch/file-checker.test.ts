@@ -118,8 +118,8 @@ describe('FileChecker', () => {
     });
   });
 
-  describe('ARC-06 — прикладные пакеты', () => {
-    it('у модуля нет прикладного пакета', () => {
+  describe('ARC-06 — пакеты реализаций', () => {
+    it('у модуля нет пакета реализации', () => {
       cleanTree();
       rmSync(join(root, 'app/beta'), { recursive: true });
       expect(report()).toEqual([
@@ -129,7 +129,7 @@ describe('FileChecker', () => {
       ]);
     });
 
-    it('внешний модуль: только контракт в домене, прикладного пакета нет (D-37, D-42)', () => {
+    it('внешний модуль: только контракт в домене, пакета реализации нет (D-37, D-42)', () => {
       cleanTree();
       rmSync(join(root, 'app/beta'), { recursive: true });
       const beta = ModuleDef.define({ ...BetaModuleDef, external: true });

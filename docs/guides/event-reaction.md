@@ -7,7 +7,7 @@ covers:
 
 # Event reaction — гайд
 
-**Назначение:** реакция модуля на событие — контракт `<N>ErDef = EventReactionDef.define(...)` (`<domain>/<m>/<a>/er/<n>.er.ts`) и реализация `<N>Er extends ReactionFromDef` (`<app>/<m>/<a>/er/<n>.er.ts`).
+**Назначение:** реакция модуля на событие — контракт `<N>ErDef = EventReactionDef.define(...)` (`<domain>/<m>/<a>/er/<n>.er.ts`) и реализация `<N>Er extends ReactionFromDef` (`<backend>/<m>/<a>/er/<n>.er.ts`).
 
 ---
 
