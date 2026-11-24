@@ -8,20 +8,88 @@ import { LintMap } from './lint-map';
 
 const PLUGINS_DIR = join(import.meta.dir, '../../../biome-plugins');
 
-for (const [profile, map] of [
-  ['single', LintMap.single],
-  ['monorepo', LintMap.monorepo],
-] as const) {
-  describe(`LintMap.${profile}`, () => {
-    it('подключает каждый плагин пакета', () => {
-      const plugins = map.rules.flatMap((rule) =>
-        'plugin' in rule ? [`${rule.plugin}.grit`] : [],
-      );
+// Строки-плагины `LintMap.of` от каталогов профиля не зависят: хватает single.
+describe('LintMap.single', () => {
+  it('подключает каждый плагин пакета', () => {
+    const plugins = LintMap.single.rules.flatMap((rule) =>
+      'plugin' in rule ? [`${rule.plugin}.grit`] : [],
+    );
 
-      expect(plugins.sort()).toEqual(readdirSync(PLUGINS_DIR).sort());
+    expect(plugins.sort()).toEqual(readdirSync(PLUGINS_DIR).sort());
+  });
+});
+
+/** Белый список первой секции ARC-02 строки с этими `includes`. */
+function allowed(map: LintMap, includes: string): readonly string[] {
+  const rule = map.rules.find(
+    (r) => r.id === 'ARC-02' && r.includes.includes(includes),
+  );
+  if (rule === undefined || !('imports' in rule)) {
+    throw new Error(`Нет строки ARC-02 на ${includes}`);
+  }
+  return rule.imports[0]?.group ?? [];
+}
+
+describe('LintMap: ARC-02 kernel приложения', () => {
+  const KERNEL_ONLY = [
+    '**',
+    '!dmg-core',
+    '!valibot',
+    '!.',
+    '!..',
+    '!./**',
+    '!../**',
+  ];
+
+  it('single: строка kernel первой — корень dmg-core, valibot и свои файлы', () => {
+    const [first] = LintMap.single.rules;
+
+    expect(first).toEqual({
+      id: 'ARC-02',
+      includes: ['src/platform/kernel/**'],
+      imports: [
+        {
+          group: KERNEL_ONLY,
+          message:
+            'ARC-02: kernel приложения импортирует только корень dmg-core (ядро и Def-классы) и valibot',
+        },
+      ],
     });
   });
-}
+
+  it('monorepo: kernel не видит домен', () => {
+    const group = allowed(LintMap.monorepo('acme'), 'platform/kernel/src/**');
+
+    expect(group).toEqual(KERNEL_ONLY);
+    expect(group).not.toContain('!@acme/domain');
+  });
+
+  it('monorepo: домен видит вход @<scope>/kernel, но не его подпути', () => {
+    const group = allowed(LintMap.monorepo('acme'), 'platform/domain/src/**');
+
+    expect(group).toContain('!@acme/kernel');
+    expect(group).not.toContain('!@acme/kernel/**');
+  });
+
+  it('monorepo: scope из аргумента', () => {
+    const group = allowed(LintMap.monorepo('other'), 'platform/domain/src/**');
+
+    expect(group).toContain('!@other/kernel');
+    expect(group).not.toContain('!@acme/kernel');
+  });
+
+  it('домен: сообщение называет kernel приложения', () => {
+    const rule = LintMap.single.rules.find(
+      (r) => r.id === 'ARC-02' && r.includes.includes('src/platform/domain/**'),
+    );
+
+    expect(rule !== undefined && 'imports' in rule && rule.imports[0]).toEqual({
+      group: KERNEL_ONLY,
+      message:
+        'ARC-02: домен импортирует только корень dmg-core (ядро и Def-классы), valibot и kernel приложения',
+    });
+  });
+});
 
 describe('LintMap: repeats', () => {
   it('ссылка на строку без запрета импортов — исключение', () => {

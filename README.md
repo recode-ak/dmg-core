@@ -41,7 +41,7 @@ mkdir school && cd school && echo '{ "name": "@acme/school" }' > package.json
 bun add dmg-core                         # до публикации: bun add ./dmg-core-<версия>.tgz
 bunx dmg-core init --profile single      # один пакет: src/platform, src/backend, src/runners
 # или
-bunx dmg-core init --profile monorepo    # пакеты @acme/domain, @acme/app, modules/*, runners/cli
+bunx dmg-core init --profile monorepo    # пакеты platform/*, backend/*, runners/*
 bun install && bun run check
 ```
 

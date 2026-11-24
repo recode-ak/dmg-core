@@ -5,7 +5,8 @@ import type { LintMap } from './lint-map';
 /**
  * Профиль каркаса: `single` — один пакет, оси раскладки D-106 в `src/`
  * (`platform/{kernel,domain}`, `backend/<m>`, `runners/{assembly,cli}`);
- * `monorepo` — пакеты workspaces `domain`, `app`, `modules/*`, `runners/*`.
+ * `monorepo` — те же оси пакетами workspaces `platform/*`, `backend/*`,
+ * `runners/*`.
  */
 export type ScaffoldProfile = 'single' | 'monorepo';
 

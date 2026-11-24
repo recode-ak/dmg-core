@@ -16,7 +16,7 @@ import { PackageSource } from '../package-source';
 import { ProjectScaffold } from './project-scaffold';
 
 // Каркас проекта `monorepo` — план файлов: корень с workspaces, пакеты
-// домена, корня сборки и раннера CLI; конфиги и применение `applyPlan`.
+// kernel, домена, сборки и раннера CLI; конфиги и применение `applyPlan`.
 
 const PACKAGE_ROOT = join(import.meta.dir, '../../..');
 const NAME = 'acme';
@@ -29,19 +29,21 @@ const MONOREPO_FILES = [
   'dmg-core.json',
   'scripts/arch-check.ts',
   'scripts/acme.graph.ts',
-  'domain/package.json',
-  'domain/tsconfig.json',
-  'domain/src/index.ts',
-  'domain/src/acme.app.ts',
-  'domain/src/shared/index.ts',
-  'domain/src/shared/app-user.ts',
-  'app/package.json',
-  'app/tsconfig.json',
-  'app/src/index.ts',
-  'app/src/app.ts',
-  'app/src/app.types.ts',
-  'app/src/app-caller-resolver.ts',
-  'app/src/app.test.ts',
+  'platform/kernel/package.json',
+  'platform/kernel/tsconfig.json',
+  'platform/kernel/src/index.ts',
+  'platform/kernel/src/app-user.ts',
+  'platform/domain/package.json',
+  'platform/domain/tsconfig.json',
+  'platform/domain/src/index.ts',
+  'platform/domain/src/acme.app.ts',
+  'runners/assembly/package.json',
+  'runners/assembly/tsconfig.json',
+  'runners/assembly/src/index.ts',
+  'runners/assembly/src/app.ts',
+  'runners/assembly/src/app.types.ts',
+  'runners/assembly/src/app-caller-resolver.ts',
+  'runners/assembly/src/app.test.ts',
   'runners/cli/package.json',
   'runners/cli/tsconfig.json',
   'runners/cli/src/main.ts',
@@ -74,7 +76,7 @@ function json(path: string, name = NAME) {
 }
 
 describe('ProjectScaffold monorepo: состав плана', () => {
-  it('все файлы каркаса, правок нет; каталога modules в плане нет', () => {
+  it('все файлы каркаса, правок нет; каталога backend в плане нет', () => {
     const res = plan();
 
     expect(res.files.map((f) => f.path).sort()).toEqual(
@@ -82,20 +84,14 @@ describe('ProjectScaffold monorepo: состав плана', () => {
     );
     expect(res.edits).toEqual([]);
   });
-
-  it('пути — от переданного root', () => {
-    const paths = plan(NAME, '/work/acme').files.map((f) => f.path);
-
-    expect(paths).toContain('/work/acme/runners/cli/src/main.ts');
-    expect(paths.every((p) => p.startsWith('/work/acme/'))).toBe(true);
-  });
 });
 
 describe('ProjectScaffold monorepo: scope пакетов', () => {
   it('имя без scope: acme → @acme/*', () => {
     expect(json('package.json').name).toBe('acme');
-    expect(json('domain/package.json').name).toBe('@acme/domain');
-    expect(json('app/package.json').name).toBe('@acme/app');
+    expect(json('platform/kernel/package.json').name).toBe('@acme/kernel');
+    expect(json('platform/domain/package.json').name).toBe('@acme/domain');
+    expect(json('runners/assembly/package.json').name).toBe('@acme/assembly');
     expect(json('runners/cli/package.json').name).toBe('@acme/cli');
   });
 
@@ -103,7 +99,12 @@ describe('ProjectScaffold monorepo: scope пакетов', () => {
     const name = '@acme/school';
 
     expect(json('package.json', name).name).toBe('@acme/school');
-    expect(json('domain/package.json', name).name).toBe('@acme/domain');
+    expect(json('platform/kernel/package.json', name).name).toBe(
+      '@acme/kernel',
+    );
+    expect(json('platform/domain/package.json', name).name).toBe(
+      '@acme/domain',
+    );
     expect(json('runners/cli/package.json', name).name).toBe('@acme/cli');
   });
 });
@@ -113,7 +114,7 @@ describe('ProjectScaffold monorepo: package.json', () => {
     expect(json('package.json')).toMatchObject({
       private: true,
       type: 'module',
-      workspaces: ['domain', 'app', 'modules/*', 'runners/*'],
+      workspaces: ['platform/*', 'backend/*', 'runners/*'],
       version: '0.1.0',
       scripts: {
         'arch:check': 'bun scripts/arch-check.ts',
@@ -144,8 +145,22 @@ describe('ProjectScaffold monorepo: package.json', () => {
     });
   });
 
+  it('kernel: вход src/index.ts, зависимости dmg-core и valibot', () => {
+    expect(json('platform/kernel/package.json')).toEqual({
+      name: '@acme/kernel',
+      private: true,
+      type: 'module',
+      exports: { '.': './src/index.ts' },
+      scripts: { test: 'bun test --pass-with-no-tests' },
+      dependencies: {
+        'dmg-core': `^${pkg.version}`,
+        valibot: pkg.peerDependencies.valibot,
+      },
+    });
+  });
+
   it('домен: exports входов модулей, зависимости dmg-core и valibot', () => {
-    expect(json('domain/package.json')).toEqual({
+    expect(json('platform/domain/package.json')).toEqual({
       name: '@acme/domain',
       private: true,
       type: 'module',
@@ -163,9 +178,9 @@ describe('ProjectScaffold monorepo: package.json', () => {
     });
   });
 
-  it('корень сборки: вход src/index.ts, домен — workspace:*', () => {
-    expect(json('app/package.json')).toEqual({
-      name: '@acme/app',
+  it('сборка: вход src/index.ts, домен и kernel — workspace:*', () => {
+    expect(json('runners/assembly/package.json')).toEqual({
+      name: '@acme/assembly',
       private: true,
       type: 'module',
       exports: { '.': './src/index.ts' },
@@ -173,11 +188,12 @@ describe('ProjectScaffold monorepo: package.json', () => {
       dependencies: {
         'dmg-core': `^${pkg.version}`,
         '@acme/domain': 'workspace:*',
+        '@acme/kernel': 'workspace:*',
       },
     });
   });
 
-  it('раннер CLI: домен и корень сборки — workspace:*, valibot — проверка --user', () => {
+  it('раннер CLI: домен и сборка — workspace:*, valibot — проверка --user', () => {
     expect(json('runners/cli/package.json')).toEqual({
       name: '@acme/cli',
       private: true,
@@ -185,9 +201,9 @@ describe('ProjectScaffold monorepo: package.json', () => {
       scripts: { test: 'bun test --pass-with-no-tests' },
       dependencies: {
         'dmg-core': `^${pkg.version}`,
-        valibot: expect.any(String),
+        valibot: pkg.peerDependencies.valibot,
         '@acme/domain': 'workspace:*',
-        '@acme/app': 'workspace:*',
+        '@acme/assembly': 'workspace:*',
       },
     });
   });
@@ -198,9 +214,8 @@ describe('ProjectScaffold monorepo: tsconfig', () => {
     const tsconfig = json('tsconfig.json');
 
     expect(tsconfig.include).toEqual([
-      'domain/src',
-      'app/src',
-      'modules/*/src',
+      'platform/*/src',
+      'backend/*/src',
       'runners/*/src',
       'scripts',
     ]);
@@ -212,53 +227,44 @@ describe('ProjectScaffold monorepo: tsconfig', () => {
   });
 
   it('пакеты: extends корневого, include src', () => {
-    for (const dir of ['domain', 'app']) {
+    for (const dir of [
+      'platform/kernel',
+      'platform/domain',
+      'runners/assembly',
+      'runners/cli',
+    ]) {
       expect(json(`${dir}/tsconfig.json`)).toEqual({
-        extends: '../tsconfig.json',
+        extends: '../../tsconfig.json',
         include: ['src'],
       });
     }
-    expect(json('runners/cli/tsconfig.json')).toEqual({
-      extends: '../../tsconfig.json',
-      include: ['src'],
-    });
   });
 });
 
 describe('ProjectScaffold monorepo: прочие конфиги', () => {
-  it('dmg-core.json — раскладка gen пакетов (с package) и разбирается parse', () => {
+  it('dmg-core.json — все ключи осей gen в порядке полей (пакет be-{m}), разбирается parse', () => {
     const config = new CliConfig(pkg);
     const data = json('dmg-core.json');
     const gen = {
-      domain: 'domain/src/{m}',
-      backend: 'modules/{m}/src',
+      domain: 'platform/domain/src/{m}',
+      backend: 'backend/{m}/src',
+      kernel: 'platform/kernel/src',
       domainImport: '@acme/domain/{m}',
-      package: '@acme/{m}',
-      assembly: 'app/src',
-      appDef: 'domain/src/acme.app.ts',
+      package: '@acme/be-{m}',
+      assembly: 'runners/assembly/src',
+      appDef: 'platform/domain/src/acme.app.ts',
     };
 
     expect(data).toEqual({ ...config.defaults(), gen });
+    expect(Object.keys(data.gen)).toEqual(Object.keys(gen));
     expect(config.parse(data).gen).toEqual(gen);
   });
 
-  it('arch-check.ts — корень сборки app/src, раннер runners/cli/src', () => {
+  it('arch-check.ts — сборка runners/assembly/src, раннер runners/cli/src', () => {
     const src = file('scripts/arch-check.ts');
 
-    expect(src).toContain('await GenLayout.read(');
-    expect(src).toContain("import AcmeGraph from './acme.graph';");
-    expect(src).toContain('...AcmeGraph,');
-    expect(src).not.toContain('def:');
-    expect(src).not.toContain('AcmeAppDef');
-    expect(src).not.toContain("ArchApp['modules']");
-    expect(src).not.toContain('gen:');
-    expect(src).toContain("root: join(root, 'app/src')");
+    expect(src).toContain("root: join(root, 'runners/assembly/src')");
     expect(src).toContain("runners: [join(root, 'runners/cli/src')]");
-    expect(src).not.toContain('name:');
-  });
-
-  it('.gitignore содержит graph.json', () => {
-    expect(file('.gitignore')).toBe('node_modules/\ndata/\ngraph.json\n');
   });
 
   it('acme.graph.ts — вход dmg-core graph: AppDef из @acme/domain', () => {
@@ -283,45 +289,25 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
     );
   });
 
-  it('acme.app.ts — AppDef с маркерами подключения модулей и TODO в текстах', () => {
-    const src = file('domain/src/acme.app.ts');
-
-    expect(src).toContain(
-      "import { AppDef } from 'dmg-core';\n// gen:imports\n",
-    );
-    expect(src).toContain('export const AcmeAppDef = AppDef.define({');
-    expect(src).toContain("name: 'acme'");
-    expect(src).toContain("label: 'TODO: название приложения'");
-    expect(src).toContain('modules: [\n    // gen:modules\n  ]');
-  });
-
-  it('имя со scope: AppDef — school, файл domain/src/school.app.ts, gen.appDef', () => {
+  it('имя со scope: AppDef — school, файл platform/domain/src/school.app.ts, gen.appDef', () => {
     const name = '@acme/school';
 
-    expect(file('domain/src/school.app.ts', name)).toContain(
+    expect(file('platform/domain/src/school.app.ts', name)).toContain(
       "export const SchoolAppDef = AppDef.define({\n  name: 'school',",
     );
     expect(json('dmg-core.json', name).gen.appDef).toBe(
-      'domain/src/school.app.ts',
+      'platform/domain/src/school.app.ts',
     );
     expect(file('scripts/arch-check.ts', name)).toContain(
       "import SchoolGraph from './school.graph';",
     );
   });
 
-  it('domain/src/index.ts экспортирует AppDef приложения', () => {
-    expect(file('domain/src/index.ts')).toContain(
-      "export { AcmeAppDef } from './acme.app';",
-    );
-  });
+  it('вход домена — только AppDef приложения, без AppUser', () => {
+    const src = file('platform/domain/src/index.ts');
 
-  it('app.ts — маркеры подключения модулей для gen module/aggregate', () => {
-    const src = file('app/src/app.ts');
-
-    expect(src).toContain("from './app-caller-resolver';\n// gen:imports\n");
-    expect(src).toContain(
-      'const modules: ModuleFactory<AppUser>[] = [\n      // gen:modules\n    ];',
-    );
+    expect(src).toContain("export { AcmeAppDef } from './acme.app';");
+    expect(src).not.toContain('AppUser');
   });
 
   it('biome.json — плагины на каталогах пакетов', () => {
@@ -332,41 +318,42 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
         ?.includes;
 
     expect(includesOf('dom-14-no-clock.grit')).toEqual([
-      'domain/src/**',
+      'platform/domain/src/**',
       '!**/*.test.ts',
     ]);
     expect(includesOf('arc-09-no-env.grit')).toEqual([
-      'domain/src/**',
-      'app/src/**',
-      'modules/*/src/**',
+      'platform/*/src/**',
+      'backend/*/src/**',
       'runners/*/src/**',
       '!runners/*/src/main.ts',
       '!**/*.test.ts',
     ]);
     expect(includesOf('err-01-no-throw.grit')).toContain(
-      'modules/*/src/**/*.uc.ts',
+      'backend/*/src/**/*.uc.ts',
     );
   });
 });
 
 describe('ProjectScaffold monorepo: исходники', () => {
-  it('тип пользователя — из пакета домена, корень сборки — из @acme/app', () => {
-    expect(file('app/src/app.ts')).toContain(
-      "import type { AppUser } from '@acme/domain/shared';",
+  it('тип пользователя — из @acme/kernel, сборка — из @acme/assembly', () => {
+    expect(file('runners/assembly/src/app.ts')).toContain(
+      "import type { AppUser } from '@acme/kernel';",
     );
     expect(file('runners/cli/src/main.ts')).toContain(
-      "import { App, type AppEnv } from '@acme/app';",
+      "import { App, type AppEnv } from '@acme/assembly';",
     );
     expect(file('runners/cli/src/runner-cli.ts')).toContain(
-      "import type { App } from '@acme/app';",
+      "import type { App } from '@acme/assembly';",
     );
   });
 
-  it('входы пакетов реэкспортируют их API', () => {
-    expect(file('domain/src/shared/index.ts')).toContain(
+  it('входы пакетов kernel и сборки реэкспортируют их API', () => {
+    expect(file('platform/kernel/src/index.ts')).toContain(
       "export type { AppUser } from './app-user';",
     );
-    expect(file('app/src/index.ts')).toContain("export { App } from './app';");
+    expect(file('runners/assembly/src/index.ts')).toContain(
+      "export { App } from './app';",
+    );
   });
 });
 

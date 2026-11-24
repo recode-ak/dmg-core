@@ -28,6 +28,13 @@ export type BiomeOverride = Record<string, unknown>;
 
 /** Каталоги слоёв профиля для карты линтера — глобы biome от корня проекта. */
 export type LintDirs = {
+  /** Исходники kernel приложения (D-106). */
+  readonly kernel: string;
+  /**
+   * Спецификаторы входа kernel для белого списка домена — только сам вход,
+   * без подпутей; относительный импорт kernel и так в белом списке.
+   */
+  readonly kernelImports: readonly string[];
   /** Исходники домена. */
   readonly domain: string;
   /** Прикладной слой и корень сборки (DOM-01, кроме `infra`). */

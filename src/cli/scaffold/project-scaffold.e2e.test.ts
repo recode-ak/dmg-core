@@ -45,8 +45,9 @@ const projects: string[] = [];
 
 /** Пакеты workspaces `monorepo`: имя → каталог от корня проекта. */
 const WORKSPACES: Record<string, string> = {
-  '@acme/domain': 'domain',
-  '@acme/app': 'app',
+  '@acme/kernel': 'platform/kernel',
+  '@acme/domain': 'platform/domain',
+  '@acme/assembly': 'runners/assembly',
   '@acme/cli': 'runners/cli',
 };
 
@@ -240,6 +241,24 @@ const SINGLE_VIOLATIONS: Violations = {
     code: "import { S } from '../../../platform/domain/v/a/a.state';\nexport const f = (ar: { snapshot(): unknown }) => [S, ar.snapshot()];\n",
     ids: [],
   },
+  // Kernel приложения: только корень dmg-core, valibot и свои файлы (ARC-02);
+  // домен видит kernel относительным путём.
+  'src/platform/kernel/io.ts': {
+    code: "import { readFileSync } from 'node:fs';\nexport const read = readFileSync;\n",
+    ids: ['ARC-02'],
+  },
+  'src/platform/kernel/app.ts': {
+    code: "import { ApiApp } from 'dmg-core/app';\nexport const api = ApiApp;\n",
+    ids: ['ARC-02'],
+  },
+  'src/platform/kernel/allowed.ts': {
+    code: "import { F } from 'dmg-core';\nimport * as v from 'valibot';\nexport const A = v.object({ id: F.uuid('id') });\n",
+    ids: [],
+  },
+  'src/platform/domain/v/kernel.ts': {
+    code: "import type { AppUser } from '../../kernel/app-user';\nexport type U = AppUser;\n",
+    ids: [],
+  },
   // Тесты вне всех правил слоёв.
   'src/platform/domain/v/a/a.policy.test.ts': {
     code: "import { readFileSync } from 'node:fs';\nimport { S } from './a.state';\nexport const f = () => [readFileSync, S, Date.now(), process.env.X];\n",
@@ -253,89 +272,102 @@ const SINGLE_VIOLATIONS: Violations = {
 
 /** Нарушители в раскладке monorepo: правило — на каталогах пакетов. */
 const MONOREPO_VIOLATIONS: Violations = {
-  'domain/src/v/clock.ts': {
+  'platform/domain/src/v/clock.ts': {
     code: 'export const now = (): number => Date.now();\n',
     ids: ['DOM-14'],
   },
-  'domain/src/v/io.ts': {
+  'platform/domain/src/v/io.ts': {
     code: "import { readFileSync } from 'node:fs';\nexport const read = readFileSync;\n",
     ids: ['ARC-02'],
   },
   // Пакеты приложения — не в белом списке домена.
-  'domain/src/v/package.ts': {
-    code: "import { App } from '@acme/app';\nexport { App };\n",
+  'platform/domain/src/v/package.ts': {
+    code: "import { App } from '@acme/assembly';\nexport { App };\n",
     ids: ['ARC-02'],
   },
   // Относительный выход домена — по файлу на каждый каталог вне домена.
-  'domain/src/v/escape-app.ts': {
-    code: "import { App } from '../../../app/src/app';\nexport { App };\n",
+  'platform/domain/src/v/escape-runners.ts': {
+    code: "import { App } from '../../../../runners/assembly/src/app';\nimport { RunnerCli } from '../../../../runners/cli/src/runner-cli';\nexport { App, RunnerCli };\n",
     ids: ['ARC-02'],
   },
-  'domain/src/v/escape-runners.ts': {
-    code: "import { RunnerCli } from '../../../runners/cli/src/runner-cli';\nexport { RunnerCli };\n",
+  'platform/domain/src/v/escape-backend.ts': {
+    code: "import { M } from '../../../../backend/v/src/m';\nexport { M };\n",
     ids: ['ARC-02'],
   },
-  'domain/src/v/escape-modules.ts': {
-    code: "import { M } from '../../../modules/v/src/m';\nexport { M };\n",
-    ids: ['ARC-02'],
-  },
-  'domain/src/v/a/a.state.ts': {
+  'platform/domain/src/v/a/a.state.ts': {
     code: 'export const S = { uuid: 1 };\n',
     ids: ['DOM-11'],
   },
-  'domain/src/v/a/a.policy.ts': {
+  'platform/domain/src/v/a/a.policy.ts': {
     code: "import { readFileSync } from 'node:fs';\nimport { S } from './a.state';\nexport { readFileSync, S };\n",
     ids: ['ARC-02', 'DOM-01'],
   },
-  'domain/src/v/allowed.ts': {
+  'platform/domain/src/v/allowed.ts': {
     code: "import { F } from 'dmg-core';\nimport * as v from 'valibot';\nexport const A = v.object({ id: F.uuid('id') });\n",
     ids: [],
   },
-  'domain/src/v/a/a.ar.ts': {
+  'platform/domain/src/v/a/a.ar.ts': {
     code: "import { S } from './a.state';\nexport const f = () => {\n  throw new Error(String(S));\n};\n",
     ids: ['ERR-01'],
   },
-  'modules/v/src/m.ts': {
+  // Kernel приложения: не видит домен; домен видит только вход kernel.
+  'platform/kernel/src/io.ts': {
+    code: "import { readFileSync } from 'node:fs';\nexport const read = readFileSync;\n",
+    ids: ['ARC-02'],
+  },
+  'platform/kernel/src/domain.ts': {
+    code: "import { AcmeAppDef } from '@acme/domain';\nexport { AcmeAppDef };\n",
+    ids: ['ARC-02'],
+  },
+  'platform/domain/src/v/kernel.ts': {
+    code: "import type { AppUser } from '@acme/kernel';\nexport type U = AppUser;\n",
+    ids: [],
+  },
+  'platform/domain/src/v/kernel-deep.ts': {
+    code: "import type { AppUser } from '@acme/kernel/src/app-user';\nexport type U = AppUser;\n",
+    ids: ['ARC-02'],
+  },
+  'backend/v/src/m.ts': {
     code: 'export const M = 1;\n',
     ids: [],
   },
-  'modules/v/src/a/uc/do.uc.ts': {
-    code: "import { S } from '../../../../../domain/src/v/a/a.state';\nexport const f = (bus: { publish(x: unknown): void }) => bus.publish(S);\n",
+  'backend/v/src/a/uc/do.uc.ts': {
+    code: "import { S } from '../../../../../platform/domain/src/v/a/a.state';\nexport const f = (bus: { publish(x: unknown): void }) => bus.publish(S);\n",
     ids: ['API-02', 'DOM-01'],
   },
-  'modules/v/src/a/uc/fake.uc.ts': {
-    code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { S } from '../../../../../domain/src/v/a/a.state';\nimport { FakeRepo } from '../a.repo.fake';\nexport { FakeRepo, MemoryRepo, S };\n",
+  'backend/v/src/a/uc/fake.uc.ts': {
+    code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { S } from '../../../../../platform/domain/src/v/a/a.state';\nimport { FakeRepo } from '../a.repo.fake';\nexport { FakeRepo, MemoryRepo, S };\n",
     ids: ['DOM-01', 'TST-07'],
   },
-  'app/src/wire.ts': {
-    code: "import { FakeRepo } from '@acme/v/a/a.repo.fake';\nexport { FakeRepo };\n",
+  'runners/assembly/src/wire.ts': {
+    code: "import { FakeRepo } from '@acme/be-v/a/a.repo.fake';\nexport { FakeRepo };\n",
     ids: ['TST-07'],
   },
-  'modules/v/src/a/a.repo.fake.ts': {
+  'backend/v/src/a/a.repo.fake.ts': {
     code: "import { MemoryRepo } from 'dmg-core/testing';\nexport { MemoryRepo };\n",
     ids: [],
   },
-  'modules/v/src/a/uc/fake.uc.test.ts': {
+  'backend/v/src/a/uc/fake.uc.test.ts': {
     code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { FakeRepo } from '../a.repo.fake';\nexport { FakeRepo, MemoryRepo };\n",
     ids: [],
   },
-  'modules/v/src/view.ts': {
+  'backend/v/src/view.ts': {
     code: 'export const f = (ar: { snapshot(): unknown }) => ar.snapshot();\n',
     ids: ['DOM-17'],
   },
-  'modules/v/src/infra/b.json-repo.ts': {
+  'backend/v/src/infra/b.json-repo.ts': {
     code: 'export const f = (ar: { baselineState: unknown }) => ar.baselineState;\n',
     ids: ['DOM-17'],
   },
-  'modules/v/src/infra/a.json-repo.ts': {
-    code: "import { S } from '../../../../domain/src/v/a/a.state';\nexport const f = (ar: { snapshot(): unknown }) => [S, ar.snapshot()];\n",
+  'backend/v/src/infra/a.json-repo.ts': {
+    code: "import { S } from '../../../../platform/domain/src/v/a/a.state';\nexport const f = (ar: { snapshot(): unknown }) => [S, ar.snapshot()];\n",
     ids: [],
   },
-  'app/src/env.ts': {
+  'runners/assembly/src/env.ts': {
     code: 'export const mode = process.env.APP_MODE;\n',
     ids: ['ARC-09'],
   },
-  'app/src/members.ts': {
+  'runners/assembly/src/members.ts': {
     code: 'export class K {\n  public x = 1;\n}\n',
     ids: ['CODE-02'],
   },
@@ -347,8 +379,8 @@ const MONOREPO_VIOLATIONS: Violations = {
     code: "export const f = () => {\n  throw new Error('x');\n};\n",
     ids: ['ERR-01'],
   },
-  'modules/v/src/a/uc/do.uc.test.ts': {
-    code: "import { S } from '../../../../../domain/src/v/a/a.state';\nexport const f = (bus: { publish(x: unknown): void }) => {\n  bus.publish(S);\n  throw new Error('x');\n};\n",
+  'backend/v/src/a/uc/do.uc.test.ts': {
+    code: "import { S } from '../../../../../platform/domain/src/v/a/a.state';\nexport const f = (bus: { publish(x: unknown): void }) => {\n  bus.publish(S);\n  throw new Error('x');\n};\n",
     ids: [],
   },
 };
@@ -420,12 +452,12 @@ describe('ArchChecker на monorepo видит спецификаторы пак
     }
     const files: Record<string, string> = {
       // Вход contract — можно; мимо contract (index модуля) — нельзя.
-      'app/src/probe-root.ts':
+      'runners/assembly/src/probe-root.ts':
         "export { ProbeModuleDef } from '@acme/domain/probe/contract';\n",
-      'app/src/probe-root-bad.ts':
+      'runners/assembly/src/probe-root-bad.ts':
         "export { ProbeModuleDef } from '@acme/domain/probe';\n",
       'runners/cli/src/probe-runner.ts':
-        "export { ProbeModuleDef } from '@acme/domain/probe/contract';\nexport { App } from '@acme/app';\n",
+        "export { ProbeModuleDef } from '@acme/domain/probe/contract';\nexport { App } from '@acme/assembly';\n",
       'runners/cli/src/probe-runner-bad.ts':
         "export { ProbeModuleDef } from '@acme/domain/probe';\n",
     };
@@ -442,7 +474,7 @@ describe('ArchChecker на monorepo видит спецификаторы пак
       }),
       entry: 'contract',
       layout: (m) => layout.module(m),
-      root: join(project, 'app/src'),
+      root: join(project, 'runners/assembly/src'),
       runners: [join(project, 'runners/cli/src')],
     };
     violations = ArchChecker.of(app)
@@ -483,8 +515,8 @@ describe('monorepo: срез gen подключает модуль без руч
     output = messages.join('\n');
     // Как после `bun install`: пакет модуля — ссылка в node_modules.
     symlinkSync(
-      join(project, 'modules/todo'),
-      join(project, 'node_modules/@acme/todo'),
+      join(project, 'backend/todo'),
+      join(project, 'node_modules/@acme/be-todo'),
     );
   }, 60_000);
 
@@ -494,9 +526,9 @@ describe('monorepo: срез gen подключает модуль без руч
       `Изменён: ${join(project, 'scripts/arch-check.ts')}`,
     );
     for (const path of [
-      'app/src/app.ts',
-      'domain/src/acme.app.ts',
-      'app/package.json',
+      'runners/assembly/src/app.ts',
+      'platform/domain/src/acme.app.ts',
+      'runners/assembly/package.json',
     ]) {
       expect(output).toContain(`Изменён: ${join(project, path)}`);
     }
@@ -505,7 +537,7 @@ describe('monorepo: срез gen подключает модуль без руч
 
   test('файл AppDef: Def модуля в составе после gen module', () => {
     const appDef = readFileSync(
-      join(project, 'domain/src/acme.app.ts'),
+      join(project, 'platform/domain/src/acme.app.ts'),
       'utf8',
     );
     expect(appDef).toContain(
@@ -518,29 +550,38 @@ describe('monorepo: срез gen подключает модуль без руч
   });
 
   test('корень сборки: фабрика модуля с JSON-репозиторием агрегата', () => {
-    const app = readFileSync(join(project, 'app/src/app.ts'), 'utf8');
+    const app = readFileSync(
+      join(project, 'runners/assembly/src/app.ts'),
+      'utf8',
+    );
     expect(app).toContain(
       "import { TodoModuleDef } from '@acme/domain/todo/contract';",
     );
     expect(app).toContain(
-      "import { createTodoModule, TaskJsonRepo } from '@acme/todo';",
+      "import { createTodoModule, TaskJsonRepo } from '@acme/be-todo';",
     );
     expect(app).toContain(
       "taskRepo: new TaskJsonRepo(join(env.dataDir, 'todo.task.json')),",
     );
     expect(
-      JSON.parse(readFileSync(join(project, 'app/package.json'), 'utf8'))
-        .dependencies,
-    ).toMatchObject({ '@acme/todo': 'workspace:*' });
+      JSON.parse(
+        readFileSync(join(project, 'runners/assembly/package.json'), 'utf8'),
+      ).dependencies,
+    ).toEqual({
+      'dmg-core': expect.any(String),
+      '@acme/domain': 'workspace:*',
+      '@acme/kernel': 'workspace:*',
+      '@acme/be-todo': 'workspace:*',
+    });
   });
 
   test('пакет модуля и вход с репозиторием', () => {
     expect(
       JSON.parse(
-        readFileSync(join(project, 'modules/todo/package.json'), 'utf8'),
+        readFileSync(join(project, 'backend/todo/package.json'), 'utf8'),
       ),
     ).toMatchObject({
-      name: '@acme/todo',
+      name: '@acme/be-todo',
       exports: { '.': './src/index.ts' },
       dependencies: {
         valibot: expect.any(String),
@@ -548,7 +589,7 @@ describe('monorepo: срез gen подключает модуль без руч
       },
     });
     expect(
-      readFileSync(join(project, 'modules/todo/src/index.ts'), 'utf8'),
+      readFileSync(join(project, 'backend/todo/src/index.ts'), 'utf8'),
     ).toContain("export { TaskJsonRepo } from './infra/task.json-repo';");
   });
 

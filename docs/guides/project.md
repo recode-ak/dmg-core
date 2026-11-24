@@ -13,7 +13,7 @@ verified: 5302112
 ## 1. Когда применять
 
 - **single** — один пакет, всё в `src/` по осям D-106: kernel `src/platform/kernel`, домен `src/platform/domain`, прикладной слой `src/backend/<m>`, корень сборки `src/runners/assembly`, раннер `src/runners/cli`. Для старта, учебных и небольших проектов; раскладка как у учебного приложения пакета.
-- **monorepo** — пакеты workspaces `@<scope>/*`: домен `domain`, корень сборки `app`, прикладной пакет на модуль `modules/<m>`, раннеры `runners/<r>`. Когда модулей несколько и границы должны держаться на уровне пакетов; `scope` — из имени проекта (`@acme/school` → `acme`).
+- **monorepo** — те же оси пакетами workspaces `@<scope>/*`: kernel `platform/kernel` (`@<scope>/kernel`), домен `platform/domain` (`@<scope>/domain`), пакет реализации на модуль `backend/<m>` (`@<scope>/be-<m>`), корень сборки `runners/assembly` (`@<scope>/assembly`), раннеры `runners/<r>`. Когда модулей несколько и границы должны держаться на уровне пакетов; `scope` — из имени проекта (`@acme/school` → `acme`).
 - Профиль выбирается один раз: переход между ними — перенос каталогов и правка секции `gen` `dmg-core.json`, генератора для него нет.
 - Уже есть проект — `dmg-core init` без профиля (только `dmg-core.json`, скилы и роли) и раскладка в секции `gen` ([naming.md](../reference/naming.md) §5).
 
@@ -32,15 +32,15 @@ bun install && bun run check
 
 | Файл | single | monorepo |
 |---|---|---|
-| `package.json` | `version` `0.1.0` (есть в проекте — остаётся), скрипты `check`, `lint`, `format`, `arch:check`, `graph`; версии из пакета | то же + `workspaces`, домен в `devDependencies` корня |
+| `package.json` | `version` `0.1.0` (есть в проекте — остаётся), скрипты `check`, `lint`, `format`, `arch:check`, `graph`; версии из пакета | то же + `workspaces` `platform/*`, `backend/*`, `runners/*`, домен в `devDependencies` корня |
 | `tsconfig.json`, `biome.json` | строгий TS; `overrides` по [карте линтера](../reference/rules.md#карта-линтера); `data/` biome не проверяет | то же; у каждого пакета свой `tsconfig.json` поверх корневого |
-| `dmg-core.json` | секция `gen` — все ключи осей: `domain`, `backend`, `kernel`, `assembly: src/runners/assembly`, `appDef` | `gen` с `domainImport`, `package`, `assembly: app/src`, `appDef` |
+| `dmg-core.json` | секция `gen` — все ключи осей: `domain`, `backend`, `kernel`, `assembly: src/runners/assembly`, `appDef` | все ключи осей: `domain`, `backend`, `kernel: platform/kernel/src`, `domainImport`, `package: @<scope>/be-{m}`, `assembly: runners/assembly/src`, `appDef` |
 | `scripts/arch-check.ts` | `ArchApp` собирается из входа графа: `{ ...<Имя>Graph, entry, layout, root, runners }` — состав приложения (`AppDef`, поставщики с правилами) берётся из `scripts/<имя>.graph.ts`; раскладка из `GenLayout`, `root` и `runners` — для ARC-07/08; маркеров генератора нет | то же; `AppDef` — из `@<scope>/domain` (через вход графа) |
 | `scripts/<имя>.graph.ts` (D-96) | вход `dmg-core graph`: `export default { def: <Имя>AppDef } satisfies GraphApp`; `bun run graph` пишет `graph.json` — документ графа приложения (версия — из `version` в `package.json`); `graph.json` в `.gitignore`, не коммитится; поставщиков графа сверх домена добавляй в `providers` — их правила попадут и в `arch:check` ([graph-extension.md](./graph-extension.md)) | то же; `AppDef` — из `@<scope>/domain` |
-| `AppDef` (D-93) | `src/platform/domain/<имя>.app.ts` — `<Имя>AppDef` (имя пакета без scope) с маркерами `gen:imports`, `gen:modules`, `TODO` в `label` и `description`; путь — `gen.appDef` | `domain/src/<имя>.app.ts`, экспорт из `domain/src/index.ts` |
-| kernel и домен | `src/platform/kernel/app-user.ts` — тип пользователя (без `index.ts`, сборка импортирует файл); домен — `src/platform/domain` | `domain/` — пакет с `exports` `./*/contract`, `./*/testing`, `./*` |
-| корень сборки | `src/runners/assembly/app.ts`, резолвер `Caller`, тест | `app/` — пакет `@<scope>/app` |
-| раннер | `src/runners/cli/`: окружение, CLI, `main.ts`, тесты | `runners/cli/` |
+| `AppDef` (D-93) | `src/platform/domain/<имя>.app.ts` — `<Имя>AppDef` (имя пакета без scope) с маркерами `gen:imports`, `gen:modules`, `TODO` в `label` и `description`; путь — `gen.appDef` | `platform/domain/src/<имя>.app.ts`, экспорт из `platform/domain/src/index.ts` (вход домена — только `AppDef`) |
+| kernel и домен | `src/platform/kernel/app-user.ts` — тип пользователя (без `index.ts`, сборка импортирует файл); домен — `src/platform/domain` | `platform/kernel/` — пакет `@<scope>/kernel`, вход `src/index.ts` (`AppUser`); `platform/domain/` — пакет `@<scope>/domain` с `exports` `./*/contract`, `./*/testing`, `./*` |
+| корень сборки | `src/runners/assembly/app.ts`, резолвер `Caller`, тест | `runners/assembly/` — пакет `@<scope>/assembly` (зависит от `@<scope>/domain` и `@<scope>/kernel`) |
+| раннер | `src/runners/cli/`: окружение, CLI, `main.ts`, тесты | `runners/cli/` (зависит от `@<scope>/domain` и `@<scope>/assembly`) |
 | `.gitignore`; агенты (`init` выполняет `dmg-core sync`) | `.gitignore` (`node_modules/`, `data/`, `graph.json`); скилы и роли (`.claude/`), ссылка на `llms.txt` в `AGENTS.md` | то же |
 
 Раннер сразу работает (`<раннер>` — `src/runners/cli` | `runners/cli/src`):
@@ -76,7 +76,7 @@ const debt = new DebtChecker({
 ## 4. Как растёт проект
 
 ```sh
-bunx dmg-core gen module todo --write          # домен, прикладной слой (monorepo — пакет modules/todo), подключение
+bunx dmg-core gen module todo --write          # домен, прикладной слой (monorepo — пакет backend/todo), подключение
 bunx dmg-core gen aggregate todo.task --write  # агрегат и JSON-репозиторий в фабрике модуля
 bunx dmg-core gen uc todo.task create --write  # рабочий UC создания, публикует created
 bunx dmg-core gen uc todo.task complete --write
@@ -85,7 +85,7 @@ APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e '
 ```
 
 1. **Подключение — генератор** ([naming.md](../reference/naming.md) §5, маркеры `// gen:imports`, `// gen:modules`, `// gen:repos:<m>`):
-   - `gen module` — фабрика в список модулей корня сборки (`{ def: <M>ModuleDef, create: (deps) => create<M>Module({ ...deps }) }`; фабрика — из входа прикладного пакета, Def — из контракта домена), `<M>ModuleDef` — в `modules` файла `AppDef` (`gen.appDef`; импорт Def — относительный, файл лежит в пакете домена), в monorepo — `"@<scope>/<m>": "workspace:*"` в `app/package.json` (затем `bun install`);
+   - `gen module` — фабрика в список модулей корня сборки (`{ def: <M>ModuleDef, create: (deps) => create<M>Module({ ...deps }) }`; фабрика — из входа прикладного пакета, Def — из контракта домена), `<M>ModuleDef` — в `modules` файла `AppDef` (`gen.appDef`; импорт Def — относительный, файл лежит в пакете домена), в monorepo — `"@<scope>/be-<m>": "workspace:*"` в `runners/assembly/package.json` (затем `bun install`);
    - `gen aggregate` — репозиторий в фабрику: `<a>Repo: new <A>JsonRepo(join(env.dataDir, '<m>.<a>.json'))` (имя файла уникально в приложении).
    - Нет маркера (своя раскладка, правленый `app.ts`) или конфликт имён импортов (агрегаты с одним именем в двух модулях) — генератор печатает «Вставь вручную в <файл> перед <маркер>» с причиной и не падает. Без `gen.assembly` при своей раскладке корень сборки не правится, без `gen.appDef` не правится `AppDef` — подсказка называет поле.
 2. **UC.** `gen uc <m>.<a> create` (или `create-*`) — рабочий: `<A>Ar.create`, `uow.register`, `emits: [created]`, выход `<a>Id`; остаётся перенести поля входа. Остальные — `load` агрегата по `<a>Id` с `NOT_FOUND`, `execute` с `TODO` для операции домена, `emits: []` ([use-case.md](./use-case.md) §2). Событие `created` должен кто-то публиковать (MAN-06): генератор напоминает, пока UC создания нет.
@@ -112,7 +112,7 @@ APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e '
 ## 7. Типичные ловушки
 
 - Генератор напечатал «Вставь вручную» и это пропустили — модуль не подключён: UC отвечает `OPERATION_NOT_FOUND`, `arch:check` модуль не проверяет.
-- monorepo: после `gen module` не выполнен `bun install` — `tsc` не находит `@<scope>/<m>`.
-- Модуль домена назван зарезервированным именем — ложное ARC-02: single — `backend`, `runners`; monorepo — `app`, `runners`, `modules` ([rules.md](../reference/rules.md#карта-линтера)).
+- monorepo: после `gen module` не выполнен `bun install` — `tsc` не находит `@<scope>/be-<m>`.
+- Модуль домена назван зарезервированным именем — ложное ARC-02: single — `backend`, `runners`; monorepo — `backend`, `runners` ([rules.md](../reference/rules.md#карта-линтера)).
 - `call` без `--user` — гость: UC с `callers: ['user']` отвечает `UNAUTHORIZED` (код 2). Нужен `--user <uuid>` или `'guest'` в `callers`.
 - UC не-create сгенерирован раньше UC создания — `arch:check` красный по MAN-06 (`created` никто не публикует): `gen uc <m>.<a> create`.

@@ -70,33 +70,29 @@ export class ScaffoldLayout {
   }
 
   /**
-   * Пакеты workspaces `@<scope>/*`: домен `domain` (kernel — его
-   * `src/shared`), корень сборки `app`, прикладные пакеты `modules/*`
-   * (создаёт `gen module`), раннеры `runners/*`. Домен и корень сборки
-   * импортируются по имени пакета.
+   * Пакеты workspaces `@<scope>/*` по осям D-106: `platform/{kernel,domain}`,
+   * `backend/<m>` (`@<scope>/be-<m>`, создаёт `gen module`), `runners/*`.
+   * Импорт — по имени пакета; зависимость на kernel объявляет тот, кто его
+   * импортирует.
    */
   private static monorepo(scope: string, appName: string): ScaffoldLayout {
-    const file = `domain/src/${appName}.app.ts`;
+    const file = `platform/domain/src/${appName}.app.ts`;
+    const kernel = `@${scope}/kernel`;
     const domain = `@${scope}/domain`;
-    const app = `@${scope}/app`;
+    const assembly = `@${scope}/assembly`;
     return new ScaffoldLayout({
-      domain: 'domain/src',
-      kernel: 'domain/src/shared',
-      assembly: 'app/src',
+      domain: 'platform/domain/src',
+      kernel: 'platform/kernel/src',
+      assembly: 'runners/assembly/src',
       runner: 'runners/cli/src',
-      include: [
-        'domain/src',
-        'app/src',
-        'modules/*/src',
-        'runners/*/src',
-        'scripts',
-      ],
+      include: ['platform/*/src', 'backend/*/src', 'runners/*/src', 'scripts'],
       gen: {
-        domain: 'domain/src/{m}',
-        backend: 'modules/{m}/src',
+        domain: 'platform/domain/src/{m}',
+        backend: 'backend/{m}/src',
+        kernel: 'platform/kernel/src',
         domainImport: `${domain}/{m}`,
-        package: `@${scope}/{m}`,
-        assembly: 'app/src',
+        package: `@${scope}/be-{m}`,
+        assembly: 'runners/assembly/src',
         appDef: file,
       },
       appDef: {
@@ -106,13 +102,20 @@ export class ScaffoldLayout {
         scriptImport: domain,
         graphFile: `scripts/${appName}.graph.ts`,
       },
-      imports: { kernel: `${domain}/shared`, app, appTypes: app },
-      moduleEntry: `@${scope}/<m> (modules/<m>/src/index.ts)`,
-      workspaces: ['domain', 'app', 'modules/*', 'runners/*'],
+      imports: { kernel, app: assembly, appTypes: assembly },
+      moduleEntry: `@${scope}/be-<m> (backend/<m>/src/index.ts)`,
+      workspaces: ['platform/*', 'backend/*', 'runners/*'],
       rootWorkspace: [domain],
       packages: [
         {
-          dir: 'domain',
+          dir: 'platform/kernel',
+          name: kernel,
+          exports: { '.': './src/index.ts' },
+          dependencies: ['dmg-core', 'valibot'],
+          workspace: [],
+        },
+        {
+          dir: 'platform/domain',
           name: domain,
           exports: {
             '.': './src/index.ts',
@@ -124,20 +127,20 @@ export class ScaffoldLayout {
           workspace: [],
         },
         {
-          dir: 'app',
-          name: app,
+          dir: 'runners/assembly',
+          name: assembly,
           exports: { '.': './src/index.ts' },
           dependencies: ['dmg-core'],
-          workspace: [domain],
+          workspace: [domain, kernel],
         },
         {
           dir: 'runners/cli',
           name: `@${scope}/cli`,
           dependencies: ['dmg-core', 'valibot'],
-          workspace: [domain, app],
+          workspace: [domain, assembly],
         },
       ],
-      lint: LintMap.monorepo,
+      lint: LintMap.monorepo(scope),
     });
   }
 

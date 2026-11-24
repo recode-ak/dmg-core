@@ -138,9 +138,8 @@ describe('ProjectInit: существующий package.json', () => {
     const manifest = JSON.parse(await read('package.json'));
     expect(manifest.name).toBe('my-school');
     expect(manifest.workspaces).toEqual([
-      'domain',
-      'app',
-      'modules/*',
+      'platform/*',
+      'backend/*',
       'runners/*',
     ]);
     expect(manifest.dependencies).toEqual({ 'dmg-core': '^0.0.9' });

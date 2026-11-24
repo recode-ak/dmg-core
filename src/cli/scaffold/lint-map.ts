@@ -20,6 +20,17 @@ const STATE = ['**/*.state', '**/state'];
 /** Фейки портов (`*.repo.fake.ts`) — их видят только тесты и сами фейки (TST-07). */
 const FAKES = '**/*.repo.fake.ts';
 
+/** Белый список платформы приложения (ARC-02): корень dmg-core, valibot и свои файлы. */
+const PLATFORM_ONLY = [
+  '**',
+  '!dmg-core',
+  '!valibot',
+  '!.',
+  '!..',
+  '!./**',
+  '!../**',
+];
+
 /**
  * Карта «правило → каталоги» проекта: по ней каркас строит `overrides`
  * biome.json, по ней же пишется раздел карты в `rules.md`. Одна таблица
@@ -32,6 +43,8 @@ export class LintMap {
    * `src/backend` и сборка `src/runners/assembly`, раннер `src/runners/cli`.
    */
   static readonly single = LintMap.of({
+    kernel: 'src/platform/kernel',
+    kernelImports: [],
     domain: 'src/platform/domain',
     app: ['src/backend', 'src/runners/assembly'],
     sources: ['src'],
@@ -41,18 +54,22 @@ export class LintMap {
   });
 
   /**
-   * Профиль monorepo: пакеты `domain`, `app` (корень сборки), `modules/*`
-   * (прикладной слой), `runners/*`; исходники каждого — в `src`.
+   * Профиль monorepo: пакеты `platform/{kernel,domain}`, `backend/*`
+   * (реализации модулей), `runners/*` (сборка и раннеры); исходники
+   * каждого — в `src`; kernel домен видит по имени `@<scope>/kernel`.
    */
-  static readonly monorepo = LintMap.of({
-    domain: 'domain/src',
-    app: ['app/src', 'modules/*/src'],
-    sources: ['domain/src', 'app/src', 'modules/*/src', 'runners/*/src'],
-    main: 'runners/*/src/main.ts',
-    escapes: ['app', 'runners', 'modules'],
-    escapesTitle:
-      'корень сборки, раннеры и прикладной слой (app, runners, modules)',
-  });
+  static monorepo(scope: string): LintMap {
+    return LintMap.of({
+      kernel: 'platform/kernel/src',
+      kernelImports: [`@${scope}/kernel`],
+      domain: 'platform/domain/src',
+      app: ['backend/*/src', 'runners/assembly/src'],
+      sources: ['platform/*/src', 'backend/*/src', 'runners/*/src'],
+      main: 'runners/*/src/main.ts',
+      escapes: ['backend', 'runners'],
+      escapesTitle: 'реализации и раннеры (backend, runners)',
+    });
+  }
 
   /** Таблица правил на каталогах профиля. */
   static of(dirs: LintDirs): LintMap {
@@ -62,29 +79,37 @@ export class LintMap {
     const domain = `${dirs.domain}/**`;
     return new LintMap([
       {
+        // Относительного выхода kernel линтер не ловит (`../**` в белом
+        // списке): выход по пути видит проверяющий слоёв.
+        id: 'ARC-02',
+        includes: [`${dirs.kernel}/**`],
+        imports: [
+          {
+            group: PLATFORM_ONLY,
+            message:
+              'ARC-02: kernel приложения импортирует только корень dmg-core (ядро и Def-классы) и valibot',
+          },
+        ],
+      },
+      {
         id: 'ARC-02',
         includes: [domain],
         imports: [
           {
-            // Белый список: корень dmg-core, valibot и свои файлы.
+            // Kernel — только его вход, без подпутей: вход у kernel один.
             group: [
-              '**',
-              '!dmg-core',
-              '!valibot',
-              '!.',
-              '!..',
-              '!./**',
-              '!../**',
+              ...PLATFORM_ONLY,
+              ...dirs.kernelImports.map((name) => `!${name}`),
             ],
             message:
-              'ARC-02: домен импортирует только корень dmg-core (ядро и Def-классы) и valibot',
+              'ARC-02: домен импортирует только корень dmg-core (ядро и Def-классы), valibot и kernel приложения',
           },
           {
-            // Относительный выход из домена в корень сборки, раннеры и
-            // прикладной слой: `arch:check` его не видит (проверяет домен
-            // только между модулями). Имена модулей домена из `escapes`
-            // зарезервированы: импорт соседа `../app/…` даёт ложное ARC-02
-            // (глоб видит спецификатор, а не путь).
+            // Относительный выход из домена в реализации и раннеры:
+            // `arch:check` его не видит (проверяет домен только между
+            // модулями). Имена модулей домена из `escapes` зарезервированы:
+            // импорт соседа `../backend/…` даёт ложное ARC-02 (глоб видит
+            // спецификатор, а не путь).
             group: dirs.escapes.flatMap((dir) => [
               `**/../${dir}`,
               `**/../${dir}/**`,

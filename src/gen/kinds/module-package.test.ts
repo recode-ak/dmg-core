@@ -4,10 +4,10 @@ import { GenLayout, type GenLayoutSettings } from '../layout';
 import { planModulePackage } from './module-package';
 
 const MONOREPO: GenLayoutSettings = {
-  domain: 'domain/src/{m}',
-  backend: 'modules/{m}/src',
+  domain: 'platform/domain/src/{m}',
+  backend: 'backend/{m}/src',
   domainImport: '@acme/domain/{m}',
-  package: '@acme/{m}',
+  package: '@acme/be-{m}',
 };
 
 /** Диапазоны зависимостей пакета модуля — как их собирает CLI из пакета. */
@@ -27,16 +27,16 @@ const content = (path: string) =>
 test('gen.package задан — package.json и tsconfig.json пакета модуля', () => {
   expect(plan(MONOREPO, DEPS)).toEqual({
     files: [
-      { path: 'modules/todo/package.json', content: expect.any(String) },
-      { path: 'modules/todo/tsconfig.json', content: expect.any(String) },
+      { path: 'backend/todo/package.json', content: expect.any(String) },
+      { path: 'backend/todo/tsconfig.json', content: expect.any(String) },
     ],
     edits: [],
   });
 });
 
 test('package.json: вход src/index.ts, test, dmg-core, valibot и пакет домена', () => {
-  expect(content('modules/todo/package.json')).toBe(`{
-  "name": "@acme/todo",
+  expect(content('backend/todo/package.json')).toBe(`{
+  "name": "@acme/be-todo",
   "private": true,
   "type": "module",
   "exports": {
@@ -55,12 +55,12 @@ test('package.json: вход src/index.ts, test, dmg-core, valibot и пакет
 });
 
 test('tsconfig.json: extends корневого по глубине пакета', () => {
-  expect(JSON.parse(content('modules/todo/tsconfig.json'))).toEqual({
+  expect(JSON.parse(content('backend/todo/tsconfig.json'))).toEqual({
     extends: '../../tsconfig.json',
     include: ['src'],
   });
   const deep = plan(
-    { ...MONOREPO, backend: 'workspaces/modules/{m}/src' },
+    { ...MONOREPO, backend: 'workspaces/backend/{m}/src' },
     DEPS,
   ).files[1]?.content;
   expect(JSON.parse(deep ?? '')).toMatchObject({

@@ -21,6 +21,7 @@
 | Vo | Value Object | `TaskAssignmentVo` | — |
 | Entity | вложенная сущность агрегата: своя идентичность `uuid`, живёт только внутри Ar | `SubtaskEntity` | — |
 | Fqn | полное имя (`todo.task.completed`) | — | — |
+| be | backend — пакет реализации модуля в monorepo: имя `@<scope>/be-<m>`, каталог полным словом `backend/<m>` (D-106); своё имя — `gen.package` | пакет `@acme/be-todo` | — |
 
 В тексте — заглавными (DCS, DQS), в коде — как слово (Google TS style): `TaskReleaseDcs`, не `TaskReleaseDCS`.
 
@@ -115,10 +116,10 @@ infra/<aggregate>.json-repo.ts
 | `assembly` | каталог сборки (`app.ts`), без `{m}` | `src/runners/assembly`, если `domain` и `backend` по умолчанию; иначе не задан — сборку генератор не правит, печатает подсказку |
 | `kernel` | каталог kernel — общего для домена и слоёв над ним, без `{m}` | `src/platform/kernel`, если `domain` и `backend` по умолчанию; иначе не задан |
 | `appDef` | файл `AppDef` (`<домен>/<имя>.app.ts`), без `{m}`: `gen module` вписывает в него Def модуля | не задан — имя приложения генератору неизвестно; `init` пишет путь; без поля `gen module` печатает подсказку |
-| `package` | имя пакета workspaces реализации модуля (например, `@acme/{m}`): `gen module` создаёт пакет над каталогом `backend`; требует `domainImport` и `backend`, оканчивающийся на `/src` | не задан — пакета нет, реализация внутри пакета проекта |
+| `package` | имя пакета workspaces реализации модуля (например, `@acme/be-{m}`): `gen module` создаёт пакет над каталогом `backend`; требует `domainImport` и `backend`, оканчивающийся на `/src` | не задан — пакета нет, реализация внутри пакета проекта |
 
 ```json
-{ "gen": { "domain": "domain/src/{m}", "backend": "modules/{m}/src", "domainImport": "@acme/domain/{m}", "package": "@acme/{m}" } }
+{ "gen": { "domain": "platform/domain/src/{m}", "backend": "backend/{m}/src", "kernel": "platform/kernel/src", "domainImport": "@acme/domain/{m}", "package": "@acme/be-{m}", "assembly": "runners/assembly/src", "appDef": "platform/domain/src/school.app.ts" } }
 ```
 
 Ключи `gen.app` и `gen.compositionRoot` переименованы в `gen.backend` и `gen.assembly` (D-106): старый ключ — ошибка чтения с новым именем, без псевдонима.
