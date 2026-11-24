@@ -3,6 +3,7 @@ covers:
   - src/app/api-app/**
   - src/app/context.ts
   - src/gen/kinds/app-wiring.ts
+verified: 06429f5
 ---
 
 # App и раннер — гайд

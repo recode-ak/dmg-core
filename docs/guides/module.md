@@ -4,6 +4,7 @@ covers:
   - src/app/module/**
   - src/gen/kinds/module.ts
   - src/gen/kinds/app-module.ts
+verified: 06429f5
 ---
 
 # Module — гайд

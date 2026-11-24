@@ -1,7 +1,7 @@
 ---
 covers:
   - src/testing/**
-verified: 517415a
+verified: 06429f5
 ---
 
 # Тестирование
