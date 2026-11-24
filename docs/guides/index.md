@@ -2,7 +2,7 @@
 
 **Назначение:** как написать артефакт DMG по образцу — учебному модулю пакета ([src/testing/example](../../src/testing/example/example.arch.ts): `todo` — задачи, `users` — пользователи). Один файл на вид, формат — [_template.md](./_template.md). Ссылки и ID правил во всей документации пакета проверяет `scripts/docs-check.test.ts` (в `check` пакета).
 
-Раскладка примера: домен — `example/platform/domain/<m>/`, прикладной слой — `example/backend/<m>/`, корень сборки — `example/runners/assembly/example-app.ts`, раннер — `example/runners/cli/`, `AppDef` — `example/platform/domain/example.app.ts`, вход графа (`dmg-core graph`) — `example.graph.ts`, `ArchApp` — `example.arch.ts`; расширение графа и проверок — `example/screen/`. В проекте корни задаёт секция `gen` `dmg-core.json` ([naming.md](../reference/naming.md) §5). Заготовки создаёт генератор `dmg-core gen <вид> …` (раздел «Команда» каждого гайда).
+Раскладка примера: kernel — `example/platform/kernel/`, домен — `example/platform/domain/<m>/`, реализации — `example/backend/<m>/`, сборка — `example/runners/assembly/example-app.ts`, раннер — `example/runners/cli/`, `AppDef` — `example/platform/domain/example.app.ts`, вход графа (`dmg-core graph`) — `example.graph.ts`, `ArchApp` — `example.arch.ts`; расширение графа и проверок — `example/screen/`. В проекте корни задаёт секция `gen` `dmg-core.json` ([naming.md](../reference/naming.md) §5). Заготовки создаёт генератор `dmg-core gen <вид> …` (раздел «Команда» каждого гайда).
 
 ---
 
@@ -19,8 +19,9 @@
 | event reaction | [event-reaction.md](./event-reaction.md) | `release-removed-user-tasks.er.ts` |
 | module | [module.md](./module.md) | `platform/domain/todo/todo.module.ts`, `platform/domain/todo/contract.ts` |
 | job | [job.md](./job.md) | `archive-done-tasks.job.ts` |
-| app и раннер (корень сборки, D-50) | [app.md](./app.md) | `runners/assembly/example-app.ts`, `runners/cli/example-cli.ts` |
+| сборка и раннер (корень сборки, D-50, D-106) | [app.md](./app.md) | `runners/assembly/example-app.ts`, `runners/cli/example-cli.ts` |
 | проект: профили `init`, рост, подключение модулей | [project.md](./project.md) | каркас `dmg-core init --profile` |
+| вынос модуля в сервис, модуль на другом языке (GR-01, GR-02; вживую не проверено) | [extract-module.md](./extract-module.md) | — |
 | делегирование: заявка, порт, резолвер (D-89) | [delegation.md](./delegation.md) | `runners/assembly/example-caller-resolver.ts`, `runners/assembly/example-delegation-store.ts` |
 | расширение графа и проверок: свой вид Def, поставщик, правило, слой, подписка | [graph-extension.md](./graph-extension.md) | `screen/screen-provider.ts`, `screen.test.ts` |
 

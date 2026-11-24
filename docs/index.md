@@ -16,7 +16,7 @@
 | **LLM (MCP)** | UC как tools, доменный граф как resources |
 | **Контрактные тесты** | проверка, что код соответствует декларациям (`ArchChecker`) |
 
-Приложение на DMG делится на четыре оси — платформа, домен, прикладной слой, входные адаптеры ([layers.md](./reference/layers.md)). Домен чистый и синхронный; модули связаны только по `dependsOn` и готовы к выносу в отдельный сервис (D-28).
+Приложение на DMG делится на четыре оси — фреймворк, платформа приложения (`kernel` и домен), реализации, раннеры ([layers.md](./concepts/layers.md), D-106). Домен чистый и синхронный; модули связаны только по `dependsOn`, а пакет реализации модуля — единица выноса в отдельный сервис (D-28, D-108).
 
 ## Начни отсюда
 
@@ -26,6 +26,7 @@
 | Понять устройство | [concepts/](./concepts/index.md): [домен](./concepts/domain.md) → [слои](./concepts/layers.md) → [путь вызова UC](./concepts/uc-path.md) |
 | Создать файл / объект | [naming.md](./reference/naming.md) → [rules.md](./reference/rules.md) |
 | Написать артефакт по образцу | [guides/](./guides/index.md) |
+| Вынести модуль в сервис или на другой язык | [guides/extract-module.md](./guides/extract-module.md) → [сценарии роста](./concepts/layers.md#сценарии-роста) |
 | Подключить делегирование | [guides/delegation.md](./guides/delegation.md) |
 | Расширить граф и проверки (пакет-поставщик) | [guides/graph-extension.md](./guides/graph-extension.md) → [reference/graph.md](./reference/graph.md) |
 | Объявить контракт | [manifests.md](./reference/manifests.md), [errors-result.md](./reference/errors-result.md) |

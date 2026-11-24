@@ -1,19 +1,19 @@
 ---
 covers:
   - src/cli/scaffold/**
-verified: f13ce53
+verified: 269f105
 ---
 
 # Проект — гайд
 
-**Назначение:** как начать проект на DMG и как он растёт: каркас `dmg-core init --profile single|monorepo` (конфиги, `check`, корень сборки, раннер CLI), затем модули генератором — он же подключает их к приложению; руками — только смысл заготовок.
+**Назначение:** как начать проект на DMG и как он растёт: каркас `dmg-core init --profile single|monorepo` (конфиги, `check`, корень сборки, раннер CLI), затем модули генератором — он же подключает их к сборке; руками — только смысл заготовок.
 
 ---
 
 ## 1. Когда применять
 
-- **single** — один пакет, всё в `src/` по осям D-106: kernel `src/platform/kernel`, домен `src/platform/domain`, прикладной слой `src/backend/<m>`, корень сборки `src/runners/assembly`, раннер `src/runners/cli`. Для старта, учебных и небольших проектов; раскладка как у учебного приложения пакета.
-- **monorepo** — те же оси пакетами workspaces `@<scope>/*`: kernel `platform/kernel` (`@<scope>/kernel`), домен `platform/domain` (`@<scope>/domain`), пакет реализации на модуль `backend/<m>` (`@<scope>/be-<m>`), корень сборки `runners/assembly` (`@<scope>/assembly`), раннеры `runners/<r>`. Когда модулей несколько и границы должны держаться на уровне пакетов; `scope` — из имени проекта (`@acme/school` → `acme`). Пакет объявляет всё, что импортирует; между пакетами — имя и `exports` (ARC-14…16, D-108).
+- **single** — один пакет, всё в `src/` по осям D-106: kernel `src/platform/kernel`, домен `src/platform/domain`, реализации `src/backend/<m>`, сборка `src/runners/assembly`, раннер `src/runners/cli`. Для старта, учебных и небольших проектов; раскладка как у учебного приложения пакета. Проверки единицы выноса (ARC-14…16) в нём молчат: проект, который будет расти, — `monorepo`.
+- **monorepo** — те же оси пакетами workspaces `@<scope>/*`: kernel `platform/kernel` (`@<scope>/kernel`), домен `platform/domain` (`@<scope>/domain`), пакет реализации на модуль `backend/<m>` (`@<scope>/be-<m>`), сборка `runners/assembly` (`@<scope>/assembly`), раннеры-процессы `runners/<r>`. Когда модулей несколько и границы должны держаться на уровне пакетов; `scope` — из имени проекта (`@acme/school` → `acme`). Пакет объявляет всё, что импортирует; между пакетами — имя и `exports` (ARC-14…16, D-108); пакет реализации модуля — единица выноса в сервис ([extract-module.md](./extract-module.md)).
 - Профиль выбирается один раз: переход между ними — перенос каталогов и правка секции `gen` `dmg-core.json`, генератора для него нет.
 - Уже есть проект — `dmg-core init` без профиля (только `dmg-core.json`, скилы и роли) и раскладка в секции `gen` ([naming.md](../reference/naming.md) §5).
 
@@ -76,7 +76,7 @@ const debt = new DebtChecker({
 ## 4. Как растёт проект
 
 ```sh
-bunx dmg-core gen module todo --write          # домен, прикладной слой (monorepo — пакет backend/todo), подключение
+bunx dmg-core gen module todo --write          # домен, реализация (monorepo — пакет backend/todo), подключение
 bunx dmg-core gen aggregate todo.task --write  # агрегат и JSON-репозиторий в фабрике модуля
 bunx dmg-core gen uc todo.task create --write  # рабочий UC создания, публикует created
 bunx dmg-core gen uc todo.task complete --write
@@ -85,7 +85,7 @@ APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e '
 ```
 
 1. **Подключение — генератор** ([naming.md](../reference/naming.md) §5, маркеры `// gen:imports`, `// gen:modules`, `// gen:repos:<m>`):
-   - `gen module` — фабрика в список модулей корня сборки (`{ def: <M>ModuleDef, create: (deps) => create<M>Module({ ...deps }) }`; фабрика — из входа прикладного пакета, Def — из контракта домена), `<M>ModuleDef` — в `modules` файла `AppDef` (`gen.appDef`; импорт Def — относительный, файл лежит в пакете домена), в monorepo — `"@<scope>/be-<m>": "workspace:*"` в `runners/assembly/package.json` (затем `bun install`);
+   - `gen module` — фабрика в список модулей корня сборки (`{ def: <M>ModuleDef, create: (deps) => create<M>Module({ ...deps }) }`; фабрика — из входа пакета реализации, Def — из контракта домена), `<M>ModuleDef` — в `modules` файла `AppDef` (`gen.appDef`; импорт Def — относительный, файл лежит в пакете домена), в monorepo — `"@<scope>/be-<m>": "workspace:*"` в `runners/assembly/package.json` (затем `bun install`);
    - `gen aggregate` — репозиторий в фабрику: `<a>Repo: new <A>JsonRepo(join(env.dataDir, '<m>.<a>.json'))` (имя файла уникально в приложении).
    - Нет маркера (своя раскладка, правленый `app.ts`) или конфликт имён импортов (агрегаты с одним именем в двух модулях) — генератор печатает «Вставь вручную в <файл> перед <маркер>» с причиной и не падает. Без `gen.assembly` при своей раскладке корень сборки не правится, без `gen.appDef` не правится `AppDef` — подсказка называет поле.
 2. **UC.** `gen uc <m>.<a> create` (или `create-*`) — рабочий: `<A>Ar.create`, `uow.register`, `emits: [created]`, выход `<a>Id`; остаётся перенести поля входа. Остальные — `load` агрегата по `<a>Id` с `NOT_FOUND`, `execute` с `TODO` для операции домена, `emits: []` ([use-case.md](./use-case.md) §2). Событие `created` должен кто-то публиковать (MAN-06): генератор напоминает, пока UC создания нет.
@@ -102,8 +102,8 @@ APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e '
 
 ## 6. Чеклист правил
 
-- ARC-07, ARC-08 — корень сборки берёт фабрику только из входа прикладного пакета; раннер — только приложение и контракты.
-- ARC-06 — прикладной пакет модуля не импортирует соседей; один пакет на модуль домена.
+- ARC-07, ARC-08 — сборка берёт фабрику только из входа пакета реализации; раннер-процесс — только сборку, `kernel` и контракты.
+- ARC-06 — пакет реализации модуля не импортирует соседей, сборку и раннеры; один пакет на модуль домена.
 - ARC-09 — окружение читает только `main.ts` раннера.
 - MAN-01 — `label`/`description` Def заполнены (включая метки статусов и Policy): `arch:check` без предупреждения «незаполненных TODO», `arch:check --strict` зелёный.
 - MAN-06 — каждое событие агрегата публикует какой-то UC/ER/Job (`arch:check`: «событие … никто не публикует»): объявил событие — сгенерируй операцию, которая его эмитит, или убери событие.

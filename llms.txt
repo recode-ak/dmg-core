@@ -32,7 +32,7 @@
 
 - [Индекс гайдов](docs/guides/index.md)
 - [State](docs/guides/state.md), [Aggregate](docs/guides/aggregate.md), [Events](docs/guides/events.md), [Errors](docs/guides/errors.md), [Policy](docs/guides/policy.md)
-- [Repo, DCS, DQS](docs/guides/repo.md), [Facade](docs/guides/facade.md), [Use case](docs/guides/use-case.md), [Event reaction](docs/guides/event-reaction.md), [Module](docs/guides/module.md), [Job](docs/guides/job.md), [App и раннер](docs/guides/app.md), [Проект](docs/guides/project.md), [Делегирование](docs/guides/delegation.md)
+- [Repo, DCS, DQS](docs/guides/repo.md), [Facade](docs/guides/facade.md), [Use case](docs/guides/use-case.md), [Event reaction](docs/guides/event-reaction.md), [Module](docs/guides/module.md), [Job](docs/guides/job.md), [Сборка и раннер](docs/guides/app.md), [Проект](docs/guides/project.md), [Вынос модуля](docs/guides/extract-module.md), [Делегирование](docs/guides/delegation.md)
 - [Расширение графа и проверок](docs/guides/graph-extension.md): пакет-поставщик — свой вид Def, поставщик графа, правило `arch:check` со своим префиксом, подписка `EventSubscriber`, `DeclaredSet`, `ErrorText`; образец — `src/testing/example/screen/`
 
 ## Агенты
