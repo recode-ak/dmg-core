@@ -18,7 +18,7 @@ export const FRAMEWORK_LAYERS: readonly SourceLayer[] = [
     rule: 'ARC-02',
     sees: [
       { layer: 'kernel' },
-      { ...domainEntry, dependsOn: true, rule: 'ARC-04' },
+      { ...domainEntry, others: 'dependsOn', rule: 'ARC-04' },
     ],
     testEntry: true,
   },
@@ -39,7 +39,7 @@ export const FRAMEWORK_LAYERS: readonly SourceLayer[] = [
       {
         ...domainEntry,
         own: ['index', 'public'],
-        dependsOn: true,
+        others: 'dependsOn',
         rule: 'ARC-04',
       },
     ],

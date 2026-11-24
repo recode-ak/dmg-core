@@ -61,7 +61,7 @@ covers:
 - [screen-kinds.ts](../../src/testing/example/screen/screen-kinds.ts): поставщик `example-screen`, корень `example-ui`, виды `uiApp`, `screen`, `uses`, `listens`.
 - [screen-provider.ts](../../src/testing/example/screen/screen-provider.ts): узлы и рёбра через `DomainIds`, слой `screen` (ось раннеров, `SCR-02`: видит сборку, kernel и вход домена); [screen-rule.ts](../../src/testing/example/screen/screen-rule.ts) — правило образца `SCR-01` «экран без UC».
 - [screen.graph.ts](../../src/testing/example/screen/screen.graph.ts) — вход графа (в слое: видит только корень домена и свой слой); [screen.arch.ts](../../src/testing/example/screen.arch.ts) — `{ ...ExampleArch, ...ScreenGraph, layers: { screen: [<каталог>] } }`, вне каталога слоя.
-- [screen-session.ts](../../src/testing/example/screen/screen-session.ts): `EventSubscriber` + `DeclaredSet`; [tasks-screen.ts](../../src/testing/example/screen/tasks-screen.ts) — `new TasksScreen(session, callers, userId)`: события своего пользователя, вызывающий — он через резолвер, ответ последнего запроса, отказ — список прежний.
+- [screen-session.ts](../../src/testing/example/screen/screen-session.ts): `EventSubscriber` + `DeclaredSet`; [tasks-screen.ts](../../src/testing/example/screen-code/tasks/tasks-screen.ts) — `new TasksScreen(session, callers, userId)`: события своего пользователя, вызывающий — он через резолвер, ответ последнего запроса, отказ — список прежний.
 
 ## 5. Чеклист правил
 

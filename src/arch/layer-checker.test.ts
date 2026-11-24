@@ -14,7 +14,9 @@ import { DefIndex } from '../graph/def-index';
 import type { GraphProvider } from '../graph/graph-provider';
 import type { SourceLayer } from '../graph/source-layer.types';
 import { ExampleAppDef } from '../testing/example/platform/domain/example.app';
+import { ScreenDef } from '../testing/example/screen/screen-def';
 import { ScreenProvider } from '../testing/example/screen/screen-provider';
+import { TasksScreenDef } from '../testing/example/screen/tasks.screen';
 import { AlphaModuleDef, BetaModuleDef, LayerProvider } from './arch.fixture';
 import { FRAMEWORK_LAYERS } from './framework-layers';
 import { LayerChecker } from './layer-checker';
@@ -141,6 +143,16 @@ const views = (over: Partial<SourceLayer> = {}): SourceLayer => ({
   sees: [{ layer: 'kernel' }],
   ...over,
 });
+
+/** Слой `pages` поставщика `toy` по его модулям `home` и `cart` (D-110). */
+const pages = (over: Partial<SourceLayer> = {}): SourceLayer =>
+  views({ name: 'pages', perModule: ['home', 'cart'], ...over });
+
+/** Каталоги слоёв по модулям — `<root>/<слой>/{m}`, по ключу на слой. */
+const modularDirs = (
+  ...layers: readonly SourceLayer[]
+): Record<string, string[]> =>
+  Object.fromEntries(layers.map((l) => [l.name, [join(root, l.name, '{m}')]]));
 
 const externals = (alpha: boolean, beta: boolean): AnyModuleDef[] => {
   const dep = ModuleDef.define({ ...BetaModuleDef, external: beta });
@@ -872,9 +884,11 @@ describe('LayerChecker: слои поставщиков', () => {
     write('runners/cli/main.ts', '../../backend/alpha');
     write('screen/page.ts', '../backend/alpha');
     const screen = new ScreenProvider(ExampleAppDef, []);
-    expect(
-      check({ layers: { screen: [join(root, 'screen')] } }, [screen]),
-    ).toEqual([
+    const layers = {
+      screen: [join(root, 'screen')],
+      'screen-code': [join(root, 'screen-code', '{m}')],
+    };
+    expect(check({ layers }, [screen])).toEqual([
       'ARC-08: runners/cli/main.ts (runner) импортирует backend alpha: ../../backend/alpha',
       'SCR-02: screen/page.ts (screen) импортирует backend alpha: ../backend/alpha',
     ]);
@@ -1067,5 +1081,289 @@ describe('LayerChecker: слои поставщиков', () => {
         'ARC-13: слой views поставщика toy — sees к неизвестному слою ghost',
       );
     });
+
+    /** Отказ для слоёв поставщика `toy` по модулям: каталоги — шаблоны с {m}. */
+    const refuseModular = (...layers: readonly SourceLayer[]): string =>
+      refusal(() =>
+        check({ layers: modularDirs(...layers) }, [
+          new LayerProvider('toy', layers),
+        ]),
+      );
+
+    it("others: 'dependsOn' к слою по модулям поставщика", () => {
+      const byApp = pages({
+        perModule: true,
+        sees: [{ layer: 'logic', others: 'dependsOn' }],
+      });
+      expect(refuseModular(byApp, pages({ name: 'logic' }))).toBe(
+        "ARC-13: слой pages поставщика toy — sees к logic с others: 'dependsOn': у модулей поставщика нет dependsOn",
+      );
+    });
+
+    it("others: 'dependsOn' у слоя по модулям поставщика к домену", () => {
+      const layer = pages({
+        sees: [{ layer: 'domain', entries: ['public'], others: 'dependsOn' }],
+      });
+      expect(refuseModular(layer)).toBe(
+        "ARC-13: слой pages поставщика toy — sees к domain с others: 'dependsOn': у модулей поставщика нет dependsOn",
+      );
+    });
+
+    it('others к слою не по модулям', () => {
+      expect([
+        refuseModular(pages({ sees: [{ layer: 'kernel', others: 'none' }] })),
+        refuse(
+          new LayerProvider('toy', [
+            views({
+              sees: [
+                { layer: 'domain', entries: ['public'], others: 'dependsOn' },
+              ],
+            }),
+          ]),
+        ),
+        refuse(
+          new LayerProvider('toy', [
+            views({ seenBy: [{ layer: 'runner', others: 'none' }] }),
+          ]),
+        ),
+      ]).toEqual([
+        'ARC-13: слой pages поставщика toy — sees к kernel с others: оба слоя должны быть по модулям',
+        'ARC-13: слой views поставщика toy — sees к domain с others: оба слоя должны быть по модулям',
+        'ARC-13: слой views поставщика toy — seenBy к runner с others: оба слоя должны быть по модулям',
+      ]);
+    });
+
+    it('имя модуля поставщика — не сегмент пути', () => {
+      const names = ['', 'a/b', 'a\\b', '{m}', '.', '..'];
+      expect(
+        names.map((name) =>
+          refuseModular(pages({ perModule: ['home', name] })),
+        ),
+      ).toEqual(
+        names.map(
+          (name) =>
+            `ARC-13: слой pages поставщика toy — модуль «${name}» не имя каталога`,
+        ),
+      );
+    });
+
+    it('модуль поставщика дважды', () => {
+      expect(
+        refuseModular(pages({ perModule: ['home', 'cart', 'home'] })),
+      ).toBe('ARC-13: слой pages поставщика toy — модуль home дважды');
+    });
+
+    it('entry слоя — не имя файла без расширения', () => {
+      const entries = ['', 'public.ts', 'code/public', 'code\\public'];
+      expect(entries.map((entry) => refuseModular(pages({ entry })))).toEqual(
+        entries.map(
+          (entry) =>
+            `ARC-13: слой pages поставщика toy — entry «${entry}» не имя файла без расширения`,
+        ),
+      );
+    });
+
+    it("others: 'none' с entries — отказ", () => {
+      const page = pages({
+        sees: [{ layer: 'logic', others: 'none', entries: ['public'] }],
+      });
+      expect(refuseModular(page, pages({ name: 'logic' }))).toBe(
+        "ARC-13: слой pages поставщика toy — sees к logic с others: 'none' и entries: чужой модуль закрыт, свой — через own или весь, entries не нужны",
+      );
+    });
+  });
+});
+
+describe('LayerChecker: слой по модулям поставщика', () => {
+  it('perModule списком: каталог на каждое имя поставщика, чужой модуль того же слоя — ID слоя', () => {
+    cleanTree();
+    write('pages/cart/item.ts', '../../runners/cli/main');
+    write('pages/home/list.ts');
+    write('pages/home/page.ts', './list', '../cart/item');
+    const layer = pages();
+    expect(
+      check({ layers: modularDirs(layer) }, [
+        new LayerProvider('toy', [layer]),
+      ]),
+    ).toEqual([
+      'TOY-02: pages/cart/item.ts (pages) импортирует runner: ../../runners/cli/main',
+      'TOY-02: pages/home/page.ts (pages) импортирует pages cart: ../cart/item',
+    ]);
+  });
+
+  it('perModule списком: модуль AppDef не из списка каталога слоя не получает — файл вне слоёв', () => {
+    cleanTree();
+    write('pages/alpha/x.ts', '../../domain/beta/item/item.ar');
+    write('pages/beta/x.ts', '../../domain/beta/item/item.ar');
+    const layer = pages({ perModule: ['alpha'] });
+    expect(
+      check({ layers: modularDirs(layer) }, [
+        new LayerProvider('toy', [layer]),
+      ]),
+    ).toEqual([
+      'TOY-02: pages/alpha/x.ts (pages) импортирует domain beta: ../../domain/beta/item/item.ar',
+      'ARC-04: pages/beta/x.ts (вне слоёв) импортирует domain beta мимо contract.ts: ../../domain/beta/item/item.ar',
+    ]);
+  });
+
+  it('модуль поставщика с именем внешнего модуля AppDef — не внешний: файлы обходятся', () => {
+    cleanTree();
+    write('pages/alpha/page.ts', '../../runners/cli/main');
+    const layer = pages({ axis: 'implementation', perModule: ['alpha'] });
+    expect(
+      check(
+        { layers: modularDirs(layer) },
+        [new LayerProvider('toy', [layer])],
+        externals(true, false),
+      ),
+    ).toEqual([
+      'TOY-02: pages/alpha/page.ts (pages) импортирует runner: ../../runners/cli/main',
+    ]);
+  });
+
+  it("others: 'none' — свой модуль слоя-цели любой файл, чужой — «виден только свой модуль»", () => {
+    cleanTree();
+    write('logic/home/index.ts');
+    write('logic/home/deep/calc.ts');
+    write('logic/cart/public.ts');
+    write('logic/cart/deep/calc.ts');
+    write(
+      'pages/home/page.ts',
+      '../../logic/home/deep/calc',
+      '../../logic/home',
+      '../../logic/cart/public',
+      '../../logic/cart/deep/calc',
+    );
+    const page = pages({
+      sees: [
+        { layer: 'kernel' },
+        { layer: 'logic', others: 'none', rule: 'TOY-03' },
+      ],
+    });
+    const logic = pages({ name: 'logic' });
+    expect(
+      check({ layers: modularDirs(page, logic) }, [
+        new LayerProvider('toy', [page, logic]),
+      ]),
+    ).toEqual([
+      'TOY-03: pages/home/page.ts (pages) импортирует logic cart — виден только свой модуль: ../../logic/cart/public',
+      'TOY-03: pages/home/page.ts (pages) импортирует logic cart — виден только свой модуль: ../../logic/cart/deep/calc',
+    ]);
+  });
+
+  it("others: 'none' с own — свой модуль только через own", () => {
+    cleanTree();
+    write('logic/home/public.ts');
+    write('logic/home/deep/calc.ts');
+    write(
+      'pages/home/page.ts',
+      '../../logic/home/public',
+      '../../logic/home/deep/calc',
+    );
+    const page = pages({
+      sees: [
+        { layer: 'kernel' },
+        { layer: 'logic', others: 'none', own: ['public'], rule: 'TOY-03' },
+      ],
+    });
+    const logic = pages({ name: 'logic', entry: 'public' });
+    expect(
+      check({ layers: modularDirs(page, logic) }, [
+        new LayerProvider('toy', [page, logic]),
+      ]),
+    ).toEqual([
+      'TOY-03: pages/home/page.ts (pages) импортирует logic home мимо public.ts: ../../logic/home/deep/calc',
+    ]);
+  });
+
+  it("others: 'none' — импорт из корня слоя без модуля в модуль слоя-цели — нарушение", () => {
+    cleanTree();
+    write('pages/home/page.ts');
+    write('domain/example.app.ts', '../pages/home/page');
+    const layer = pages({
+      seenBy: [{ layer: 'domain', others: 'none', rule: 'TOY-03' }],
+    });
+    expect(
+      check({ layers: modularDirs(layer) }, [
+        new LayerProvider('toy', [layer]),
+      ]),
+    ).toEqual([
+      'TOY-03: domain/example.app.ts (domain) импортирует pages home — виден только свой модуль: ../pages/home/page',
+    ]);
+  });
+
+  it('чужой модуль того же слоя — ссылкой на себя через entry слоя, а не ArchApp.entry', () => {
+    cleanTree();
+    write('pages/b/public.ts');
+    write('pages/b/contract.ts');
+    write('pages/b/index.ts');
+    write('pages/a/page.ts', './list', '../b/public', '../b/contract', '../b');
+    write('pages/a/list.ts');
+    const layer = pages({
+      perModule: ['a', 'b'],
+      entry: 'public',
+      sees: [{ layer: 'kernel' }, { layer: 'pages', entries: ['public'] }],
+    });
+    expect(
+      check({ layers: modularDirs(layer) }, [
+        new LayerProvider('toy', [layer]),
+      ]),
+    ).toEqual([
+      'TOY-02: pages/a/page.ts (pages) импортирует pages b мимо public.ts: ../b/contract',
+      'TOY-02: pages/a/page.ts (pages) импортирует pages b мимо public.ts: ../b',
+    ]);
+  });
+
+  it('образец screen: исполнение видит описание и чужой экран через public.ts, сборку — нет; описание не видит исполнение', () => {
+    cleanTree();
+    write('screen/screen-session.ts', '../screen-code/tasks/tasks-screen');
+    write('screen-code/card/public.ts');
+    write('screen-code/card/card-view.ts');
+    write('screen-code/tasks/tasks-screen.types.ts');
+    write(
+      'screen-code/tasks/tasks-screen.ts',
+      '../../screen/screen-session',
+      '../../kernel/fields',
+      '../../domain/alpha/contract',
+      './tasks-screen.types',
+      '../card/public',
+      '../card/card-view',
+      '../../runners/assembly/app',
+    );
+    const card = ScreenDef.define({
+      name: 'card',
+      label: 'Карточка',
+      description: 'Карточка задачи — второй экран для проверки слоя.',
+      visible: true,
+      uses: [],
+    });
+    const screen = new ScreenProvider(ExampleAppDef, [TasksScreenDef, card]);
+    const layers = {
+      screen: [join(root, 'screen')],
+      'screen-code': [join(root, 'screen-code', '{m}')],
+    };
+    expect(check({ layers }, [screen])).toEqual([
+      'SCR-03: screen-code/tasks/tasks-screen.ts (screen-code) импортирует screen-code card мимо public.ts: ../card/card-view',
+      'SCR-03: screen-code/tasks/tasks-screen.ts (screen-code) импортирует assembly: ../../runners/assembly/app',
+      'SCR-02: screen/screen-session.ts (screen) импортирует screen-code tasks: ../screen-code/tasks/tasks-screen',
+    ]);
+  });
+
+  it('образец screen: описание не видит сборку — SCR-02', () => {
+    cleanTree();
+    write(
+      'screen/screen-session.ts',
+      '../kernel/fields',
+      '../domain/alpha/contract',
+      '../runners/assembly/app',
+    );
+    const screen = new ScreenProvider(ExampleAppDef, [TasksScreenDef]);
+    const layers = {
+      screen: [join(root, 'screen')],
+      'screen-code': [join(root, 'screen-code', '{m}')],
+    };
+    expect(check({ layers }, [screen])).toEqual([
+      'SCR-02: screen/screen-session.ts (screen) импортирует assembly: ../runners/assembly/app',
+    ]);
   });
 });

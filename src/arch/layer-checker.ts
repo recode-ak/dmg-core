@@ -18,9 +18,9 @@ type Import = {
 };
 
 /**
- * Импорты файлов проекта по слоям (D-107, D-70, D-37): видимость слоёв, вход
- * модуля, `dependsOn`, вход `testing`. Нарушение — с ID слоя-импортёра или
- * доступа; порядок — по пути файла, в файле — по импортам.
+ * Импорты файлов проекта по слоям (D-107, D-110, D-70, D-37): видимость слоёв,
+ * вход модуля, чужие модули (`others`), вход `testing`. Нарушение — с ID
+ * слоя-импортёра или доступа; порядок — по пути файла, в файле — по импортам.
  * @see src/arch/layer-checker.test.ts
  */
 export class LayerChecker {
@@ -99,27 +99,27 @@ export class LayerChecker {
       ];
     }
     const rule = access.rule ?? from.layer.rule;
-    return [
-      ...this.entryOf(imp, access, rule),
-      ...this.dependsOn(imp, from, access, rule),
-    ];
+    const others = this.others(imp, from, access, rule);
+    // Одно нарушение на импорт: вход закрытого модуля проверять незачем.
+    if (access.others === 'none' && others.length > 0) return others;
+    return [...this.entryOf(imp, access, rule), ...others];
   }
 
   /** Свой слой свободен; у слоя по модулям — свой модуль и корень слоя. */
   private sameLayer(from: LayerPlace, to: LayerPlace): boolean {
     return (
       from.layer.name === to.layer.name &&
-      (from.layer.perModule !== true ||
+      (from.layer.perModule === undefined ||
         to.module === undefined ||
         from.module?.name === to.module.name)
     );
   }
 
   /**
-   * Вход каталога цели (D-70, D-37): `own` для своего модуля, иначе
-   * `entries`, нет списка — любой файл; вход `testing` — только тестовому
-   * коду (TST-07) и при любом списке. Корень слоя по модулям, реализация
-   * внешнего модуля и импорт между внешними — без проверки.
+   * Вход каталога цели (D-70, D-37, D-110): `own` для своего модуля, иначе
+   * `entries`, нет списка — любой файл (при `others: 'none'` `entries` нет);
+   * `testing` — только тестовому коду (TST-07), при любом списке. Корень слоя
+   * по модулям, реализация внешнего модуля и импорт между внешними — без проверки.
    */
   private entryOf(
     { file, from, to, spec, target }: Import,
@@ -128,7 +128,7 @@ export class LayerChecker {
   ): Violation[] {
     if (
       to.foreign ||
-      (to.module === undefined && to.layer.perModule === true) ||
+      (to.module === undefined && to.layer.perModule !== undefined) ||
       (from?.module?.external === true && to.module?.external === true)
     ) {
       return [];
@@ -136,10 +136,9 @@ export class LayerChecker {
     const own =
       from?.module !== undefined && from.module.name === to.module?.name;
     const list = own && access.own !== undefined ? access.own : access.entries;
+    const entry = to.layer.entry ?? this.entry;
     const names = [
-      ...new Set(
-        (list ?? []).map((e) => (e === 'public' ? this.entry : 'index')),
-      ),
+      ...new Set((list ?? []).map((e) => (e === 'public' ? entry : 'index'))),
     ];
     if (names.some((name) => this.scan.isEntry(target, to.dir, name))) {
       return [];
@@ -169,30 +168,45 @@ export class LayerChecker {
     ];
   }
 
-  /** Чужой модуль — только из `dependsOn` модуля импортёра; и между внешними. */
-  private dependsOn(
-    { file, to }: Import,
+  /**
+   * Чужой модуль слоя-цели (D-110): `none` — нарушение, и у импортёра без
+   * модуля; `dependsOn` — только из `dependsOn` модуля импортёра, и между
+   * внешними. Корень слоя-цели — не модуль.
+   */
+  private others(
+    { file, to, spec }: Import,
     from: LayerPlace,
     access: LayerAccess,
     rule: string,
   ): Violation[] {
     const { module } = from;
     const target = to.module?.name;
-    if (
-      access.dependsOn !== true ||
-      module === undefined ||
-      target === undefined ||
-      target === module.name ||
-      module.dependsOn.some((m) => m.name === target)
-    ) {
-      return [];
+    if (target === undefined || target === module?.name) return [];
+    const where = this.where(file, from);
+    switch (access.others) {
+      case 'none':
+        return [
+          new Violation(
+            rule,
+            `${where} импортирует ${this.title(to)} — виден только свой модуль: ${spec}`,
+          ),
+        ];
+      case 'dependsOn':
+        if (
+          module === undefined ||
+          (module.dependsOn ?? []).some((m) => m.name === target)
+        ) {
+          return [];
+        }
+        return [
+          new Violation(
+            rule,
+            `${where} импортирует ${target}, которого нет в dependsOn ${module.name}`,
+          ),
+        ];
+      case undefined:
+        return [];
     }
-    return [
-      new Violation(
-        rule,
-        `${this.where(file, from)} импортирует ${target}, которого нет в dependsOn ${module.name}`,
-      ),
-    ];
   }
 
   private where(file: string, from: LayerPlace | undefined): string {

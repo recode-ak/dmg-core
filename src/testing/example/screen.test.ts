@@ -21,8 +21,8 @@ import { SCREEN_PROVIDER } from './screen/screen-kinds';
 import { ScreenProvider } from './screen/screen-provider';
 import { ScreenSession } from './screen/screen-session';
 import { TasksScreenDef } from './screen/tasks.screen';
-import { TasksScreen } from './screen/tasks-screen';
 import { ScreenArch } from './screen.arch';
+import { TasksScreen } from './screen-code/tasks/tasks-screen';
 
 // Приёмочный тест расширения-образца «экран» (D-92…D-99): вид Def, поставщик
 // графа, правило SCR-01, сессия экрана. Данные — во временном каталоге, порты

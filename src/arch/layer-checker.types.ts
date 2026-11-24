@@ -17,7 +17,7 @@ export type LayerPlaces = {
   readonly runners: readonly string[];
   /** Каталоги слоёв поставщиков по имени слоя; у слоя по модулям — шаблоны с `{m}`. */
   readonly layers?: Readonly<Record<string, readonly string[]>>;
-  /** Вход модуля для чужого кода; по умолчанию `index`. */
+  /** Вход модуля для чужого кода — для слоёв без своего `entry` (D-110); по умолчанию `index`. */
   readonly entry?: string;
   /** Вход фикстур модуля для тестового кода (D-70); по умолчанию `testing`. */
   readonly testing?: string;

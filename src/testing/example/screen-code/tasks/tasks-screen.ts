@@ -3,15 +3,15 @@ import {
   ListTasksUcDef,
   TaskEvents,
   TodoModuleDef,
-} from '../platform/domain/todo/contract';
-import type { ExampleUser } from '../platform/kernel/app-user';
-import type { ExampleCallerResolver } from '../runners/assembly/example-caller-resolver';
-import type { ScreenSession } from './screen-session';
+} from '../../platform/domain/todo/contract';
+import type { ExampleUser } from '../../platform/kernel/app-user';
+import type { ScreenSession } from '../../screen/screen-session';
+import type { TasksScreenCallers } from './tasks-screen.types';
 
 /**
- * Экран «Мои задачи» пользователя `userId` (D-98): по его событию «задача
- * создана» вызывает `listTasks` от его имени через резолвер; события других
- * пользователей пропускает.
+ * Экран «Мои задачи» пользователя `userId` (D-98, D-110): исполнение экрана
+ * `tasks`; по его событию «задача создана» вызывает `listTasks` от его имени
+ * через резолвер; события других пользователей пропускает.
  */
 export class TasksScreen {
   private list: OutputOf<typeof ListTasksUcDef> = [];
@@ -20,7 +20,7 @@ export class TasksScreen {
 
   constructor(
     private readonly session: ScreenSession<ExampleUser>,
-    private readonly callers: ExampleCallerResolver,
+    private readonly callers: TasksScreenCallers,
     private readonly userId: string,
   ) {}
 

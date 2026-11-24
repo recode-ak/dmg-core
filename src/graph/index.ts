@@ -56,5 +56,6 @@ export type {
   LayerAccess,
   LayerAxis,
   LayerEntry,
+  LayerOthers,
   SourceLayer,
 } from './source-layer.types';

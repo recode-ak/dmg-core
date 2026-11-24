@@ -5,6 +5,7 @@ import {
   type GraphNodeInput,
   type GraphProvider,
   type GraphRule,
+  type LayerAccess,
   type SourceLayer,
 } from '#core/graph/index';
 import type { AnyAppDef } from '#core/index';
@@ -58,17 +59,31 @@ export class ScreenProvider implements GraphProvider {
     return [new ScreenWithoutUcRule()];
   }
 
-  /** Слой `screen` (D-107): на оси раннеров, видит сборку, kernel и вход домена. */
+  /**
+   * Слои образца (D-107, D-110): описание `screen` и исполнение
+   * `screen-code`, модуль которого — экран. Сессия — в описании: здесь классы
+   * поставщика — его «пакет», у потребителя он из npm и слоями не проверяется.
+   */
   layers(): readonly SourceLayer[] {
+    const domain: LayerAccess = { layer: 'domain', entries: ['public'] };
     return [
       {
         name: 'screen',
-        axis: 'runner',
+        axis: 'platform',
         rule: 'SCR-02',
+        sees: [{ layer: 'kernel' }, domain],
+      },
+      {
+        name: 'screen-code',
+        axis: 'implementation',
+        rule: 'SCR-03',
+        perModule: this.screens.map((s) => s.name),
+        entry: 'public',
         sees: [
-          { layer: 'assembly' },
+          { layer: 'screen' },
           { layer: 'kernel' },
-          { layer: 'domain', entries: ['public'] },
+          domain,
+          { layer: 'screen-code', entries: ['public'] },
         ],
       },
     ];

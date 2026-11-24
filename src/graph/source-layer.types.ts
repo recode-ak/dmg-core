@@ -5,18 +5,27 @@
 /** Ось слоя: платформа приложения (kernel, домен), реализации, раннеры. */
 export type LayerAxis = 'platform' | 'implementation' | 'runner';
 
-/** `public` — вход модуля для чужого кода (`ArchApp.entry`), `index` — `index.ts` или сам каталог. */
+/**
+ * `public` — вход модуля для чужого кода (`entry` слоя-цели, без него —
+ * `ArchApp.entry`), `index` — `index.ts` или сам каталог.
+ */
 export type LayerEntry = 'public' | 'index';
+
+/**
+ * Какие чужие модули слоя-цели видны (D-110): `none` — только свой модуль,
+ * `dependsOn` — только из `dependsOn` модуля импортёра; оба слоя — по модулям.
+ */
+export type LayerOthers = 'none' | 'dependsOn';
 
 /** Доступ к слою `layer`: через какие входы и под каким ID нарушение. */
 export type LayerAccess = {
   readonly layer: string;
   /** Входы каталога модуля (или слоя не по модулям); нет — любой файл. */
   readonly entries?: readonly LayerEntry[];
-  /** Входы своего модуля, когда оба слоя по модулям; нет — `entries`. */
+  /** Входы своего модуля, когда оба слоя по модулям; нет — `entries`, при `others: 'none'` — любой файл. */
   readonly own?: readonly LayerEntry[];
-  /** Чужой модуль — только из `dependsOn` модуля импортёра. */
-  readonly dependsOn?: boolean;
+  /** Нет — любой чужой модуль через `entries`; при `none` `entries` не задаются (ARC-13). */
+  readonly others?: LayerOthers;
   /** ID нарушения доступа; нет — ID слоя-импортёра. */
   readonly rule?: string;
 };
@@ -25,8 +34,13 @@ export type LayerAccess = {
 export type SourceLayer = {
   readonly name: string;
   readonly axis: LayerAxis;
-  /** Каталоги слоя — шаблоны с `{m}`, по каталогу на модуль. */
-  readonly perModule?: boolean;
+  /**
+   * Каталоги слоя — шаблоны с `{m}`, по каталогу на модуль (D-110): `true` —
+   * модули `AppDef`, список — имена модулей поставщика.
+   */
+  readonly perModule?: true | readonly string[];
+  /** Вход модуля слоя для чужого кода (`public`) — имя файла без расширения; нет — `ArchApp.entry`. */
+  readonly entry?: string;
   /** ID нарушения импорта из этого слоя. */
   readonly rule: string;
   readonly sees: readonly LayerAccess[];

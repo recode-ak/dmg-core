@@ -245,3 +245,73 @@ describe('ProviderRuleChecker: ID слоёв поставщика (ARC-13)', () 
     expect(refusal([screen])).toBe('не бросил');
   });
 });
+
+describe('ProviderRuleChecker: ID доступа слоя поставщика (ARC-13)', () => {
+  const layer = (over: Partial<SourceLayer> = {}): SourceLayer => ({
+    name: 'views',
+    axis: 'runner',
+    rule: 'TOY-02',
+    sees: [{ layer: 'kernel' }],
+    ...over,
+  });
+  const seesWith = (rule: string, to = 'kernel'): SourceLayer =>
+    layer({ sees: [{ layer: to, rule }] });
+
+  it('ID доступа не по форме — отказ', () => {
+    expect(refusal([new LayerProvider('toy', [seesWith('toy-3')])])).toBe(
+      'ARC-13: доступ sees kernel слоя views поставщика toy — ID toy-3 не по форме <ПРЕФИКС>-<NN>',
+    );
+  });
+
+  it('префикс пакета у доступа — отказ', () => {
+    expect(
+      refusal([new LayerProvider('toy', [seesWith('ARC-04', 'domain')])]),
+    ).toBe(
+      'ARC-13: доступ sees domain слоя views поставщика toy — префикс ARC занят правилами пакета dmg-core',
+    );
+  });
+
+  it('префикс доступа занят правилом другого поставщика — отказ', () => {
+    const toy = new RuleProvider('toy', [new StubRule('TOY-01')]);
+    const rival = new LayerProvider('rival', [
+      layer({ rule: 'RIV-02', sees: [{ layer: 'kernel', rule: 'TOY-03' }] }),
+    ]);
+    expect(refusal([toy, rival])).toBe(
+      'ARC-13: префикс TOY у двух поставщиков — toy и rival',
+    );
+  });
+
+  it('ID доступа совпал с ID правила того же поставщика — отказ', () => {
+    const toy = new LayerProvider(
+      'toy',
+      [seesWith('TOY-01')],
+      [new StubRule('TOY-01')],
+    );
+    expect(refusal([toy])).toBe(
+      'ARC-13: доступ sees kernel слоя views поставщика toy — ID TOY-01 объявлен дважды',
+    );
+  });
+
+  it('ID доступа в seenBy сверяется так же', () => {
+    const toy = new LayerProvider('toy', [
+      layer({ seenBy: [{ layer: 'runner', rule: 'toy-4' }] }),
+    ]);
+    expect(refusal([toy])).toBe(
+      'ARC-13: доступ seenBy runner слоя views поставщика toy — ID toy-4 не по форме <ПРЕФИКС>-<NN>',
+    );
+  });
+
+  it('ID доступа со своим префиксом — допустимо, как у слоя', () => {
+    const toy = new LayerProvider(
+      'toy',
+      [
+        layer({
+          sees: [{ layer: 'kernel', rule: 'TOY-03' }],
+          seenBy: [{ layer: 'runner', rule: 'TOY-03' }],
+        }),
+      ],
+      [new StubRule('TOY-01')],
+    );
+    expect(refusal([toy])).toBe('не бросил');
+  });
+});

@@ -3,14 +3,22 @@ import { relative, resolve, sep } from 'node:path';
 import type { AnyModuleDef } from '../domain/contracts/module-def';
 import type { DefIndex } from '../graph/def-index';
 import type { GraphProvider } from '../graph/graph-provider';
-import type { LayerAxis, SourceLayer } from '../graph/source-layer.types';
+import type {
+  LayerAccess,
+  LayerAxis,
+  SourceLayer,
+} from '../graph/source-layer.types';
 import { FRAMEWORK_LAYERS, IMPLEMENTATION_LAYERS } from './framework-layers';
 import type { LayerPlaces } from './layer-checker.types';
-import type { LayerPlace } from './layer-map.types';
+import type { LayerModule, LayerPlace } from './layer-map.types';
 import { SourceScan } from './source-scan';
 import { Violation } from './violation';
 
 const MODULE = '{m}';
+/** Имя модуля поставщика — один сегмент пути и не шаблон `{m}`. */
+const SEGMENT = /^[^/\\{}]+$/;
+/** Вход слоя — имя файла без расширения и каталога. */
+const FILE_NAME = /^[^/\\.]+$/;
 
 /**
  * Каталоги слоёв приложения и слои поставщиков (D-107): чей файл и какой
@@ -89,29 +97,92 @@ export class LayerMap {
         declared.push(layer);
       }
     }
-    for (const layer of declared) this.verifyEdges(layer);
+    for (const layer of declared) {
+      const at = `ARC-13: слой ${layer.name} поставщика ${this.owners.get(layer.name)}`;
+      this.verifyNames(layer, at);
+      this.verifyEdges(layer, at);
+    }
   }
 
-  /** Рёбра слоя поставщика: не к реализациям; `seenBy` — только слои фреймворка. */
-  private verifyEdges(layer: SourceLayer): void {
-    const at = `ARC-13: слой ${layer.name} поставщика ${this.owners.get(layer.name)}`;
+  /** Модули поставщика (D-110) — имена каталогов без повторов; `entry` — имя файла. */
+  private verifyNames(layer: SourceLayer, at: string): void {
+    const seen = new Set<string>();
+    for (const name of LayerMap.provided(layer) ?? []) {
+      if (!SEGMENT.test(name) || name === '.' || name === '..') {
+        throw new Error(`${at} — модуль «${name}» не имя каталога`);
+      }
+      if (seen.has(name)) throw new Error(`${at} — модуль ${name} дважды`);
+      seen.add(name);
+    }
+    if (layer.entry !== undefined && !FILE_NAME.test(layer.entry)) {
+      throw new Error(
+        `${at} — entry «${layer.entry}» не имя файла без расширения`,
+      );
+    }
+  }
+
+  /**
+   * Рёбра слоя поставщика: не к реализациям; `seenBy` — только слои
+   * фреймворка; `others` — между слоями по модулям (D-110).
+   */
+  private verifyEdges(layer: SourceLayer, at: string): void {
     const closed = (edge: string, to: string): string =>
       `${at} — ${edge} к ${to}: слои реализаций поставщику недоступны`;
-    for (const { layer: to } of layer.sees) {
+    for (const access of layer.sees) {
+      const to = access.layer;
       if (IMPLEMENTATION_LAYERS.includes(to))
         throw new Error(closed('sees', to));
       if (!this.layers.has(to)) {
         throw new Error(`${at} — sees к неизвестному слою ${to}`);
       }
+      this.verifyOthers(`${at} — sees к ${to}`, access, layer, this.layer(to));
     }
-    for (const { layer: by } of layer.seenBy ?? []) {
+    for (const access of layer.seenBy ?? []) {
+      const by = access.layer;
       if (IMPLEMENTATION_LAYERS.includes(by)) {
         throw new Error(closed('seenBy', by));
       }
       if (!FRAMEWORK_LAYERS.some((l) => l.name === by)) {
         throw new Error(`${at} — seenBy к ${by}: только к слоям dmg-core`);
       }
+      this.verifyOthers(
+        `${at} — seenBy к ${by}`,
+        access,
+        layer,
+        this.layer(by),
+      );
     }
+  }
+
+  // Объявленное поле, которое проверка не читает, — отказ, а не тихий пропуск:
+  // у модулей поставщика нет `dependsOn`, при `none` `entries` не применяются.
+  private verifyOthers(
+    edge: string,
+    { others, entries }: LayerAccess,
+    ...ends: readonly SourceLayer[]
+  ): void {
+    if (others === undefined) return;
+    if (ends.some((l) => l.perModule === undefined)) {
+      throw new Error(`${edge} с others: оба слоя должны быть по модулям`);
+    }
+    if (others === 'none' && entries !== undefined) {
+      throw new Error(
+        `${edge} с others: 'none' и entries: чужой модуль закрыт, свой — через own или весь, entries не нужны`,
+      );
+    }
+    if (
+      others === 'dependsOn' &&
+      ends.some((l) => LayerMap.provided(l) !== undefined)
+    ) {
+      throw new Error(
+        `${edge} с others: 'dependsOn': у модулей поставщика нет dependsOn`,
+      );
+    }
+  }
+
+  /** Имена модулей поставщика; `undefined` — слой не по ним. */
+  private static provided(layer: SourceLayer): readonly string[] | undefined {
+    return layer.perModule === true ? undefined : layer.perModule;
   }
 
   // Пустой список каталогов — то же, что нет ключа: иначе слой молча без проверок.
@@ -169,7 +240,11 @@ export class LayerMap {
     return places;
   }
 
-  /** Каталог слоя поставщика: у слоя по модулям — шаблон с `{m}`, иначе без. */
+  /**
+   * Каталог слоя поставщика (D-110): у слоя по модулям — шаблон с `{m}`, иначе
+   * без. Модуль поставщика — только имя: одноимённый модуль `AppDef`
+   * `external` и `dependsOn` ему не передаёт.
+   */
   private addProvided(
     places: LayerPlace[],
     name: string,
@@ -177,10 +252,12 @@ export class LayerMap {
     modules: readonly AnyModuleDef[],
   ): void {
     const field = `ArchApp.layers.${name}`;
-    if (this.layer(name).perModule === true) {
+    const layer = this.layer(name);
+    if (layer.perModule !== undefined) {
       const each = this.template(field, dir);
-      for (const m of modules)
-        this.add(places, name, this.fill(each, m.name), m);
+      const owned: readonly LayerModule[] =
+        LayerMap.provided(layer)?.map((m) => ({ name: m })) ?? modules;
+      for (const m of owned) this.add(places, name, this.fill(each, m.name), m);
       return;
     }
     if (dir.includes(MODULE)) {
@@ -195,7 +272,7 @@ export class LayerMap {
     places: LayerPlace[],
     name: string,
     path: string,
-    module?: AnyModuleDef,
+    module?: LayerModule,
   ): void {
     const layer = this.layer(name);
     const dir = resolve(path);

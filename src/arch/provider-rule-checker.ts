@@ -15,7 +15,8 @@ const RESERVED = new Set<string>(PACKAGE_RULE_PREFIXES);
 
 /**
  * Проверка графа приложения правилами поставщиков: нарушение — с ID правила.
- * ID правил и слоёв сверяются в конструкторе; нарушение ARC-13 — исключение.
+ * ID правил, слоёв и доступов слоёв сверяются в конструкторе; нарушение
+ * ARC-13 — исключение.
  */
 export class ProviderRuleChecker {
   private readonly rules: readonly GraphRule[];
@@ -53,10 +54,10 @@ export class ProviderRuleChecker {
     }
   }
 
-  // ID правил и слоёв поставщика (D-107) — по одной карте префиксов: правило
-  // SCR-01 и слой SCR-02 одного поставщика можно, ID слоя = ID правила — нет.
-  // Слои между собой ID делят, как kernel и domain (ARC-02): правила
-  // поставщика заявлены раньше его слоёв.
+  // ID правил, слоёв и доступов поставщика (D-107, D-110) — по одной карте
+  // префиксов: правило SCR-01 и слой SCR-02 одного поставщика можно, ID слоя
+  // или доступа = ID правила — нет. Слои и доступы ID делят, как kernel и
+  // domain (ARC-02): правила поставщика заявлены раньше его слоёв.
   private static verified(
     providers: readonly GraphProvider[],
   ): readonly GraphRule[] {
@@ -79,6 +80,19 @@ export class ProviderRuleChecker {
           form: `${at} — ID ${layer.rule} не по форме <ПРЕФИКС>-<NN>`,
           twice: `${at} — ID ${layer.rule} объявлен дважды`,
         });
+        const edges = [
+          ...layer.sees.map((a) => ['sees', a] as const),
+          ...(layer.seenBy ?? []).map((a) => ['seenBy', a] as const),
+        ];
+        for (const [edge, { layer: to, rule }] of edges) {
+          if (rule === undefined) continue;
+          const access = `ARC-13: доступ ${edge} ${to} слоя ${layer.name} поставщика ${provider.name}`;
+          ids.layer(rule, provider.name, {
+            at: access,
+            form: `${access} — ID ${rule} не по форме <ПРЕФИКС>-<NN>`,
+            twice: `${access} — ID ${rule} объявлен дважды`,
+          });
+        }
       }
     }
     return all;
@@ -95,7 +109,8 @@ type IdRefusals = {
 /**
  * Занятые ID поставщиков (ARC-13): префикс принадлежит одному поставщику (по
  * `name`), префиксы пакета зарезервированы; ID правила — один на правило, ID
- * слоя не совпадает с ID правила, а слои его делят. Нарушение — исключение.
+ * слоя и доступа слоя не совпадает с ID правила, а слои и доступы его делят.
+ * Нарушение — исключение.
  */
 class ProviderIds {
   private readonly owners = new Map<string, string>();
