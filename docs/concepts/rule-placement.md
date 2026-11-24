@@ -6,7 +6,7 @@ covers:
   - src/testing/example/platform/domain/todo/task/task.rules.ts
   - src/testing/example/platform/domain/todo/task/uc/assign-task.uc.ts
   - src/testing/example/backend/todo/infra/task.json-repo.ts
-verified: 517415a
+verified: 269f105
 ---
 
 # Куда поместить правило
