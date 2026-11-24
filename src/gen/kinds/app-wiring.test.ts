@@ -142,17 +142,29 @@ describe('AppWiring.moduleNotes', () => {
     );
   });
 
-  it('без assembly — подсказка без правок, с именем пакета', () => {
-    const notes = wiring({ ...CUSTOM, package: '@acme/{m}' }).moduleNotes();
+  it('без assembly — подсказка без правок: элемент списка, вход пакета, контракт', () => {
+    const w = wiring({ ...CUSTOM, package: '@acme/{m}' });
+    expect(w.moduleDependencies()).toEqual([]);
+    const notes = w.moduleNotes();
     expect(notes[0]).toContain('gen.assembly');
+    expect(notes.join('\n')).toContain(
+      '{ def: StreamModuleDef, create: (deps) => createStreamModule({ ...deps }) }',
+    );
+    expect(notes.join('\n')).toContain(
+      "createStreamModule — из входа '@acme/stream', StreamModuleDef — из '@acme/domain/stream/contract'",
+    );
     expect(notes.join('\n')).toContain('"@acme/stream": "workspace:*"');
     expect(notes.at(-1)).toContain('bun install');
   });
 
   it('корень сборки не на /src — зависимость вручную с каталогом', () => {
-    const notes = wiring({ ...MONO, assembly: 'app' }).moduleNotes();
-    expect(notes[0]).toContain('Вставь вручную в package.json');
-    expect(notes[0]).toContain('"@acme/stream": "workspace:*"');
+    const w = wiring({ ...MONO, assembly: 'app' });
+    expect(w.moduleDependencies()).toEqual([]);
+    const notes = w.moduleNotes();
+    expect(notes[0]).toBe(
+      'Вставь вручную в package.json пакета с каталогом app, dependencies: "@acme/stream": "workspace:*"',
+    );
+    expect(notes.at(-1)).toContain('bun install');
   });
 });
 

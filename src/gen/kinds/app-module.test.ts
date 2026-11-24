@@ -140,39 +140,6 @@ test('без gen.package (single): относительные импорты, з
   ]);
 });
 
-test('gen.package, корень сборки не на /src — зависимость вручную с каталогом', () => {
-  const p = plan({
-    domainImport: '@acme/domain/{m}',
-    package: '@acme/{m}',
-    assembly: 'app',
-  });
-  expect(p.dependencies ?? []).toEqual([]);
-  const text = (p.notes ?? []).join('\n');
-  expect(text).toContain('"@acme/stream": "workspace:*"');
-  expect(text).toContain('package.json пакета с каталогом app');
-  expect(text).toContain(
-    'bun install — чтобы пакет модуля появился в node_modules',
-  );
-});
-
-test('своя раскладка без gen.assembly — правок нет, общая подсказка', () => {
-  const p = plan({ domainImport: '@acme/domain/{m}', package: '@acme/{m}' });
-  expect(p.edits).toEqual([]);
-  expect(p.dependencies ?? []).toEqual([]);
-  const text = (p.notes ?? []).join('\n');
-  expect(text).toContain('gen.assembly');
-  expect(text).toContain(
-    '{ def: StreamModuleDef, create: (deps) => createStreamModule({ ...deps }) }',
-  );
-  expect(text).toContain("'@acme/stream'");
-  expect(text).toContain("'@acme/domain/stream/contract'");
-  expect(text).toContain(
-    'манифест приложения (gen.appDef в dmg-core.json), modules: StreamModuleDef',
-  );
-  expect(text).toContain('"@acme/stream": "workspace:*"');
-  expect(text).not.toContain('src/app/app.ts');
-});
-
 test('длинные имена: импорт с одним именем biome не переносит — одна строка', () => {
   const p = planAppModule(
     parseArgs(
