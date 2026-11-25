@@ -2,7 +2,7 @@
 covers:
   - src/graph/**
   - src/cli/graph-command.ts
-verified: 4ab3899
+verified: 4fb9e13
 ---
 
 # Граф приложения
@@ -148,7 +148,7 @@ dmg-core graph <файл> [--out <путь>]
 
 ```sh
 $ bun src/cli/main.ts graph src/testing/example/screen/screen.graph.ts --out /tmp/g.json
-Записан: /tmp/g.json (узлов — 32, рёбер — 39, внешних ссылок — 0)
+Записан: /tmp/g.json (узлов — 35, рёбер — 47, внешних ссылок — 0)
 ```
 
 В документе — поставщики `dmg-core` и `example-screen`; первый узел — корень `example` вида `app`, последние — `example-ui` и `example-ui/tasks`.
