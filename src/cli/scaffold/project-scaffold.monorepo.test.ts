@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { applyPlan } from '../../gen/apply';
 import type { GenPlan } from '../../gen/plan';
+import { ProjectConfig } from '../../gen/project-config';
 import { CliConfig } from '../cli-config';
 import { PackageSource } from '../package-source';
 import { ProjectScaffold } from './project-scaffold';
@@ -26,7 +27,7 @@ const MONOREPO_FILES = [
   'package.json',
   'tsconfig.json',
   'biome.json',
-  'dmg-core.json',
+  '.dmg/config.json',
   'scripts/arch-check.ts',
   'scripts/acme.graph.ts',
   'platform/kernel/package.json',
@@ -242,9 +243,9 @@ describe('ProjectScaffold monorepo: tsconfig', () => {
 });
 
 describe('ProjectScaffold monorepo: прочие конфиги', () => {
-  it('dmg-core.json — все ключи осей gen в порядке полей (пакет be-{m}), разбирается parse', () => {
+  it('.dmg/config.json — все ключи осей gen в порядке полей (пакет be-{m}), разбирается ProjectConfig и CliConfig', () => {
     const config = new CliConfig(pkg);
-    const data = json('dmg-core.json');
+    const data = json('.dmg/config.json');
     const gen = {
       domain: 'platform/domain/src/{m}',
       backend: 'backend/{m}/src',
@@ -257,7 +258,7 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
 
     expect(data).toEqual({ ...config.defaults(), gen });
     expect(Object.keys(data.gen)).toEqual(Object.keys(gen));
-    expect(config.parse(data).gen).toEqual(gen);
+    expect(config.parse(ProjectConfig.parse(data)).gen).toEqual(gen);
   });
 
   it('arch-check.ts — каталоги слоёв из GenLayout.dirs(), раннер runners/cli/src', () => {
@@ -265,6 +266,7 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
 
     expect(src).toContain('project: root,');
     expect(src).toContain('layout: layout.dirs(),');
+    expect(src).toContain('layers: layout.layerDirs(),');
     expect(src).toContain("runners: [join(root, 'runners/cli/src')]");
     expect(src).toContain("graphEntry: join(root, 'scripts/acme.graph.ts'),");
     expect(src).not.toContain('root: join(');
@@ -299,7 +301,7 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
     expect(file('platform/domain/src/school.app.ts', name)).toContain(
       "export const SchoolAppDef = AppDef.define({\n  name: 'school',",
     );
-    expect(json('dmg-core.json', name).gen.appDef).toBe(
+    expect(json('.dmg/config.json', name).gen.appDef).toBe(
       'platform/domain/src/school.app.ts',
     );
     expect(file('scripts/arch-check.ts', name)).toContain(

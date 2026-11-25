@@ -30,7 +30,7 @@ export interface GenArgs {
   write: boolean;
   /** Режим перевода legacy-модуля: существующие точки входа не перезаписываются. */
   adopt: boolean;
-  /** Раскладка проекта (`dmg-core.json`, `gen`) */
+  /** Раскладка проекта (`.dmg/config.json`, `gen`) */
   layout: GenLayout;
   /**
    * Диапазоны внешних зависимостей пакета модуля (`gen.package`): имя →

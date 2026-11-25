@@ -15,7 +15,7 @@ export type ScaffoldOptions = {
   readonly profile: ScaffoldProfile;
   /** Имя пакета проекта (`package.json`; без scope — имя `AppDef`). */
   readonly name: string;
-  /** Пакет dmg-core: версия, версии зависимостей, значения `dmg-core.json`. */
+  /** Пакет dmg-core: версия, версии зависимостей, значения `.dmg/config.json`. */
   readonly pkg: PackageSource;
   /** Корень проекта; нет — пути плана относительные (как у `GenLayout`). */
   readonly root?: string;
@@ -75,7 +75,7 @@ export type ScaffoldLayoutData = {
   readonly runner: string;
   /** `include` корневого tsconfig.json. */
   readonly include: readonly string[];
-  /** Секция `gen` dmg-core.json. */
+  /** Секция `gen` `.dmg/config.json`. */
   readonly gen: GenLayoutSettings;
   readonly imports: ScaffoldImports;
   readonly appDef: ScaffoldAppDef;

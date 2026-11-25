@@ -49,14 +49,14 @@ function expectNoStack(stderr: string): void {
 }
 
 describe('dmg-core graph', () => {
-  test('успех: graph.json в cwd, шапка и узлы с поставщиком', () => {
+  test('успех: .dmg/graph.json в cwd, шапка и узлы с поставщиком', () => {
     writeProject();
     const result = run(EXAMPLE);
     expect(result.code).toBe(0);
     expect(result.stderr).toBe('');
-    const out = join(temp().path, 'graph.json');
+    const out = join(temp().path, '.dmg/graph.json');
     expect(result.stdout).toMatch(
-      /^Записан: .*graph\.json \(узлов — \d+, рёбер — \d+, внешних ссылок — \d+\)$/m,
+      /^Записан: .*\.dmg\/graph\.json \(узлов — \d+, рёбер — \d+, внешних ссылок — \d+\)$/m,
     );
     expect(existsSync(out)).toBe(true);
     const doc = readJson(out);
@@ -80,7 +80,7 @@ describe('dmg-core graph', () => {
 
   test('два прогона — файлы побайтно равны', () => {
     writeProject();
-    const out = join(temp().path, 'graph.json');
+    const out = join(temp().path, '.dmg/graph.json');
     expect(run(EXAMPLE).code).toBe(0);
     const first = readFileSync(out);
     expect(run(EXAMPLE).code).toBe(0);
@@ -94,7 +94,7 @@ describe('dmg-core graph', () => {
     expect(result.stdout).toContain('sub/g.json');
     expect(existsSync(join(temp().path, 'sub/g.json'))).toBe(true);
     expect(readJson(join(temp().path, 'sub/g.json')).format).toBe(1);
-    expect(existsSync(join(temp().path, 'graph.json'))).toBe(false);
+    expect(existsSync(join(temp().path, '.dmg/graph.json'))).toBe(false);
   });
 
   test('без файла — код 2, сообщение и USAGE', () => {
@@ -112,7 +112,7 @@ describe('dmg-core graph', () => {
     expect(result.code).toBe(2);
     expect(result.stderr).toContain('graph: неизвестный флаг --color');
     expect(result.stderr).toContain(USAGE_GRAPH);
-    expect(existsSync(join(temp().path, 'graph.json'))).toBe(false);
+    expect(existsSync(join(temp().path, '.dmg/graph.json'))).toBe(false);
   });
 
   test('второй файл и флаг с одним дефисом — код 2, аргумент назван, USAGE', () => {
@@ -124,7 +124,7 @@ describe('dmg-core graph', () => {
     const short = run('-o', 'x.json', EXAMPLE);
     expect(short.code).toBe(2);
     expect(short.stderr).toContain('graph: неизвестный флаг -o');
-    expect(existsSync(join(temp().path, 'graph.json'))).toBe(false);
+    expect(existsSync(join(temp().path, '.dmg/graph.json'))).toBe(false);
     expect(existsSync(join(temp().path, 'x.json'))).toBe(false);
   });
 
@@ -134,7 +134,7 @@ describe('dmg-core graph', () => {
     expect(result.code).toBe(2);
     expect(result.stderr).toContain('graph: у флага --out нет значения');
     expect(result.stderr).toContain(USAGE_GRAPH);
-    expect(existsSync(join(temp().path, 'graph.json'))).toBe(false);
+    expect(existsSync(join(temp().path, '.dmg/graph.json'))).toBe(false);
   });
 
   test('файла нет — код 1, путь назван, без стека', () => {
@@ -158,7 +158,7 @@ describe('dmg-core graph', () => {
     expect(result.stderr).toContain('graph: ');
     expect(result.stderr).toContain('wrong.ts');
     expectNoStack(result.stderr);
-    expect(existsSync(join(temp().path, 'graph.json'))).toBe(false);
+    expect(existsSync(join(temp().path, '.dmg/graph.json'))).toBe(false);
   });
 
   test('нет version в package.json — код 1, без стека', () => {
@@ -169,7 +169,7 @@ describe('dmg-core graph', () => {
       'graph: в package.json проекта нет version',
     );
     expectNoStack(result.stderr);
-    expect(existsSync(join(temp().path, 'graph.json'))).toBe(false);
+    expect(existsSync(join(temp().path, '.dmg/graph.json'))).toBe(false);
   });
 
   test('GraphError — код 1, текст ошибки, без стека', () => {
@@ -201,6 +201,6 @@ export default {
     expect(result.stderr).toContain('graph: ');
     expect(result.stderr).toContain('Вид узла «module» уже зарегистрирован');
     expectNoStack(result.stderr);
-    expect(existsSync(join(temp().path, 'graph.json'))).toBe(false);
+    expect(existsSync(join(temp().path, '.dmg/graph.json'))).toBe(false);
   });
 });

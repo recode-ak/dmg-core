@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { applyPlan } from '../../gen/apply';
 import { GenError } from '../../gen/cli';
 import type { GenPlan } from '../../gen/plan';
+import { ProjectConfig } from '../../gen/project-config';
 import { CliConfig } from '../cli-config';
 import { PackageSource } from '../package-source';
 import { ProjectScaffold } from './project-scaffold';
@@ -27,7 +28,7 @@ const SINGLE_FILES = [
   'package.json',
   'tsconfig.json',
   'biome.json',
-  'dmg-core.json',
+  '.dmg/config.json',
   'scripts/arch-check.ts',
   'scripts/acme.graph.ts',
   'src/platform/domain/acme.app.ts',
@@ -158,8 +159,8 @@ describe('ProjectScaffold single: package.json', () => {
 });
 
 describe('ProjectScaffold single: прочие конфиги', () => {
-  it('.gitignore — зависимости, каталог данных и graph.json (артефакт сборки)', () => {
-    expect(file('.gitignore')).toBe('node_modules/\ndata/\ngraph.json\n');
+  it('.gitignore — зависимости, каталог данных и .dmg/graph.json (артефакт сборки)', () => {
+    expect(file('.gitignore')).toBe('node_modules/\ndata/\n.dmg/graph.json\n');
   });
 
   it('acme.graph.ts — вход dmg-core graph: GraphApp с AppDef, без поставщиков', () => {
@@ -188,9 +189,9 @@ describe('ProjectScaffold single: прочие конфиги', () => {
     });
   });
 
-  it('dmg-core.json — все ключи осей gen в порядке полей, разбирается parse', () => {
+  it('.dmg/config.json — все ключи осей gen в порядке полей, разбирается ProjectConfig и CliConfig', () => {
     const config = new CliConfig(pkg);
-    const data = json('dmg-core.json');
+    const data = json('.dmg/config.json');
     const gen = {
       domain: 'src/platform/domain/{m}',
       backend: 'src/backend/{m}',
@@ -201,7 +202,7 @@ describe('ProjectScaffold single: прочие конфиги', () => {
 
     expect(data).toEqual({ ...config.defaults(), gen });
     expect(Object.keys(data.gen)).toEqual(Object.keys(gen));
-    expect(config.parse(data).gen).toEqual(gen);
+    expect(config.parse(ProjectConfig.parse(data)).gen).toEqual(gen);
   });
 
   it('arch-check.ts — каталоги слоёв из GenLayout.dirs(), проект и раннер', () => {
@@ -214,6 +215,7 @@ describe('ProjectScaffold single: прочие конфиги', () => {
     expect(src).toContain("entry: 'contract',");
     expect(src).toContain('project: root,');
     expect(src).toContain('layout: layout.dirs(),');
+    expect(src).toContain('layers: layout.layerDirs(),');
     expect(src).toContain("runners: [join(root, 'src/runners/cli')]");
     expect(src).toContain("graphEntry: join(root, 'scripts/acme.graph.ts'),");
     expect(src).not.toContain('layout.module');

@@ -1,5 +1,6 @@
 import { LINE_WIDTH, sortImports } from '../../gen/import-order';
 import { PACKAGE_TEST } from '../../gen/kinds/module-package';
+import { ProjectConfig } from '../../gen/project-config';
 import { CliConfig } from '../cli-config';
 import type { Dependencies, PackageSource } from '../package-source';
 import type {
@@ -20,7 +21,7 @@ const TOOLS = ['@biomejs/biome', 'typescript', '@types/bun'];
 
 /**
  * Конфиги проекта от корня: `.gitignore`, `package.json` (у monorepo —
- * workspaces), `tsconfig.json`, `biome.json`, `dmg-core.json`, скрипты
+ * workspaces), `tsconfig.json`, `biome.json`, `.dmg/config.json`, скрипты
  * `scripts/arch-check.ts` и `scripts/<имя>.graph.ts` (вход `dmg-core graph`);
  * у пакетов workspaces — свои `package.json` и `tsconfig.json`.
  */
@@ -44,12 +45,15 @@ export class ProjectFiles {
 
   private root(): ScaffoldFile[] {
     return [
-      { path: '.gitignore', content: 'node_modules/\ndata/\ngraph.json\n' },
+      {
+        path: '.gitignore',
+        content: `node_modules/\ndata/\n${ProjectConfig.graphFile}\n`,
+      },
       { path: 'package.json', content: this.manifest(this.packageJson()) },
       { path: 'tsconfig.json', content: this.json(this.tsconfig()) },
       { path: 'biome.json', content: this.json(this.biome()) },
       {
-        path: CliConfig.file,
+        path: ProjectConfig.file,
         content: this.json({
           ...new CliConfig(this.pkg).defaults(),
           gen: this.layout.gen,
@@ -229,9 +233,10 @@ export class ProjectFiles {
     return `/**
  * \`bun run arch:check\` — контрактные проверки архитектуры (\`ArchChecker\`):
  * состав приложения (\`AppDef\`, поставщики с правилами и слоями) — из входа
- * графа \`${appDef.name}.graph.ts\`, каталоги слоёв — из \`dmg-core.json\`
- * (\`GenLayout.dirs()\`), раннеры-процессы — списком; файл входа графа
- * (\`graphEntry\`) — его замыкание импортов не доходит до реализаций (ARC-16).
+ * графа \`${appDef.name}.graph.ts\`, каталоги слоёв — из \`.dmg/config.json\`
+ * (\`GenLayout.dirs()\`, \`layerDirs()\`), раннеры-процессы — списком; файл
+ * входа графа (\`graphEntry\`) — его замыкание импортов не доходит до
+ * реализаций (ARC-16).
  * Выход 1 — есть нарушения. \`--strict\` — незаполненные \`TODO\` в описаниях
  * Def тоже нарушения (MAN-01).
  */
@@ -245,6 +250,7 @@ const app: ArchApp = {
   entry: 'contract',
   project: root,
   layout: layout.dirs(),
+  layers: layout.layerDirs(),
   runners: [join(root, '${runner}')],
   graphEntry: join(root, '${appDef.graphFile}'),
 };
@@ -266,7 +272,7 @@ process.exitCode = reportArchCheck([app], (line) => console.log(line), {
     ]);
     return `/**
  * Вход \`dmg-core graph\` (\`bun run graph\`): документ графа приложения
- * \`graph.json\`. Поставщиков графа сверх домена добавляй в \`providers\`.
+ * \`.dmg/graph.json\`. Поставщиков графа сверх домена добавляй в \`providers\`.
  */
 ${imports}
 

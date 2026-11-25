@@ -55,7 +55,7 @@ describe('checkDelivered: пути пакета в доставленных ко
 
 it('REQUIRED: init доставляет конфиг, скил и вставку; пакет несёт индекс и правила', () => {
   expect(REQUIRED).toEqual([
-    'dmg-core.json',
+    '.dmg/config.json',
     'AGENTS.md',
     '.claude/skills/dmg-architecture/SKILL.md',
     'node_modules/dmg-core/llms.txt',

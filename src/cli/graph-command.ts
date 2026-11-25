@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { ProjectConfig } from '../gen/project-config';
 import { AppGraph } from '../graph/domain/app-graph';
 import type { GraphApp } from '../graph/domain/graph-app.types';
 import { GraphError } from '../graph/graph-error';
@@ -16,7 +17,7 @@ class GraphInputError extends Error {}
 
 /**
  * Команда `dmg-core graph <файл> [--out <путь>]` (D-96): документ графа
- * приложения формата 1 — в `graph.json` корня проекта или в `--out`. Файл —
+ * приложения формата 1 — в `.dmg/graph.json` корня проекта или в `--out`. Файл —
  * `export default` вида `GraphApp`; версия приложения — из `package.json`
  * корня. Ошибка ввода — `usage: true` (код 2 и `USAGE` у вызывающего).
  * @see src/cli/main-graph.test.ts
@@ -53,7 +54,7 @@ export class GraphCommand {
 
   private parse(argv: readonly string[]): GraphArgs {
     let file: string | undefined;
-    let out = 'graph.json';
+    let out: string = ProjectConfig.graphFile;
     for (let i = 0; i < argv.length; i++) {
       const arg = argv[i] ?? '';
       if (arg === '--out') {

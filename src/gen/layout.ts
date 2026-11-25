@@ -1,9 +1,10 @@
-import { readFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { FrameworkDirs } from '../arch/layer-checker.types';
 import type { ModulePackage } from './layout.types';
+import { ProjectConfig, ProjectConfigError } from './project-config';
+import type { LayerPlace } from './project-config.types';
 
-/** Раскладка проекта для генераторов (`dmg-core.json`, `gen`); `{m}` — имя модуля */
+/** Раскладка проекта для генераторов (`.dmg/config.json`, `gen`); `{m}` — имя модуля */
 export interface GenLayoutSettings {
   /** Каталог модуля домена */
   domain: string;
@@ -33,23 +34,6 @@ export interface GenLayoutSettings {
   appDef?: string;
 }
 
-/** Поля секции `gen`. */
-const FIELDS = [
-  'domain',
-  'backend',
-  'kernel',
-  'domainImport',
-  'package',
-  'assembly',
-  'appDef',
-];
-
-/** Переименованные ключи секции `gen` (D-106): ошибка с новым именем, без псевдонима. */
-const RENAMED: Readonly<Record<string, string>> = {
-  app: 'backend',
-  compositionRoot: 'assembly',
-};
-
 /** Ключи-каталоги без `{m}`; не заданы — значение только при раскладке по умолчанию. */
 type DirKey = 'assembly' | 'kernel';
 
@@ -63,13 +47,8 @@ const SRC = '/src';
  * (MAN-10, ARC-06). Один источник путей для `gen` и `ArchApp.layout`.
  */
 export class GenLayout {
-  /** Файл настроек проекта; раскладка — его секция `gen` */
-  static readonly configFile = 'dmg-core.json';
-
-  static readonly defaults: GenLayoutSettings = {
-    domain: 'src/platform/domain/{m}',
-    backend: 'src/backend/{m}',
-  };
+  /** Прежняя точка входа значений по умолчанию (каркас, `CliConfig`); источник — `ProjectConfig` */
+  static readonly defaults: GenLayoutSettings = ProjectConfig.genDefaults;
 
   /**
    * Сборка по умолчанию — только при раскладке по умолчанию: при своей
@@ -81,92 +60,28 @@ export class GenLayout {
   /** Kernel по умолчанию — как сборка, только при раскладке по умолчанию */
   static readonly defaultKernel = 'src/platform/kernel';
 
-  /** Раскладка проекта из `dmg-core.json`; нет файла или секции — по умолчанию */
+  /** Раскладка из `.dmg/config.json`; нет файла — по умолчанию; бросает `ProjectConfigError` */
   static async read(root: string): Promise<GenLayout> {
-    const text = await readFile(join(root, GenLayout.configFile), 'utf8').catch(
-      () => undefined,
-    );
-    const gen = text === undefined ? undefined : JSON.parse(text).gen;
-    const settings =
-      gen === undefined
-        ? { ...GenLayout.defaults }
-        : GenLayout.settingsFrom(gen);
-    return new GenLayout(settings, root);
+    const config = await ProjectConfig.read(root);
+    return config === undefined
+      ? new GenLayout({ ...ProjectConfig.genDefaults }, root)
+      : GenLayout.from(config, root);
   }
 
-  /** Секция `gen`: шаблоны с `{m}` поверх значений по умолчанию; бросает Error с полем */
-  static settingsFrom(json: unknown): GenLayoutSettings {
-    if (typeof json !== 'object' || json === null || Array.isArray(json)) {
-      return GenLayout.fail('gen — объект');
-    }
-    const data = json as Record<string, unknown>;
-    for (const [old, renamed] of Object.entries(RENAMED)) {
-      if (Object.hasOwn(data, old)) {
-        GenLayout.fail(`gen.${old} переименован в gen.${renamed}`);
-      }
-    }
-    for (const key of Object.keys(data)) {
-      if (!FIELDS.includes(key)) {
-        GenLayout.fail(`неизвестное поле «gen.${key}»`);
-      }
-    }
-    const gen = { ...GenLayout.defaults };
-    for (const key of ['domain', 'backend'] as const) {
-      const value = data[key];
-      if (value === undefined) continue;
-      if (typeof value !== 'string' || !value.includes('{m}')) {
-        GenLayout.fail(`gen.${key} — шаблон пути с {m}`);
-      }
-      gen[key] = value as string;
-    }
-    if (data.domainImport !== undefined) {
-      const value = data.domainImport;
-      if (typeof value !== 'string' || !value.includes('{m}')) {
-        GenLayout.fail('gen.domainImport — шаблон с {m}');
-      }
-      gen.domainImport = value as string;
-    }
-    for (const key of ['assembly', 'kernel'] as const) {
-      const value = data[key];
-      if (value === undefined) continue;
-      if (typeof value !== 'string' || value.includes('{m}')) {
-        GenLayout.fail(`gen.${key} — путь каталога без {m}`);
-      }
-      gen[key] = value as string;
-    }
-    if (data.appDef !== undefined) {
-      const value = data.appDef;
-      if (typeof value !== 'string' || value.includes('{m}')) {
-        GenLayout.fail('gen.appDef — путь файла без {m}');
-      }
-      gen.appDef = value as string;
-    }
-    if (data.package !== undefined) {
-      const value = data.package;
-      if (typeof value !== 'string' || !value.includes('{m}')) {
-        GenLayout.fail('gen.package — шаблон имени пакета с {m}');
-      }
-      if (!gen.backend.endsWith(SRC)) {
-        GenLayout.fail(
-          `gen.package — gen.backend должен оканчиваться на ${SRC}`,
-        );
-      }
-      if (gen.domainImport === undefined) {
-        GenLayout.fail('gen.package — нужен gen.domainImport');
-      }
-      gen.package = value as string;
-    }
-    return gen;
+  /** Раскладка по разобранному конфигу: секция `gen` и места слоёв, от корня root */
+  static from(config: ProjectConfig, root: string): GenLayout {
+    return new GenLayout(config.gen, root, config.layers);
   }
 
   private static fail(message: string): never {
-    throw new Error(`${GenLayout.configFile}: ${message}`);
+    throw new ProjectConfigError(`${ProjectConfig.file}: ${message}`);
   }
 
-  /** root — корень проекта; «.» оставляет пути относительными */
+  /** root — корень проекта; «.» оставляет пути относительными; layers — места слоёв поставщиков */
   constructor(
     private readonly settings: GenLayoutSettings,
     private readonly root: string,
+    private readonly layers: Readonly<Record<string, LayerPlace>> = {},
   ) {}
 
   domainDir(module: string): string {
@@ -205,6 +120,19 @@ export class GenLayout {
       backend: resolve(this.root, backend),
       assembly: this.requiredDir('assembly'),
     };
+  }
+
+  /**
+   * Каталоги слоёв поставщиков — значение `ArchApp.layers` (D-107):
+   * абсолютные, `{m}` сохраняется
+   */
+  layerDirs(): Record<string, string[]> {
+    return Object.fromEntries(
+      Object.entries(this.layers).map(([name, place]) => [
+        name,
+        [resolve(this.root, place.dir)],
+      ]),
+    );
   }
 
   private requiredDir(key: DirKey): string {

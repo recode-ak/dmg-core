@@ -103,8 +103,8 @@ describe('ProjectInit: dry-run', () => {
   });
 
   it('коллизия видна и в dry-run', async () => {
-    await put('dmg-core.json', '{}\n');
-    expect(await failure({ dryRun: true })).toContain('dmg-core.json');
+    await put('.dmg/config.json', '{}\n');
+    expect(await failure({ dryRun: true })).toContain('.dmg/config.json');
   });
 });
 
@@ -117,11 +117,11 @@ describe('ProjectInit: запись', () => {
     expect(await read('src/runners/assembly/app.ts')).toContain('class App');
   });
 
-  it('коллизия (dmg-core.json) — GenError, каталог как до запуска', async () => {
-    await put('dmg-core.json', '{}\n');
+  it('коллизия (.dmg/config.json) — GenError, каталог как до запуска', async () => {
+    await put('.dmg/config.json', '{}\n');
     await put('package.json', '{ "name": "acme" }\n');
     const before = await snapshot();
-    expect(await failure()).toContain('dmg-core.json');
+    expect(await failure()).toContain('.dmg/config.json');
     expect(await snapshot()).toEqual(before);
   });
 });

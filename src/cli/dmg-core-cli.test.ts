@@ -20,6 +20,11 @@ const PACKAGE_FILES: Record<string, string> = {
   'agents/common.md': 'Общий блок пакета.\n',
 };
 
+const LEGACY = {
+  ok: false,
+  messages: ['dmg-core.json переименован в .dmg/config.json — перенеси файл'],
+};
+
 let work: string;
 let pkgRoot: string;
 let root: string;
@@ -98,7 +103,7 @@ describe('init', () => {
     const result = await (await cli()).init(root);
     expect(result).toEqual({ ok: true, messages: [] });
 
-    expect(JSON.parse(await read('dmg-core.json'))).toEqual({
+    expect(JSON.parse(await read('.dmg/config.json'))).toEqual({
       skills: { names: ['demo'], dirs: ['.claude/skills'] },
       roles: {
         names: ['alpha', 'beta'],
@@ -116,13 +121,25 @@ describe('init', () => {
     expect(alpha).toContain('tools: Read, Bash\n');
     expect(alpha).toEndWith('Общий блок пакета.\n');
     expect(await read('AGENTS.md')).toContain('node_modules/dmg-core/llms.txt');
+    expect(existsSync(join(root, 'dmg-core.json'))).toBe(false);
     expect(await (await cli()).check(root)).toEqual({ ok: true, messages: [] });
+  });
+
+  test.each([
+    ['без --profile', []],
+    ['с --profile', ['--profile', 'single', '--name', 'acme']],
+  ])('%s: dmg-core.json — отказ, ничего не записано', async (_name, argv) => {
+    await write('dmg-core.json', '{}\n');
+    const before = await snapshot();
+    expect(await (await cli()).init(root, argv)).toEqual(LEGACY);
+    expect(await snapshot()).toEqual(before);
+    expect(existsSync(join(root, '.dmg'))).toBe(false);
   });
 
   test('идемпотентен и не трогает существующий конфиг и текст инструкций', async () => {
     await write('AGENTS.md', '# Правила проекта\n');
     await write(
-      'dmg-core.json',
+      '.dmg/config.json',
       JSON.stringify({ roles: { names: ['beta'] }, instructions: 'AGENTS.md' }),
     );
     await (await cli()).init(root);
@@ -132,7 +149,7 @@ describe('init', () => {
 
     expect(first.has('.claude/agents/alpha.md')).toBe(false);
     expect(first.get('AGENTS.md')).toStartWith('# Правила проекта\n\n');
-    expect(JSON.parse(first.get('dmg-core.json') ?? '')).toEqual({
+    expect(JSON.parse(first.get('.dmg/config.json') ?? '')).toEqual({
       roles: { names: ['beta'] },
       instructions: 'AGENTS.md',
     });
@@ -140,12 +157,32 @@ describe('init', () => {
 });
 
 describe('sync и check', () => {
-  test('без dmg-core.json — не ok, подсказка про init', async () => {
+  test('без .dmg/config.json — не ok, подсказка про init', async () => {
     const result = await (await cli()).check(root);
     expect(result.ok).toBe(false);
     expect(result.messages).toEqual([
-      'нет dmg-core.json — запусти dmg-core init',
+      'нет .dmg/config.json — запусти dmg-core init',
     ]);
+  });
+
+  test('dmg-core.json — отказ sync и check с новым путём, ничего не записано', async () => {
+    await write('dmg-core.json', '{}\n');
+    const before = await snapshot();
+    expect(await (await cli()).sync(root)).toEqual(LEGACY);
+    expect(await (await cli()).check(root)).toEqual(LEGACY);
+    expect(await snapshot()).toEqual(before);
+  });
+
+  test('providers: [] и layers — sync ok, слои доставку не меняют', async () => {
+    await write(
+      '.dmg/config.json',
+      JSON.stringify({
+        providers: [],
+        layers: { ui: { dir: 'frontend/{m}/src', package: '@acme/fe-{m}' } },
+      }),
+    );
+    expect(await (await cli()).sync(root)).toEqual({ ok: true, messages: [] });
+    expect(await (await cli()).check(root)).toEqual({ ok: true, messages: [] });
   });
 
   test('check: нет копии, правка руками, вставки нет', async () => {
@@ -185,7 +222,7 @@ describe('sync и check', () => {
     await (await cli()).init(root);
     await write('.claude/agents/own.md', 'Своя роль проекта.\n');
     await write(
-      'dmg-core.json',
+      '.dmg/config.json',
       JSON.stringify({ skills: { names: [] }, roles: { names: ['beta'] } }),
     );
 
@@ -206,7 +243,7 @@ describe('sync и check', () => {
     const result = await (await cli()).init(root);
     expect(result.ok).toBe(false);
     expect(result.messages).toEqual([
-      'файл не от dmg-core (удали его или исключи роль/скил в dmg-core.json): .claude/agents/alpha.md',
+      'файл не от dmg-core (удали его или исключи роль/скил в .dmg/config.json): .claude/agents/alpha.md',
     ]);
     expect(await read('.claude/agents/alpha.md')).toBe('Ручная alpha.\n');
     expect(Marker.versionOf(await read('.claude/agents/beta.md'))).toBe(
@@ -216,7 +253,7 @@ describe('sync и check', () => {
 
   test('цель neutral: исходник роли с меткой и общий блок отдельным файлом', async () => {
     await write(
-      'dmg-core.json',
+      '.dmg/config.json',
       JSON.stringify({
         skills: { dirs: ['.pi/skills'] },
         roles: {
@@ -240,22 +277,17 @@ describe('sync и check', () => {
   test.each([
     [
       { roles: { names: ['gamma'] } },
-      'dmg-core.json: нет роли «gamma» в пакете',
+      '.dmg/config.json: нет роли «gamma» в пакете',
     ],
-    [{ skills: { names: ['x'] } }, 'dmg-core.json: нет скила «x» в пакете'],
+    [{ skills: { names: ['x'] } }, '.dmg/config.json: нет скила «x» в пакете'],
     [
       { roles: { targets: [{ dir: 'r', format: 'vim' }] } },
-      'dmg-core.json: roles.targets[0].format — neutral, claude или pi',
+      '.dmg/config.json: roles.targets[0].format — neutral, claude или pi',
     ],
-    [
-      { roles: { targets: [{ dir: 'r', format: 'neutral' }] } },
-      'dmg-core.json: roles.targets[0].common — путь общего блока для neutral',
-    ],
-    [{ extra: 1 }, 'dmg-core.json: неизвестное поле «extra»'],
   ])(
-    'ошибка конфига — не ok, сообщение с полем: %#',
+    'ошибка конфига — не ok, сообщение с префиксом файла: %#',
     async (config, message) => {
-      await write('dmg-core.json', JSON.stringify(config));
+      await write('.dmg/config.json', JSON.stringify(config));
       expect(await (await cli()).sync(root)).toEqual({
         ok: false,
         messages: [message],
@@ -265,7 +297,7 @@ describe('sync и check', () => {
 });
 
 describe('gen', () => {
-  test('без dmg-core.json — раскладка по умолчанию, импорт домена относительный', async () => {
+  test('без .dmg/config.json — раскладка по умолчанию, импорт домена относительный', async () => {
     const result = await (await cli()).gen(root, ['module', 'todo', '--write']);
     expect(result.ok).toBe(true);
     expect(result.messages).toContain(
@@ -279,9 +311,18 @@ describe('gen', () => {
     );
   });
 
-  test('секция gen в dmg-core.json задаёт каталоги и импорт домена', async () => {
+  test('dmg-core.json — отказ, а не раскладка по умолчанию; ничего не записано', async () => {
+    await write('dmg-core.json', '{}\n');
+    const before = await snapshot();
+    expect(
+      await (await cli()).gen(root, ['module', 'todo', '--write']),
+    ).toEqual(LEGACY);
+    expect(await snapshot()).toEqual(before);
+  });
+
+  test('секция gen в .dmg/config.json задаёт каталоги и импорт домена', async () => {
     await write(
-      'dmg-core.json',
+      '.dmg/config.json',
       JSON.stringify({
         gen: {
           domain: 'packages/domain/src/{m}',
@@ -302,7 +343,7 @@ describe('gen', () => {
 
   test('gen.package — пакет модуля с dmg-core версии пакета', async () => {
     await write(
-      'dmg-core.json',
+      '.dmg/config.json',
       JSON.stringify({
         gen: {
           domain: 'domain/src/{m}',
@@ -330,7 +371,7 @@ describe('gen', () => {
 
   test('gen.package и нет версии valibot в пакете — сообщение о поставке, не исключение', async () => {
     await write(
-      'dmg-core.json',
+      '.dmg/config.json',
       JSON.stringify({
         gen: {
           domain: 'domain/src/{m}',
@@ -354,20 +395,19 @@ describe('gen', () => {
     expect(existsSync(join(root, 'domain'))).toBe(false);
   });
 
-  test('ошибки конфига gen — с полем', async () => {
-    const message = async (gen: unknown) => {
-      await write('dmg-core.json', JSON.stringify({ gen }));
-      return (await (await cli()).gen(root, ['module', 'todo'])).messages;
-    };
-    expect(await message({ domain: 'src/domain' })).toEqual([
-      'dmg-core.json: gen.domain — шаблон пути с {m}',
-    ]);
-    expect(await message({ domainImport: 1 })).toEqual([
-      'dmg-core.json: gen.domainImport — шаблон с {m}',
-    ]);
-    expect(await message({ root: '.' })).toEqual([
-      'dmg-core.json: неизвестное поле «gen.root»',
-    ]);
+  test('ошибка конфига gen — отказ с полем, ничего не записано', async () => {
+    await write(
+      '.dmg/config.json',
+      JSON.stringify({ gen: { domain: 'src/domain' } }),
+    );
+    const before = await snapshot();
+    expect(
+      await (await cli()).gen(root, ['module', 'todo', '--write']),
+    ).toEqual({
+      ok: false,
+      messages: ['.dmg/config.json: gen.domain — шаблон пути с {m}'],
+    });
+    expect(await snapshot()).toEqual(before);
   });
 
   test('ошибка генератора — не ok, ничего не записано', async () => {

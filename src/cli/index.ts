@@ -1,4 +1,5 @@
-export type { CliSettings, RoleTarget } from './cli-config';
+export type { RoleTarget } from '../gen/project-config.types';
+export type { CliSettings } from './cli-config';
 export { CliConfig } from './cli-config';
 export type { CliResult } from './dmg-core-cli';
 export { DmgCoreCli } from './dmg-core-cli';

@@ -38,7 +38,7 @@ export class InitArgs {
   }
 
   private constructor(
-    /** Нет — прежний init (`dmg-core.json` и sync). */
+    /** Нет — прежний init (`.dmg/config.json` и sync). */
     readonly profile: ScaffoldProfile | undefined,
     /** Имя проекта; нет — `name` из package.json или имя каталога. */
     readonly name: string | undefined,

@@ -47,7 +47,7 @@ test('опции: --write, --dry-run', () => {
   );
 });
 
-test('корни — в dmg-core.json (gen), не в опциях', () => {
+test('корни — в .dmg/config.json (gen), не в опциях', () => {
   expect(() => parseArgs(['module', 'stream', '--domain-root', '/d'])).toThrow(
     'Неизвестная опция --domain-root',
   );

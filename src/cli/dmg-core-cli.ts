@@ -1,8 +1,9 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { GenError, PackageDefectError } from '../gen/cli';
 import { GenLayout } from '../gen/layout';
 import { runGen } from '../gen/main';
+import { ProjectConfig, ProjectConfigError } from '../gen/project-config';
 import { CliConfig, type CliSettings } from './cli-config';
 import { Delivery } from './delivery';
 import { InstructionsBlock } from './instructions-block';
@@ -23,6 +24,12 @@ interface Prepared {
   instructions?: string;
 }
 
+/** Конфиг проекта и настройки доставки по нему */
+interface Loaded {
+  config: ProjectConfig;
+  settings: CliSettings;
+}
+
 /**
  * Команды пакета в проекте (`USAGE` — в `main.ts`): `init` — конфиг и sync,
  * с `--profile` — каркас `ProjectInit`; `sync` — копии скилов, ролей и
@@ -37,7 +44,10 @@ export class DmgCoreCli {
     this.config = new CliConfig(pkg);
   }
 
-  /** argv — аргументы после `init`; без `--profile` — прежнее поведение */
+  /**
+   * argv — аргументы после `init`; без `--profile` — прежнее поведение.
+   * Конфиг читается до любой записи: `dmg-core.json` — отказ, ничего не записано.
+   */
   async init(root: string, argv: readonly string[] = []): Promise<CliResult> {
     let args: InitArgs;
     try {
@@ -45,16 +55,21 @@ export class DmgCoreCli {
     } catch (error) {
       return this.failure(error);
     }
+    const found = await this.project(root);
+    if (typeof found === 'string') return { ok: false, messages: [found] };
     if (args.profile !== undefined)
       return this.scaffold(root, {
         profile: args.profile,
         name: args.name,
         dryRun: args.dryRun,
       });
-    const path = join(root, CliConfig.file);
-    if (!(await Bun.file(path).exists())) {
+    if (found === undefined) {
       const defaults = this.config.defaults();
-      await writeFile(path, `${JSON.stringify(defaults, null, 2)}\n`);
+      await mkdir(join(root, ProjectConfig.dir), { recursive: true });
+      await writeFile(
+        join(root, ProjectConfig.file),
+        `${JSON.stringify(defaults, null, 2)}\n`,
+      );
     }
     return this.sync(root);
   }
@@ -120,26 +135,23 @@ export class DmgCoreCli {
     return { ok: messages.length === 0, messages };
   }
 
-  /** Генератор; root — корень проекта, от него пути раскладки */
+  /** Генератор; root — корень проекта, от него пути раскладки; нет конфига — по умолчанию */
   async gen(root: string, argv: readonly string[]): Promise<CliResult> {
-    const settings = await this.settings(root);
-    if (settings === undefined)
-      return this.generate(root, argv, this.config.defaults());
-    if (typeof settings === 'string')
-      return { ok: false, messages: [settings] };
-    return this.generate(root, argv, settings);
+    const loaded = await this.load(root);
+    if (typeof loaded === 'string') return { ok: false, messages: [loaded] };
+    const layout =
+      loaded === undefined
+        ? new GenLayout({ ...ProjectConfig.genDefaults }, root)
+        : GenLayout.from(loaded.config, root);
+    return this.generate(argv, layout);
   }
 
-  private generate(
-    root: string,
-    argv: readonly string[],
-    settings: CliSettings,
-  ): CliResult {
+  private generate(argv: readonly string[], layout: GenLayout): CliResult {
     const messages: string[] = [];
     try {
       const code = runGen(
         argv,
-        new GenLayout(settings.gen, root),
+        layout,
         (line) => messages.push(line),
         this.pkg.moduleDependencies(),
       );
@@ -158,33 +170,44 @@ export class DmgCoreCli {
 
   /** Настройки проекта → доставка; строка — сообщение об ошибке конфига */
   private async prepare(root: string): Promise<Prepared | string> {
-    const settings = await this.settings(root);
-    if (settings === undefined) {
-      return `нет ${CliConfig.file} — запусти dmg-core init`;
+    const loaded = await this.load(root);
+    if (loaded === undefined) {
+      return `нет ${ProjectConfig.file} — запусти dmg-core init`;
     }
-    if (typeof settings === 'string') return settings;
+    if (typeof loaded === 'string') return loaded;
+    const { settings } = loaded;
     return {
       delivery: new Delivery(this.pkg, settings),
       instructions: settings.instructions ?? undefined,
     };
   }
 
-  /** Настройки из `dmg-core.json`; undefined — файла нет, строка — ошибка */
-  private async settings(
-    root: string,
-  ): Promise<CliSettings | string | undefined> {
-    const text = await readFile(join(root, CliConfig.file), 'utf8').catch(
-      () => undefined,
-    );
-    if (text === undefined) return undefined;
+  /** Конфиг и настройки доставки по нему; undefined — файла нет, строка — ошибка конфига */
+  private async load(root: string): Promise<Loaded | string | undefined> {
+    const config = await this.project(root);
+    if (config === undefined || typeof config === 'string') return config;
     try {
-      return this.config.parse(JSON.parse(text));
+      return { config, settings: this.config.parse(config) };
     } catch (error) {
-      const message = (error as Error).message;
-      return message.startsWith(CliConfig.file)
-        ? message
-        : `${CliConfig.file}: ${message}`;
+      return this.configError(error);
     }
+  }
+
+  /** Конфиг проекта; undefined — файла нет, строка — ошибка конфига */
+  private async project(
+    root: string,
+  ): Promise<ProjectConfig | string | undefined> {
+    try {
+      return await ProjectConfig.read(root);
+    } catch (error) {
+      return this.configError(error);
+    }
+  }
+
+  /** `ProjectConfigError` — сообщение пользователю; прочее — дефект */
+  private configError(error: unknown): string {
+    if (error instanceof ProjectConfigError) return error.message;
+    throw error;
   }
 
   private read(root: string, path: string): Promise<string> {

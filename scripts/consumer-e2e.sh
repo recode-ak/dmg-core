@@ -230,27 +230,27 @@ graph_e2e() {
   local profile="$1" name="$2" first second
   run_logged "$WORK/$profile-graph.log" "$profile — bun run graph красный" \
     bun run graph
-  first="$(sha256sum graph.json)"
+  first="$(sha256sum .dmg/graph.json)"
   run_logged "$WORK/$profile-graph2.log" \
     "$profile — второй bun run graph красный" bun run graph
-  second="$(sha256sum graph.json)"
+  second="$(sha256sum .dmg/graph.json)"
   if [ "$first" != "$second" ]; then
-    echo "e2e: $profile — graph.json различается между прогонами" >&2
+    echo "e2e: $profile — .dmg/graph.json различается между прогонами" >&2
     exit 1
   fi
-  if [ "$(jq -r '.nodes[0].kind' graph.json)" != app ]; then
-    echo "e2e: $profile — первый узел graph.json не вида app: $(jq -c '.nodes[0]' graph.json)" >&2
+  if [ "$(jq -r '.nodes[0].kind' .dmg/graph.json)" != app ]; then
+    echo "e2e: $profile — первый узел .dmg/graph.json не вида app: $(jq -c '.nodes[0]' .dmg/graph.json)" >&2
     exit 1
   fi
-  if [ "$(jq '[.nodes[], .edges[]] | map(select(.provider == null)) | length' graph.json)" != 0 ]; then
-    echo "e2e: $profile — в graph.json есть узлы или рёбра без provider" >&2
+  if [ "$(jq '[.nodes[], .edges[]] | map(select(.provider == null)) | length' .dmg/graph.json)" != 0 ]; then
+    echo "e2e: $profile — в .dmg/graph.json есть узлы или рёбра без provider" >&2
     exit 1
   fi
-  if ! jq -e '[.providers[]? | select(.name == "dmg-core") | has("nodeKinds") and has("edgeKinds")] | any' graph.json >/dev/null; then
-    echo "e2e: $profile — в шапке graph.json у поставщика dmg-core нет nodeKinds и edgeKinds" >&2
+  if ! jq -e '[.providers[]? | select(.name == "dmg-core") | has("nodeKinds") and has("edgeKinds")] | any' .dmg/graph.json >/dev/null; then
+    echo "e2e: $profile — в шапке .dmg/graph.json у поставщика dmg-core нет nodeKinds и edgeKinds" >&2
     exit 1
   fi
-  if ! jq -e '[.nodes[] | select(.kind == "useCase")] | length > 0 and all(.props.exposed != null)' graph.json >/dev/null; then
+  if ! jq -e '[.nodes[] | select(.kind == "useCase")] | length > 0 and all(.props.exposed != null)' .dmg/graph.json >/dev/null; then
     echo "e2e: $profile — у узлов useCase нет props.exposed" >&2
     exit 1
   fi

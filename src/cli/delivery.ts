@@ -1,5 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { ProjectConfig } from '../gen/project-config';
 import type { CliSettings } from './cli-config';
 import { Marker } from './marker';
 import type { PackageSource } from './package-source';
@@ -61,8 +62,7 @@ export class Delivery {
           result.foreign.push(copy.owner);
           result.findings.push({
             path: copy.owner,
-            message:
-              'файл не от dmg-core (удали его или исключи роль/скил в dmg-core.json)',
+            message: `файл не от dmg-core (удали его или исключи роль/скил в ${ProjectConfig.file})`,
           });
         }
         continue;

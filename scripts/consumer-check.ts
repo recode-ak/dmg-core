@@ -15,7 +15,7 @@ const PKG = 'node_modules/dmg-core';
 
 /** Файлы, без которых потребитель не начнёт работу */
 export const REQUIRED = [
-  'dmg-core.json',
+  '.dmg/config.json',
   'AGENTS.md',
   '.claude/skills/dmg-architecture/SKILL.md',
   `${PKG}/llms.txt`,

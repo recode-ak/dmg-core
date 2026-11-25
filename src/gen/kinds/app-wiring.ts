@@ -10,6 +10,7 @@ import type { GenArgs } from '../cli';
 import { LINE_WIDTH, namedImport } from '../import-order';
 import { toCamel, toPascal } from '../naming';
 import type { PlannedDependency, PlannedEdit } from '../plan';
+import { ProjectConfig } from '../project-config';
 
 /** Маркеры корня сборки и файла `AppDef`, которые пишет `dmg-core init`. */
 export const WIRING_MARKERS = {
@@ -174,7 +175,7 @@ export class AppWiring {
     const entry = pkg ? `'${pkg.name}'` : `${layout.backendDir(m)}/index.ts`;
     const contract = this.contract();
     return [
-      'Корень сборки не задан (gen.assembly в dmg-core.json) — подключи модуль вручную:',
+      `Корень сборки не задан (gen.assembly в ${ProjectConfig.file}) — подключи модуль вручную:`,
       '  корень сборки, список модулей (репозитории — в create вместе с deps):',
       `    { def: ${P}ModuleDef, create: (deps) => create${P}Module({ ...deps }) }`,
       `    create${P}Module — из входа ${entry}, ${P}ModuleDef — из ${contract}`,
@@ -188,7 +189,7 @@ export class AppWiring {
 
   /** Подсказка, когда файл `AppDef` неизвестен: что вписать и откуда взять. */
   private appDefHint(): string {
-    return `Вставь вручную в манифест приложения (gen.appDef в dmg-core.json), modules: ${this.P}ModuleDef (из ${this.contract()})`;
+    return `Вставь вручную в манифест приложения (gen.appDef в ${ProjectConfig.file}), modules: ${this.P}ModuleDef (из ${this.contract()})`;
   }
 
   /** Контракт модуля — для подсказок: спецификатор или путь файла. */

@@ -128,7 +128,7 @@ describe('AppWiring.moduleNotes', () => {
     const { appDef: _, ...noApp } = MONO;
     const notes = wiring(noApp).moduleNotes();
     expect(notes.join('\n')).toContain(
-      'Вставь вручную в манифест приложения (gen.appDef в dmg-core.json), modules: StreamModuleDef (из',
+      'Вставь вручную в манифест приложения (gen.appDef в .dmg/config.json), modules: StreamModuleDef (из',
     );
     expect(notes.join('\n')).toContain('@acme/domain/stream/contract');
   });
@@ -141,7 +141,7 @@ describe('AppWiring.moduleNotes', () => {
     const notes = wiring(CUSTOM).moduleNotes().join('\n');
     expect(notes).toContain('gen.assembly');
     expect(notes).toContain(
-      'манифест приложения (gen.appDef в dmg-core.json), modules: StreamModuleDef',
+      'манифест приложения (gen.appDef в .dmg/config.json), modules: StreamModuleDef',
     );
   });
 

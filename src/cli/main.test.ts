@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { existsSync } from 'node:fs';
-import { appendFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  appendFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -97,16 +104,28 @@ describe('init --profile', () => {
     );
     expect(result.code).toBe(0);
     expect(result.stdout).toStartWith('Каркас single: acme\n');
-    expect(result.stdout).toContain('Будет создан: dmg-core.json');
+    expect(result.stdout).toContain('Будет создан: .dmg/config.json');
     expect(await snapshot()).toEqual([]);
   });
 
-  test('коллизия — код 1, каталог как до запуска', async () => {
+  test('коллизия .dmg/config.json — код 1, каталог как до запуска', async () => {
+    await mkdir(join(root, '.dmg'));
+    await writeFile(join(root, '.dmg/config.json'), '{}\n');
+    const before = await snapshot();
+    const result = run('init', '--profile', 'single', '--name', 'acme');
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain('.dmg/config.json');
+    expect(await snapshot()).toEqual(before);
+  });
+
+  test('dmg-core.json — код 1, текст про переименование, каталог как до запуска', async () => {
     await writeFile(join(root, 'dmg-core.json'), '{}\n');
     const before = await snapshot();
     const result = run('init', '--profile', 'single', '--name', 'acme');
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain('dmg-core.json');
+    expect(result.stderr).toContain(
+      'dmg-core.json переименован в .dmg/config.json',
+    );
     expect(await snapshot()).toEqual(before);
   });
 
