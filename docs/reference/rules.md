@@ -10,7 +10,7 @@
 
 ## Карта линтера
 
-Какие lint-правила на какие каталоги слоёв подключены в `biome.json` проекта. Каркас `dmg-core init --profile` пишет `overrides` по этой карте (источник — `LintMap` в `src/cli/scaffold/lint-map.ts`); проект без каркаса подключает правила так же. Плагины — `node_modules/dmg-core/biome-plugins/*.grit`, запреты импортов — `noRestrictedImports`. Тестовый код (`*.test.ts`, `*.fixture.ts`, `*.test-kit.ts`, D-70) из всех строк исключён.
+Какие lint-правила на какие каталоги слоёв подключены в `biome.json` проекта. Каркас `dmg-core init --profile` пишет `overrides` по этой карте (источник — `LintMap` в `src/cli/scaffold/lint-map.ts`); проект без каркаса подключает правила так же. Плагины — `node_modules/dmg-core/biome-plugins/*.grit`, запреты импортов — `noRestrictedImports`. Тестовый код (`*.test.ts`, `*.fixture.ts`, `*.test-kit.ts`, D-70) из всех строк исключён. Каталоги слоёв поставщиков графа карта не называет: их шаблоны проект добавляет к строкам «все исходники» по документу поставщика (фронт `dmg-ui` — `frontend/*/*/src`, `frontend/*/src`; `naming.md` `dmg-ui`, «Пакеты в `monorepo`»).
 
 | ID | Чем | Слой | single | monorepo |
 |---|---|---|---|---|
