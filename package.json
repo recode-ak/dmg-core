@@ -12,6 +12,7 @@
   "files": [
     "src",
     "!src/{app,arch,cli,domain,gen,graph,kernel}/**/*.test.ts",
+    "!src/{app,arch,cli,domain,gen,graph,kernel}/**/*.test-kit.ts",
     "!src/testing/*.test.ts",
     "!src/*.test.ts",
     "docs",

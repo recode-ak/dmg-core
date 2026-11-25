@@ -7,7 +7,9 @@ import { ProjectConfig, ProjectConfigError } from '../gen/project-config';
 import { CliConfig, type CliSettings } from './cli-config';
 import { Delivery } from './delivery';
 import { InstructionsBlock } from './instructions-block';
-import type { PackageSource } from './package-source';
+import { PackageSet } from './package-set';
+import { PackageSource } from './package-source';
+import { ProviderError, ProviderPackage } from './provider-package';
 import { InitArgs } from './scaffold/init-args';
 import { ProjectInit } from './scaffold/project-init';
 import type { InitOptions } from './scaffold/project-scaffold.types';
@@ -24,9 +26,10 @@ interface Prepared {
   instructions?: string;
 }
 
-/** Конфиг проекта и настройки доставки по нему */
+/** Конфиг проекта, поставка по его `providers` и настройки доставки */
 interface Loaded {
   config: ProjectConfig;
+  packages: PackageSet;
   settings: CliSettings;
 }
 
@@ -41,7 +44,8 @@ export class DmgCoreCli {
 
   constructor(private readonly pkg: PackageSource) {
     this.block = new InstructionsBlock(pkg.version);
-    this.config = new CliConfig(pkg);
+    // Для `init` без конфига: поставщиков ещё нет — поставка из одного dmg-core.
+    this.config = new CliConfig(new PackageSet(pkg));
   }
 
   /**
@@ -175,22 +179,40 @@ export class DmgCoreCli {
       return `нет ${ProjectConfig.file} — запусти dmg-core init`;
     }
     if (typeof loaded === 'string') return loaded;
-    const { settings } = loaded;
+    const { packages, settings } = loaded;
     return {
-      delivery: new Delivery(this.pkg, settings),
+      delivery: new Delivery(packages, settings),
       instructions: settings.instructions ?? undefined,
     };
   }
 
-  /** Конфиг и настройки доставки по нему; undefined — файла нет, строка — ошибка конфига */
+  /**
+   * Конфиг, поставка и настройки; undefined — файла нет, строка — ошибка
+   * конфига или поставщика. Общий для `sync` и `gen`: отказ до любой записи.
+   */
   private async load(root: string): Promise<Loaded | string | undefined> {
     const config = await this.project(root);
     if (config === undefined || typeof config === 'string') return config;
     try {
-      return { config, settings: this.config.parse(config) };
+      const packages = await this.packages(root, config);
+      const settings = new CliConfig(packages).parse(config);
+      return { config, packages, settings };
     } catch (error) {
       return this.configError(error);
     }
+  }
+
+  /** `dmg-core` и поставщики `providers` в порядке конфига; ищутся от root */
+  private async packages(
+    root: string,
+    config: ProjectConfig,
+  ): Promise<PackageSet> {
+    const providers: PackageSource[] = [];
+    for (const name of config.providers) {
+      const found = await ProviderPackage.find(name, root);
+      providers.push(await PackageSource.provider(found));
+    }
+    return new PackageSet(this.pkg, providers);
   }
 
   /** Конфиг проекта; undefined — файла нет, строка — ошибка конфига */
@@ -204,9 +226,10 @@ export class DmgCoreCli {
     }
   }
 
-  /** `ProjectConfigError` — сообщение пользователю; прочее — дефект */
+  /** `ProjectConfigError`, `ProviderError` — сообщение пользователю; прочее — дефект */
   private configError(error: unknown): string {
     if (error instanceof ProjectConfigError) return error.message;
+    if (error instanceof ProviderError) return error.message;
     throw error;
   }
 

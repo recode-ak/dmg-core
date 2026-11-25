@@ -2,6 +2,7 @@ import { LINE_WIDTH, sortImports } from '../../gen/import-order';
 import { PACKAGE_TEST } from '../../gen/kinds/module-package';
 import { ProjectConfig } from '../../gen/project-config';
 import { CliConfig } from '../cli-config';
+import { PackageSet } from '../package-set';
 import type { Dependencies, PackageSource } from '../package-source';
 import type {
   ScaffoldFile,
@@ -55,7 +56,7 @@ export class ProjectFiles {
       {
         path: ProjectConfig.file,
         content: this.json({
-          ...new CliConfig(this.pkg).defaults(),
+          ...new CliConfig(new PackageSet(this.pkg)).defaults(),
           gen: this.layout.gen,
         }),
       },

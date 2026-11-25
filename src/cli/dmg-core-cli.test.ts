@@ -1,15 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
+import { put, role } from './cli.test-kit';
 import { DmgCoreCli } from './dmg-core-cli';
 import { Marker } from './marker';
 import { PackageSource } from './package-source';
-
-function role(name: string): string {
-  return `---\nname: ${name}\ndescription: Роль ${name}\ntools: [read, bash]\n---\n\nПромпт ${name}.\n`;
-}
 
 const PACKAGE_FILES: Record<string, string> = {
   'package.json': JSON.stringify({ name: 'dmg-core', version: '1.0.0' }),
@@ -28,13 +25,6 @@ const LEGACY = {
 let work: string;
 let pkgRoot: string;
 let root: string;
-
-async function put(base: string, files: Record<string, string>) {
-  for (const [path, text] of Object.entries(files)) {
-    await mkdir(dirname(join(base, path)), { recursive: true });
-    await writeFile(join(base, path), text);
-  }
-}
 
 const read = (path: string) => readFile(join(root, path), 'utf8');
 const write = (path: string, text: string) => put(root, { [path]: text });
@@ -70,33 +60,6 @@ beforeEach(async () => {
 });
 
 afterEach(() => rm(work, { recursive: true, force: true }));
-
-describe('PackageSource', () => {
-  test('читает версию, скилы, роли и общий блок пакета', async () => {
-    const pkg = await PackageSource.load(pkgRoot);
-    expect(pkg.version).toBe('1.0.0');
-    expect([...pkg.skills.keys()]).toEqual(['demo']);
-    expect([...(pkg.skills.get('demo')?.keys() ?? [])].sort()).toEqual([
-      'SKILL.md',
-      'ref/notes.md',
-    ]);
-    expect(pkg.roles.map((r) => r.name)).toEqual(['alpha', 'beta']);
-    expect(pkg.common).toBe('Общий блок пакета.\n');
-  });
-
-  test('настоящий пакет: роли фреймворка и скил dmg-architecture', async () => {
-    const pkg = await PackageSource.load(join(import.meta.dir, '../..'));
-    expect(pkg.roles.map((r) => r.name).sort()).toEqual([
-      'dmg-api-author',
-      'dmg-data-keeper',
-      'dmg-domain-author',
-      'dmg-reviewer',
-      'dmg-tech-lead',
-      'dmg-test-designer',
-    ]);
-    expect([...pkg.skills.keys()]).toEqual(['dmg-architecture']);
-  });
-});
 
 describe('init', () => {
   test('пустой проект: конфиг по умолчанию, копии для Claude Code, вставка', async () => {

@@ -1,0 +1,9 @@
+{
+  "name": "example-provider",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./dmg-core": "./dmg-core.ts"
+  }
+}

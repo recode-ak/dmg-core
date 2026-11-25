@@ -13,6 +13,7 @@ import { applyPlan } from '../../gen/apply';
 import type { GenPlan } from '../../gen/plan';
 import { ProjectConfig } from '../../gen/project-config';
 import { CliConfig } from '../cli-config';
+import { PackageSet } from '../package-set';
 import { PackageSource } from '../package-source';
 import { ProjectScaffold } from './project-scaffold';
 
@@ -244,7 +245,7 @@ describe('ProjectScaffold monorepo: tsconfig', () => {
 
 describe('ProjectScaffold monorepo: прочие конфиги', () => {
   it('.dmg/config.json — все ключи осей gen в порядке полей (пакет be-{m}), разбирается ProjectConfig и CliConfig', () => {
-    const config = new CliConfig(pkg);
+    const config = new CliConfig(new PackageSet(pkg));
     const data = json('.dmg/config.json');
     const gen = {
       domain: 'platform/domain/src/{m}',
