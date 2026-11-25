@@ -346,6 +346,15 @@ const MONOREPO_VIOLATIONS: Violations = {
     code: "import { MemoryRepo } from 'dmg-core/testing';\nimport { FakeRepo } from '../a.repo.fake';\nexport { FakeRepo, MemoryRepo };\n",
     ids: [],
   },
+  // Фикстура и набор теста — тестовый код (D-70, D-112), как `*.test.ts`.
+  'backend/v/src/a/uc/do-uc.fixture.ts': {
+    code: "import { MemoryRepo } from 'dmg-core/testing';\nexport { MemoryRepo };\n",
+    ids: [],
+  },
+  'backend/v/src/a/a.test-kit.ts': {
+    code: "import { StubFacade } from 'dmg-core/testing';\nexport { StubFacade };\n",
+    ids: [],
+  },
   'backend/v/src/view.ts': {
     code: 'export const f = (ar: { snapshot(): unknown }) => ar.snapshot();\n',
     ids: ['DOM-17'],

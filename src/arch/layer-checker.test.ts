@@ -753,6 +753,15 @@ describe('LayerChecker: корень домена — слой домена бе
       'ARC-02: domain/fixture.app.ts (domain) импортирует backend alpha: ../backend/alpha',
     ]);
   });
+
+  it('модуль → корень домена — ARC-04 (D-112), корень → модуль — без нарушения', () => {
+    cleanTree();
+    write('domain/fixture.app.ts', './alpha/contract', './beta/contract');
+    write('domain/beta/note/note.ar.ts', '../../fixture.app');
+    expect(check()).toEqual([
+      'ARC-04: domain/beta/note/note.ar.ts (domain) импортирует корень слоя domain — соседние модули видны только через их contract.ts и по dependsOn: ../../fixture.app',
+    ]);
+  });
 });
 
 describe('LayerChecker: файл вне слоёв', () => {

@@ -90,6 +90,7 @@ export class LayerChecker {
 
   private layered(imp: Import, from: LayerPlace): Violation[] {
     const { to } = imp;
+    if (this.toOwnRoot(from, to)) return [this.rootViolation(imp, from)];
     if (this.sameLayer(from, to)) return [];
     const access =
       from.layer.sees.find((a) => a.layer === to.layer.name) ??
@@ -108,6 +109,35 @@ export class LayerChecker {
     // Одно нарушение на импорт: вход закрытого модуля проверять незачем.
     if (access.others === 'none' && others.length > 0) return others;
     return [...this.entryOf(imp, access, rule), ...others];
+  }
+
+  /**
+   * Модуль слоя по модулям → корень своего слоя (`<имя>.app.ts` домена, D-45):
+   * корень собирает модули, через него модуль достал бы соседей мимо входа и
+   * `others`. Корень → модуль — по доступу слоя к себе, как прежде.
+   */
+  private toOwnRoot(from: LayerPlace, to: LayerPlace): boolean {
+    return (
+      from.layer.name === to.layer.name &&
+      from.layer.perModule !== undefined &&
+      from.module !== undefined &&
+      to.module === undefined
+    );
+  }
+
+  /** ID — доступа слоя к себе (`ARC-04` домена), иначе слоя-импортёра. */
+  private rootViolation(
+    { file, path, spec }: Import,
+    from: LayerPlace,
+  ): Violation {
+    const self = from.layer.sees.find((a) => a.layer === from.layer.name);
+    const entry = from.layer.entry ?? this.entry;
+    const by = self?.others === 'dependsOn' ? ' и по dependsOn' : '';
+    return new Violation(
+      self?.rule ?? from.layer.rule,
+      `${this.where(file, from)} импортирует корень слоя ${from.layer.name} — соседние модули видны только через их ${entry}.ts${by}: ${spec}`,
+      path,
+    );
   }
 
   /** Свой слой свободен; у слоя по модулям — свой модуль и корень слоя. */

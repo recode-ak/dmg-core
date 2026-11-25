@@ -8,8 +8,8 @@ import type {
 /** Каталог плагинов установленного пакета — от корня проекта. */
 const PLUGINS = './node_modules/dmg-core/biome-plugins';
 
-/** Тесты вне проверок слоёв: им можно то, что запрещено коду. */
-const NOT_TESTS = '!**/*.test.ts';
+/** Тестовый код (D-70) вне проверок слоёв: ему можно то, что запрещено коду. */
+const NOT_TESTS = ['!**/*.test.ts', '!**/*.fixture.ts', '!**/*.test-kit.ts'];
 
 /** Суффиксы файлов, где штатный отказ — `Result`, а не исключение (ERR-01). */
 const OPERATIONS = ['ar', 'dcs', 'facade', 'uc', 'er'];
@@ -202,7 +202,7 @@ export class LintMap {
   /** Секции `overrides` biome.json: по одной на строку карты. */
   overrides(): BiomeOverride[] {
     return this.rules.map((rule, index) => {
-      const includes = [...rule.includes, NOT_TESTS];
+      const includes = [...rule.includes, ...NOT_TESTS];
       if ('plugin' in rule) {
         return { includes, plugins: [`${PLUGINS}/${rule.plugin}.grit`] };
       }

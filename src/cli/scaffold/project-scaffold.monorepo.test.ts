@@ -321,9 +321,12 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
       overrides.find((o) => o.plugins?.some((p) => p.endsWith(`/${plugin}`)))
         ?.includes;
 
+    // Тестовый код (D-70) — вне каждой строки карты, как у `SourceScan` (D-112).
     expect(includesOf('dom-14-no-clock.grit')).toEqual([
       'platform/domain/src/**',
       '!**/*.test.ts',
+      '!**/*.fixture.ts',
+      '!**/*.test-kit.ts',
     ]);
     expect(includesOf('arc-09-no-env.grit')).toEqual([
       'platform/*/src/**',
@@ -331,6 +334,8 @@ describe('ProjectScaffold monorepo: прочие конфиги', () => {
       'runners/*/src/**',
       '!runners/*/src/main.ts',
       '!**/*.test.ts',
+      '!**/*.fixture.ts',
+      '!**/*.test-kit.ts',
     ]);
     expect(includesOf('err-01-no-throw.grit')).toContain(
       'backend/*/src/**/*.uc.ts',
