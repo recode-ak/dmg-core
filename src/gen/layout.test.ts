@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { GenError } from './cli';
 import { GenLayout } from './layout';
 import { ProjectConfig, ProjectConfigError } from './project-config';
 
@@ -314,4 +315,70 @@ test('from — раскладка из gen и слоёв конфига, от к
   expect(layout.domainDir('todo')).toBe('/repo/d/todo');
   expect(layout.backendDir('todo')).toBe('/repo/b/todo');
   expect(layout.layerDirs()).toEqual({ ui: ['/repo/frontend/{m}/src'] });
+});
+
+/** Места слоёв поставщиков: с пакетом, без пакета, без `{m}` */
+const withLayers = () =>
+  new GenLayout(GenLayout.defaults, '/repo', {
+    ui: { dir: 'frontend/{m}/src', package: '@acme/fe-{m}' },
+    tools: { dir: 'tools' },
+  });
+
+const failure = (run: () => unknown): unknown => {
+  try {
+    run();
+  } catch (error) {
+    return error;
+  }
+  return undefined;
+};
+
+const NO_LAYER = 'слой «nope» не задан в .dmg/config.json (layers)';
+
+test('layerNames — ключи layers в порядке конфига; без layers пусто', () => {
+  expect(withLayers().layerNames()).toEqual(['ui', 'tools']);
+  expect(new GenLayout(GenLayout.defaults, '/repo').layerNames()).toEqual([]);
+});
+
+test('layerDir — {m} подставлен, путь от корня; слой без {m} — каталог как есть', () => {
+  expect(withLayers().layerDir('ui', 'stream')).toBe(
+    '/repo/frontend/stream/src',
+  );
+  expect(withLayers().layerDir('tools', 'stream')).toBe('/repo/tools');
+});
+
+test('layerDir — слоя нет в layers: GenError с именем слоя', () => {
+  const error = failure(() => withLayers().layerDir('nope', 'stream'));
+  expect(error).toBeInstanceOf(GenError);
+  expect((error as Error).message).toBe(NO_LAYER);
+});
+
+test('layerPackage — каталог без /src, имя с подстановкой, путь к корню', () => {
+  expect(withLayers().layerPackage('ui', 'stream')).toEqual({
+    dir: '/repo/frontend/stream',
+    name: '@acme/fe-stream',
+    root: '../..',
+  });
+});
+
+test('layerPackage — слой без package: undefined', () => {
+  expect(withLayers().layerPackage('tools', 'stream')).toBeUndefined();
+});
+
+test('layerPackage — слоя нет в layers: тот же отказ, что у layerDir', () => {
+  const error = failure(() => withLayers().layerPackage('nope', 'stream'));
+  expect(error).toBeInstanceOf(GenError);
+  expect((error as Error).message).toBe(NO_LAYER);
+});
+
+test('describeLayers — слои с пакетом и без, шаблоны как в конфиге', () => {
+  expect(withLayers().describeLayers()).toBe(
+    'слои: ui — frontend/{m}/src (пакет @acme/fe-{m}), tools — tools',
+  );
+});
+
+test('describeLayers — без слоёв', () => {
+  expect(new GenLayout(GenLayout.defaults, '/repo').describeLayers()).toBe(
+    'слои не заданы (layers в .dmg/config.json)',
+  );
 });

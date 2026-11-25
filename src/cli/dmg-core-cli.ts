@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { GenError, PackageDefectError } from '../gen/cli';
+import { GenKinds } from '../gen/gen-kinds';
+import type { ProvidedKinds } from '../gen/gen-kinds.types';
 import { GenLayout } from '../gen/layout';
 import { runGen } from '../gen/main';
 import { ProjectConfig, ProjectConfigError } from '../gen/project-config';
@@ -26,9 +28,11 @@ interface Prepared {
   instructions?: string;
 }
 
-/** Конфиг проекта, поставка по его `providers` и настройки доставки */
+/** Конфиг проекта, найденные поставщики, поставка и настройки доставки */
 interface Loaded {
   config: ProjectConfig;
+  /** Поставщики `providers` в порядке конфига; их входы не загружены */
+  providers: ProviderPackage[];
   packages: PackageSet;
   settings: CliSettings;
 }
@@ -36,7 +40,8 @@ interface Loaded {
 /**
  * Команды пакета в проекте (`USAGE` — в `main.ts`): `init` — конфиг и sync,
  * с `--profile` — каркас `ProjectInit`; `sync` — копии скилов, ролей и
- * вставка в инструкции (`--check` — только сверка); `gen` — файлы модуля.
+ * вставка в инструкции (`--check` — только сверка); `gen` — файлы модуля и
+ * виды поставщиков. Код входов поставщиков исполняет только `gen`.
  */
 export class DmgCoreCli {
   private readonly block: InstructionsBlock;
@@ -139,18 +144,43 @@ export class DmgCoreCli {
     return { ok: messages.length === 0, messages };
   }
 
-  /** Генератор; root — корень проекта, от него пути раскладки; нет конфига — по умолчанию */
+  /**
+   * Генератор; root — корень проекта, от него пути раскладки; нет конфига —
+   * по умолчанию. Каталог видов собирается целиком до разбора команды:
+   * сломанный вход или конфликт видов отказывают и своим видам.
+   */
   async gen(root: string, argv: readonly string[]): Promise<CliResult> {
     const loaded = await this.load(root);
     if (typeof loaded === 'string') return { ok: false, messages: [loaded] };
+    const kinds = await this.kinds(loaded?.providers ?? []);
+    if (typeof kinds === 'string') return { ok: false, messages: [kinds] };
     const layout =
       loaded === undefined
         ? new GenLayout({ ...ProjectConfig.genDefaults }, root)
         : GenLayout.from(loaded.config, root);
-    return this.generate(argv, layout);
+    return this.generate(argv, layout, kinds);
   }
 
-  private generate(argv: readonly string[], layout: GenLayout): CliResult {
+  /** Виды `gen`: свои и входов поставщиков по порядку; строка — ошибка поставки */
+  private async kinds(
+    providers: readonly ProviderPackage[],
+  ): Promise<GenKinds | string> {
+    try {
+      const provided: ProvidedKinds[] = [];
+      for (const provider of providers) {
+        provided.push({ owner: provider.name, kinds: await provider.kinds() });
+      }
+      return new GenKinds(provided);
+    } catch (error) {
+      return this.configError(error);
+    }
+  }
+
+  private generate(
+    argv: readonly string[],
+    layout: GenLayout,
+    kinds: GenKinds,
+  ): CliResult {
     const messages: string[] = [];
     try {
       const code = runGen(
@@ -158,6 +188,7 @@ export class DmgCoreCli {
         layout,
         (line) => messages.push(line),
         this.pkg.moduleDependencies(),
+        kinds,
       );
       return { ok: code === 0, messages };
     } catch (error) {
@@ -194,25 +225,36 @@ export class DmgCoreCli {
     const config = await this.project(root);
     if (config === undefined || typeof config === 'string') return config;
     try {
-      const packages = await this.packages(root, config);
+      const providers = await this.providers(root, config);
+      const packages = await this.packages(providers);
       const settings = new CliConfig(packages).parse(config);
-      return { config, packages, settings };
+      return { config, providers, packages, settings };
     } catch (error) {
       return this.configError(error);
     }
   }
 
-  /** `dmg-core` и поставщики `providers` в порядке конфига; ищутся от root */
-  private async packages(
+  /** Поставщики `providers` в порядке конфига; ищутся от root */
+  private async providers(
     root: string,
     config: ProjectConfig,
-  ): Promise<PackageSet> {
-    const providers: PackageSource[] = [];
+  ): Promise<ProviderPackage[]> {
+    const found: ProviderPackage[] = [];
     for (const name of config.providers) {
-      const found = await ProviderPackage.find(name, root);
-      providers.push(await PackageSource.provider(found));
+      found.push(await ProviderPackage.find(name, root));
     }
-    return new PackageSet(this.pkg, providers);
+    return found;
+  }
+
+  /** `dmg-core` и поставки найденных поставщиков в том же порядке */
+  private async packages(
+    providers: readonly ProviderPackage[],
+  ): Promise<PackageSet> {
+    const sources: PackageSource[] = [];
+    for (const provider of providers) {
+      sources.push(await PackageSource.provider(provider));
+    }
+    return new PackageSet(this.pkg, sources);
   }
 
   /** Конфиг проекта; undefined — файла нет, строка — ошибка конфига */

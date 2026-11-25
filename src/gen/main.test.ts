@@ -11,8 +11,12 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { gen as exampleProvider } from '../testing/example-provider/dmg-core';
+import { GenKinds } from './gen-kinds';
+import type { GenProviderKind } from './gen-provider.types';
 import { GenLayout } from './layout';
 import { runGen } from './main';
+import type { GenPlan } from './plan';
 
 let root: string;
 let out: string[];
@@ -357,4 +361,149 @@ test('module --adopt поверх legacy: точки входа не трону�
   expect(out.join('\n')).toContain(
     `Пропущен: ${join(root, 'd/wish/index.ts')}`,
   );
+});
+
+// Виды поставщиков: путь вида через `runGen`. Каталог видов и конфликты —
+// `gen-kinds.test.ts`, загрузка входа — `provider-package.test.ts`.
+
+const UNIT_LAYERS = {
+  'example-unit': { dir: 'units/{m}/src', package: '@acme/{m}-unit' },
+};
+const EXAMPLE = new GenKinds([
+  { owner: 'example-provider', kinds: exampleProvider.kinds },
+]);
+
+/** `runGen` с видом поставщика: раскладка без каркаса (`gen.assembly`, `gen.kernel`) */
+const genWith = (
+  kinds: GenKinds,
+  layers: Record<string, { dir: string; package?: string }>,
+  ...argv: string[]
+) =>
+  runGen(
+    argv,
+    new GenLayout({ domain: 'd/{m}', backend: 'p/{m}/src' }, root, layers),
+    (line) => out.push(line),
+    undefined,
+    kinds,
+  );
+const genUnit = (...argv: string[]) => genWith(EXAMPLE, UNIT_LAYERS, ...argv);
+
+const provided = (...kinds: GenProviderKind[]) =>
+  new GenKinds([{ owner: 'p', kinds }]);
+
+test('вид поставщика, dry-run: план печатается, ничего не записано, каркас не нужен', () => {
+  expect(genUnit('example-unit', 'stream')).toBe(0);
+
+  expect(out[0]).toBe(
+    'Вид «example-unit» — example-provider, слои: example-unit — units/{m}/src (пакет @acme/{m}-unit)',
+  );
+  const text = out.join('\n');
+  expect(text).toContain(
+    `Будет создан: ${join(root, 'units/stream/src/index.ts')}`,
+  );
+  expect(text).toContain(
+    `Будет создан: ${join(root, 'units/stream/package.json')}`,
+  );
+  expect(text).toContain(
+    `Вставь вручную в ${join(root, 'package.json')}, dependencies: "@acme/stream-unit": "workspace:*"`,
+  );
+  expect(text).toContain('bun install');
+  expect(text).toContain('Это dry-run');
+  expect(text).not.toContain('Раскладка:');
+  expect(text).not.toContain('gen.assembly');
+  expect(text).not.toContain('gen.kernel');
+  expect(readdirSync(root)).toEqual([]);
+});
+
+test('вид поставщика, --adopt: существующий package.json пропущен, index.ts создан', () => {
+  mkdirSync(join(root, 'units/stream'), { recursive: true });
+  writeFileSync(join(root, 'units/stream/package.json'), '{}');
+
+  expect(genUnit('example-unit', 'stream', '--adopt', '--write')).toBe(0);
+
+  expect(out.join('\n')).toContain(
+    `Пропущен: ${join(root, 'units/stream/package.json')} (уже есть)`,
+  );
+  expect(readFileSync(join(root, 'units/stream/package.json'), 'utf8')).toBe(
+    '{}',
+  );
+  expect(existsSync(join(root, 'units/stream/src/index.ts'))).toBe(true);
+});
+
+test('вид поставщика: слоя нет в раскладке — отказ, код 1, ничего не записано', () => {
+  expect(genWith(EXAMPLE, {}, 'example-unit', 'stream', '--write')).toBe(1);
+
+  expect(out).toEqual([
+    'Ошибка: слой «example-unit» не задан в .dmg/config.json (layers)',
+  ]);
+  expect(readdirSync(root)).toEqual([]);
+});
+
+test('вид поставщика получает позиционные аргументы после имени, без флагов', () => {
+  let seen: readonly string[] = [];
+  const note: GenProviderKind = {
+    name: 'note',
+    usage: '<a> <b>',
+    plan: (args) => {
+      seen = args;
+      return {
+        files: [{ path: join(root, 'note.txt'), content: 'x\n' }],
+        edits: [],
+      };
+    },
+  };
+
+  expect(genWith(provided(note), {}, 'note', 'a', 'b', '--write')).toBe(0);
+
+  expect(seen).toEqual(['a', 'b']);
+  expect(existsSync(join(root, 'note.txt'))).toBe(true);
+});
+
+test('GenError из чужой копии пакета (по name) — «Ошибка: <текст>», код 1', () => {
+  class ForeignGenError extends Error {
+    override name = 'GenError';
+  }
+  const broken: GenProviderKind = {
+    name: 'broken',
+    usage: '',
+    plan: () => {
+      throw new ForeignGenError('чужая ошибка ввода');
+    },
+  };
+
+  expect(genWith(provided(broken), {}, 'broken')).toBe(1);
+
+  expect(out).toEqual(['Ошибка: чужая ошибка ввода']);
+});
+
+test.each([
+  ['Promise', () => Promise.resolve({ files: [], edits: [] })],
+  ['пустой объект', () => ({})],
+])(
+  'plan вернул не план (%s) — отказ с видом и владельцем, код 1',
+  (_, plan) => {
+    const bad: GenProviderKind = {
+      name: 'bad',
+      usage: '',
+      plan: plan as unknown as () => GenPlan,
+    };
+
+    expect(genWith(provided(bad), {}, 'bad')).toBe(1);
+
+    expect(out).toEqual([
+      'Ошибка: вид «bad» (p) вернул не план — нужен { files, edits }',
+    ]);
+  },
+);
+
+test('с поставщиком неизвестный вид, пустая команда и неизвестная опция — один usage с блоком поставщиков', () => {
+  expect(genUnit('x')).toBe(1);
+  expect(genUnit()).toBe(1);
+  expect(genUnit('example-unit', 'stream', '--bogus')).toBe(1);
+
+  expect(out).toEqual([
+    `Ошибка: Неизвестный вид «x»\n${EXAMPLE.usage()}`,
+    `Ошибка: ${EXAMPLE.usage()}`,
+    `Ошибка: Неизвестная опция --bogus\n${EXAMPLE.usage()}`,
+  ]);
 });

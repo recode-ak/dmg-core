@@ -1,6 +1,7 @@
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { FrameworkDirs } from '../arch/layer-checker.types';
-import type { ModulePackage } from './layout.types';
+import { GenError } from './gen-error';
+import type { LayerPackage, ModulePackage } from './layout.types';
 import { ProjectConfig, ProjectConfigError } from './project-config';
 import type { LayerPlace } from './project-config.types';
 
@@ -77,10 +78,11 @@ export class GenLayout {
     throw new ProjectConfigError(`${ProjectConfig.file}: ${message}`);
   }
 
-  /** root — корень проекта; «.» оставляет пути относительными; layers — места слоёв поставщиков */
+  /** layers — места слоёв поставщиков */
   constructor(
     private readonly settings: GenLayoutSettings,
-    private readonly root: string,
+    /** Корень проекта, от которого строятся пути; «.» (у CLI) оставляет их относительными */
+    readonly root: string,
     private readonly layers: Readonly<Record<string, LayerPlace>> = {},
   ) {}
 
@@ -133,6 +135,54 @@ export class GenLayout {
         [resolve(this.root, place.dir)],
       ]),
     );
+  }
+
+  /** Имена слоёв поставщиков — ключи `layers` в порядке конфига */
+  layerNames(): string[] {
+    return Object.keys(this.layers);
+  }
+
+  /** Каталог слоя для модуля: `{m}` подставлен, путь от корня; слоя нет — `GenError` */
+  layerDir(layer: string, module: string): string {
+    return this.path(this.place(layer).dir, module);
+  }
+
+  /** Пакет workspaces слоя для модуля; у слоя нет `package` — undefined */
+  layerPackage(layer: string, module: string): LayerPackage | undefined {
+    const { package: name } = this.place(layer);
+    if (name === undefined) return undefined;
+    const src = this.layerDir(layer, module);
+    const dir = src.endsWith(SRC) ? src.slice(0, -SRC.length) : src;
+    return {
+      dir,
+      name: this.fill(name, module),
+      root: relative(dir, this.root).split(sep).join('/'),
+    };
+  }
+
+  /** Слои поставщиков одной строкой — первая строка вывода вида поставщика */
+  describeLayers(): string {
+    const places = Object.entries(this.layers).map(([name, place]) => {
+      const line = `${name} — ${place.dir}`;
+      return place.package === undefined
+        ? line
+        : `${line} (пакет ${place.package})`;
+    });
+    return places.length === 0
+      ? `слои не заданы (layers в ${ProjectConfig.file})`
+      : `слои: ${places.join(', ')}`;
+  }
+
+  private place(layer: string): LayerPlace {
+    const place = Object.hasOwn(this.layers, layer)
+      ? this.layers[layer]
+      : undefined;
+    if (place === undefined) {
+      throw new GenError(
+        `слой «${layer}» не задан в ${ProjectConfig.file} (layers)`,
+      );
+    }
+    return place;
   }
 
   private requiredDir(key: DirKey): string {

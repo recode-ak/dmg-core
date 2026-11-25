@@ -321,3 +321,100 @@ describe('sync и check: отказы поставки, ничего не зап
     expect(await snapshot()).toEqual(before);
   });
 });
+
+// `gen` с видами поставщиков. Пути вида, вывод и тексты подсказки — в
+// `gen/main.test.ts`, форма входа — в `provider-package.test.ts`, конфликты
+// и подсказка — в `gen/gen-kinds.test.ts`: здесь сквозные сценарии CLI.
+describe('gen: поставщики', () => {
+  const UNIT_LAYERS = {
+    'example-unit': { dir: 'units/{m}/src', package: '@acme/{m}-unit' },
+  };
+
+  /** Вход поставщика с видами names без импорта `dmg-core` (из `node_modules` проекта он не резолвится) */
+  const entry = (...names: string[]) =>
+    `export const gen = { kinds: [${names
+      .map(
+        (name) =>
+          `{ name: '${name}', usage: '', plan: () => ({ files: [], edits: [] }) }`,
+      )
+      .join(', ')}] };\n`;
+
+  /** Фикстура-поставщик и слой `example-unit` в конфиге проекта */
+  async function withExample() {
+    await linkExampleProvider(root);
+    await config({ providers: ['example-provider'], layers: UNIT_LAYERS });
+  }
+
+  test('вид фикстуры с --write: файлы созданы, зависимость вписана в package.json корня', async () => {
+    await withExample();
+    await write('package.json', '{ "name": "acme" }');
+
+    const result = await (await cli()).gen(root, [
+      'example-unit',
+      'stream',
+      '--write',
+    ]);
+
+    expect(result.ok).toBe(true);
+    expect(result.messages).toContain(
+      `Создан: ${join(root, 'units/stream/src/index.ts')}`,
+    );
+    expect(result.messages).toContain(
+      `Создан: ${join(root, 'units/stream/package.json')}`,
+    );
+    expect(JSON.parse(await read('package.json')).dependencies).toEqual({
+      '@acme/stream-unit': 'workspace:*',
+    });
+  });
+
+  test('свой вид работает как раньше, вид поставщика на него не влияет', async () => {
+    await withExample();
+
+    const result = await (await cli()).gen(root, ['module', 'todo', '--write']);
+
+    expect(result.ok).toBe(true);
+    expect(result.messages[0]).toStartWith('Раскладка:');
+    expect(await read('src/platform/domain/todo/todo.module.ts')).toContain(
+      "name: 'todo'",
+    );
+  });
+
+  test('конфликт видов — отказ с владельцами в порядке providers, ничего не записано', async () => {
+    await install('p', { 'dmg-core.ts': entry('module') });
+    await config({ providers: ['p'] });
+    const before = await snapshot();
+
+    expect(
+      await (await cli()).gen(root, ['module', 'todo', '--write']),
+    ).toEqual({
+      ok: false,
+      messages: [`${PROVIDERS} — вид «module» есть у dmg-core и p`],
+    });
+    expect(await snapshot()).toEqual(before);
+
+    await install('kit-a', { 'dmg-core.ts': entry('x') });
+    await install('kit-b', { 'dmg-core.ts': entry('x') });
+    await config({ providers: ['kit-a', 'kit-b'] });
+
+    expect(await (await cli()).gen(root, ['x'])).toEqual({
+      ok: false,
+      messages: [`${PROVIDERS} — вид «x» есть у kit-a и kit-b`],
+    });
+  });
+
+  test('сломанный вход: gen отказывает, ничего не записано; sync вход не импортирует', async () => {
+    await install('p', { 'dmg-core.ts': "throw new Error('boom');\n" });
+    await config({ providers: ['p'] });
+    const before = await snapshot();
+
+    expect(
+      await (await cli()).gen(root, ['module', 'todo', '--write']),
+    ).toEqual({
+      ok: false,
+      messages: ['Ошибка поставки p: вход p/dmg-core не загружается — boom'],
+    });
+    expect(await snapshot()).toEqual(before);
+
+    expect(await (await cli()).sync(root)).toEqual(OK);
+  });
+});

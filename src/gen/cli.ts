@@ -1,9 +1,9 @@
 /** Разбор аргументов `dmg-core gen <kind> <m>[.<agg>] <name> [опции]`. */
+import { GenError } from './gen-error';
+import { GenFlags } from './gen-flags';
 import type { GenLayout } from './layout';
 
-export class GenError extends Error {
-  override name = 'GenError';
-}
+export { GenError };
 
 /**
  * Дефект поставки пакета dmg-core (нет версии зависимости в его
@@ -53,27 +53,17 @@ const SHAPE: Record<
   dqs: { target: 'module', name: true },
 };
 
-const USAGE =
+/** Свои виды `dmg-core gen` — владелец `dmg-core`; каталог видов — `GenKinds` */
+export const OWN_KINDS = Object.keys(SHAPE) as readonly GenKind[];
+
+/** Подсказка своих видов; с видами поставщиков её дополняет `GenKinds` */
+export const USAGE =
   'Использование: dmg-core gen <вид> <модуль>[.<агрегат>] [<имя>] [--write] ' +
   '[--dry-run] [--adopt]\n' +
-  `Виды: ${Object.keys(SHAPE).join(', ')}`;
+  `Виды: ${OWN_KINDS.join(', ')}`;
 
 export function parseArgs(argv: readonly string[], layout: GenLayout): GenArgs {
-  const positional: string[] = [];
-  let write = false;
-  let adopt = false;
-
-  for (const arg of argv) {
-    if (!arg.startsWith('--')) {
-      positional.push(arg);
-      continue;
-    }
-    if (arg === '--write') write = true;
-    else if (arg === '--dry-run') write = false;
-    else if (arg === '--adopt') adopt = true;
-    else throw new GenError(`Неизвестная опция ${arg}\n${USAGE}`);
-  }
-
+  const { positional, write, adopt } = GenFlags.parse(argv, USAGE);
   const [kind, target, name, ...rest] = positional;
   if (kind === undefined) throw new GenError(USAGE);
   if (!(kind in SHAPE)) {
