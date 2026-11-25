@@ -2,12 +2,12 @@
 covers:
   - src/graph/**
   - src/cli/graph-command.ts
-verified: 4fb9e13
+verified: 9665ad5
 ---
 
 # Граф приложения
 
-**Назначение:** формат графа — ядро (`Graph`, поставщики, `id`, документ `graph.json`), поставщик домена (дерево `id`, виды узлов и рёбер, внешние `id`) и команда `dmg-core graph`. Экспорт — `dmg-core/graph`. Решения — D-92, D-95, D-96, D-97 ([decisions.md](../decisions.md)). Правила проверок графа — MAN-15, MAN-16, ARC-13 ([rules.md](./rules.md)).
+**Назначение:** формат графа — ядро (`Graph`, поставщики, `id`, документ `.dmg/graph.json`), поставщик домена (дерево `id`, виды узлов и рёбер, внешние `id`) и команда `dmg-core graph`. Экспорт — `dmg-core/graph`. Решения — D-92, D-95, D-96, D-97 ([decisions.md](../decisions.md)). Правила проверок графа — MAN-15, MAN-16, ARC-13 ([rules.md](./rules.md)).
 
 ---
 
@@ -136,7 +136,7 @@ dmg-core graph <файл> [--out <путь>]
 ```
 
 - **Файл** — `export default { def, providers? } satisfies GraphApp`: `AppDef` и поставщики сверх домена (поставщика домена добавляет `AppGraph`). Образцы — `src/testing/example/example.graph.ts` (`ExampleGraph` в `dmg-core/testing`) и `src/testing/example/screen/screen.graph.ts`; в каркасе `init` — `scripts/<имя>.graph.ts`, скрипт `bun run graph`.
-- **Вывод** — `graph.json` в каталоге запуска или путь `--out` (каталоги создаются); `--out=путь` — неизвестный флаг. Версия в `app` — `version` из `package.json` каталога запуска. `graph.json` — артефакт сборки, в git не хранится.
+- **Вывод** — `.dmg/graph.json` в каталоге запуска или путь `--out` (каталоги создаются); `--out=путь` — неизвестный флаг. Версия в `app` — `version` из `package.json` каталога запуска. `.dmg/graph.json` — артефакт сборки, в git не хранится.
 
 | Выход | Сообщение |
 |---|---|

@@ -1,7 +1,7 @@
 ---
 covers:
   - src/testing/**
-verified: 4ab3899
+verified: 9665ad5
 ---
 
 # Тестирование
@@ -56,6 +56,7 @@ expect(res.ok ? undefined : res.error.code).toBe('TASK_ALREADY_DONE');
 - Готовые `testAppContext` (шина — `RecordingBus`, логгер — `MemoryLogger`), `MemoryBus` (доставляет события подписчикам), `MemoryRepo`, `StubFacade`, `expectIdempotentReaction` — для UC/ER без реального приложения (`src/testing/index.ts`); учебный модуль — `src/testing/example`.
 - Мини-монорепо (D-108, D-111) — `Monorepo` из `dmg-core/testing` (типы `FixtureManifest`, `FixtureSection`) для проверок единиц выноса (ARC-14…ARC-16), в том числе своей единицы поставщика: `Monorepo.create()` — проект `proj` (`ArchApp.project`) во временном каталоге; `root(manifest)`, `unit(dir, manifest)` — `package.json` корня и пакетов (зависимость — имя: внешний пакет → `file:`, иначе `workspace:*`, офлайн); `vendor(name, files?, exports?)` — внешний пакет вне проекта, с `exports` — только его подпути; `write(path, ...specs)`, `file(path, text)` — файлы; `install()` — настоящая изолированная установка Bun; `dispose()`. Кэш резолвера Bun живёт весь процесс и не забывает разрешений: сценарий — в своём каталоге, фикстура пишется целиком до `install()` и после не меняется.
 - Учебное приложение целиком — вход `dmg-core/testing/example` (D-101): `ExampleApp`, `ExampleAppDef`, типы `ExampleAppEnv`, `ExampleAppPorts`, `ExampleUser` и контракты модулей todo и users; контракт todo отдаёт и Ar, Policy, правила задач и `OPEN_TASKS_LIMIT` (D-104). Им пользуются тесты внешних пакетов (поставщики графа, UI). Стабилен только этот вход; глубокие пути `dmg-core/testing/example/*` работают, но могут меняться вместе с раскладкой примера. В `dmg-core/testing` приложения нет: сборка и контракты не попадают во все тесты.
+- Пакет-поставщик скилов, ролей и видов `gen` — фикстура `src/testing/example-provider/` рядом с учебным модулем: свой `package.json` (`exports["./dmg-core"]`), вход `dmg-core.ts` с `gen: GenProvider` (вид `example-unit`), скил `example-skill` и роль `example-author`. Тесты `sync`, `check` и сквозные сценарии `gen` подключают её симлинком в `node_modules` временного проекта (`linkExampleProvider`), тесты вида — берут `gen` фикстуры напрямую; стабильным входом она не является и читается как образец (каталог входит в поставку вместе с `src/testing`); относительные импорты `dmg-core` допустимы лишь внутри репо пакета, настоящий поставщик импортирует `dmg-core/gen` (`guides/provider-extension.md`).
 - Данные теста (D-84): след запроса — `TEST_TRACE` (`requestId: 'r-1'`) или `testTrace()` — свежий `r-<n>` на каждый вызов (отсев повторов D-56 считает одинаковый `requestId` повтором; вместо `crypto.randomUUID()`), `testTrace('r-42')` — заданный; uuid — `testUuid(n, prefix?)` → `<prefix>-0000-4000-8000-<n, 12 hex>`, проходит `F.uuid`; временный каталог — `TempDir.create(prefix?)` (`path`, `file(...segments)`, `dispose()`, `using`) или `useTempDir(prefix?)` — свой каталог на каждый тест блока (`beforeEach`/`afterEach`, возвращает `() => TempDir`) вместо ручного `mkdtemp`/`rm`.
 
 - Персональные данные (D-86): механика маскирования проверена в пакете; модулю достаточно теста, что помеченные поля state и схем операций — `F.sensitive`, и сквозного прогона, что значения нет в строке лога ([oplog.md](./oplog.md)).

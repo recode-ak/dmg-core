@@ -1,6 +1,19 @@
+---
+covers:
+  - src/gen/project-config.ts
+  - src/gen/main.ts
+  - src/gen/cli.ts
+  - src/gen/gen-kinds.ts
+  - src/gen/gen-flags.ts
+  - src/gen/layout.ts
+  - src/cli/dmg-core-cli.ts
+  - src/cli/cli-config.ts
+verified: 9665ad5
+---
+
 # Структура и именование
 
-**Назначение:** файловая структура домена и прикладного слоя, сокращения, имена файлов и объектов, генератор заготовок. Корни каталогов задаёт секция `gen` `dmg-core.json`, `ArchApp.layout` проекта берёт их оттуда же (`GenLayout`, §5); структуру внутри них проверяет проверка файлов `ArchChecker`, создаёт — `dmg-core gen` (§5). Образец — учебный модуль `src/testing/example`.
+**Назначение:** файловая структура домена и прикладного слоя, сокращения, имена файлов и объектов, генератор заготовок. Корни каталогов задаёт секция `gen` `.dmg/config.json`, `ArchApp.layout` проекта берёт их оттуда же (`GenLayout`, §5); структуру внутри них проверяет проверка файлов `ArchChecker`, создаёт — `dmg-core gen` (§5). Образец — учебный модуль `src/testing/example`.
 
 ---
 
@@ -95,7 +108,7 @@ infra/<aggregate>.json-repo.ts
 
 ## 5. Генератор `dmg-core gen`
 
-`dmg-core gen <вид> <модуль>[.<агрегат>] [<имя>] [--write]` создаёт файлы по §2–§4. Без `--write` — dry-run (печатает план). Существующие файлы не перезаписываются: коллизия — ошибка, и ничего не записано. Код выхода 1 — ошибка ввода или коллизия.
+`dmg-core gen <вид> <модуль>[.<агрегат>] [<имя>] [--write]` создаёт файлы по §2–§4. Без `--write` — dry-run (печатает план). Существующие файлы не перезаписываются: коллизия — ошибка, и ничего не записано. Код выхода 1 — ошибка ввода или коллизия. Виды из таблицы ниже — свои виды `dmg-core`; пакеты-поставщики из `providers` добавляют свои (см. «Виды поставщиков»).
 
 | Команда | Что создаёт |
 |---|---|
@@ -108,7 +121,7 @@ infra/<aggregate>.json-repo.ts
 
 `--adopt` — перевод существующего модуля на Def: `gen module` допускает каталог модуля без `<m>.module.ts`, `gen aggregate` — каталог агрегата без `<a>.state.ts`. Существующие `index.ts`, `contract.ts`, `package.json` и `tsconfig.json` не перезаписываются (печатается «Пропущен» с шаблоном, правки по маркерам идут в `index.ts`); пропуск — по имени файла. Остальные коллизии — ошибка.
 
-**Раскладка** — секция `gen` в `dmg-core.json` (корень проекта; без файла — значения по умолчанию). Шаблоны с `{m}`; пути — от корня проекта:
+**Раскладка** — секция `gen` в `.dmg/config.json` (корень проекта; без файла — значения по умолчанию). Шаблоны с `{m}`; пути — от корня проекта:
 
 | Поле | Что | По умолчанию |
 |---|---|---|
@@ -130,12 +143,23 @@ infra/<aggregate>.json-repo.ts
 
 Раскладка — один источник для генератора и `arch:check`: проект берёт каталоги слоёв `ArchApp.layout` из `GenLayout.dirs()` (`dmg-core/gen`), а не пишет пути вручную; раннеры-процессы — списком `runners`. Первая строка вывода `gen` — применяемая раскладка.
 
+**Слои поставщиков** — секция `layers` того же файла: `{ "<слой>": { "dir": "<шаблон с {m}>/src", "package": "@acme/{m}-x" } }`. `package` необязателен: только при `dir` на `/src`, `{m}` в нём — парой с `{m}` в `dir`; неизвестное поле секции и конфига — отказ. Проект передаёт их проверяющему слоёв: `ArchApp.layers` ← `GenLayout.layerDirs()`; виды поставщиков берут `layout.layerDir(слой, модуль)` и `layout.layerPackage(слой, модуль)`. Читалка конфига — `ProjectConfig` (`dmg-core/gen`): секции `providers`, `layers`, `gen`, `skills`, `roles`, `instructions`; прежний `dmg-core.json` — отказ с подсказкой переноса.
+
+**Виды поставщиков.** Пакет из `providers` может экспортировать из входа `<пакет>/dmg-core` виды `gen` (`GenProvider`; гайд — `guides/provider-extension.md`). Вызов — `dmg-core gen <вид> <аргументы> [--write] [--dry-run] [--adopt]`: флаги разбирает ядро, аргументы после имени вида — сам вид. План вида идёт через тот же `applyPlan`, что и у своих видов (dry-run, `--write`, `--adopt`); первая строка вывода — `Вид «<имя>» — <пакет>, слои: …` (вместо раскладки `gen`). Подсказка при неизвестном виде или пустой команде дополняется блоком:
+
+```
+Виды поставщиков (dmg-core gen <вид> <аргументы> [--write] [--dry-run] [--adopt]):
+  example-unit <модуль> — example-provider
+```
+
+Имя вида — у одного владельца: совпадение с видом `dmg-core` или другого поставщика — отказ с обоими именами. Сломанный вход ломает `gen`, но не `sync` и `sync --check`.
+
 ```ts
 import { join } from 'node:path';
 import { GenLayout } from 'dmg-core/gen';
 import SchoolGraph from './school.graph'; // вход dmg-core graph: { def: SchoolAppDef }
 
-const layout = await GenLayout.read(root); // секция gen dmg-core.json
+const layout = await GenLayout.read(root); // секция gen .dmg/config.json
 export const SchoolArch: ArchApp = {
   ...SchoolGraph,
   entry: 'contract',
@@ -148,4 +172,4 @@ export const SchoolArch: ArchApp = {
 
 Состав приложения и поставщики графа `ArchApp` берёт из входа графа (D-97): один список поставщиков для `dmg-core graph` и `arch:check`; путь к его файлу — `graphEntry` (D-108).
 
-Каркас проекта (конфиги, `check`, корень сборки, раннер) создаёт `dmg-core init --profile single|monorepo`, секцию `gen` пишет он же. Без `gen.package` генератор пишет только исходники: пакет модуля и workspace — забота проекта.
+Каркас проекта (конфиги, `check`, корень сборки, раннер) создаёт `dmg-core init --profile single|monorepo`, секцию `gen` пишет он же (`.dmg/config.json` — в git, `.dmg/graph.json` — в `.gitignore`). Без `gen.package` генератор пишет только исходники: пакет модуля и workspace — забота проекта.

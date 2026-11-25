@@ -2,7 +2,7 @@
 
 **Назначение:** как написать артефакт DMG по образцу — учебному модулю пакета ([src/testing/example](../../src/testing/example/example.arch.ts): `todo` — задачи, `users` — пользователи). Один файл на вид, формат — [_template.md](./_template.md). Ссылки и ID правил во всей документации пакета проверяет `scripts/docs-check.test.ts` (в `check` пакета).
 
-Раскладка примера: kernel — `example/platform/kernel/`, домен — `example/platform/domain/<m>/`, реализации — `example/backend/<m>/`, сборка — `example/runners/assembly/example-app.ts`, раннер — `example/runners/cli/`, `AppDef` — `example/platform/domain/example.app.ts`, вход графа (`dmg-core graph`) — `example.graph.ts`, `ArchApp` — `example.arch.ts`; расширение графа и проверок — `example/screen/` (описание) и `example/screen-code/` (исполнение). В проекте корни задаёт секция `gen` `dmg-core.json` ([naming.md](../reference/naming.md) §5). Заготовки создаёт генератор `dmg-core gen <вид> …` (раздел «Команда» каждого гайда).
+Раскладка примера: kernel — `example/platform/kernel/`, домен — `example/platform/domain/<m>/`, реализации — `example/backend/<m>/`, сборка — `example/runners/assembly/example-app.ts`, раннер — `example/runners/cli/`, `AppDef` — `example/platform/domain/example.app.ts`, вход графа (`dmg-core graph`) — `example.graph.ts`, `ArchApp` — `example.arch.ts`; расширение графа и проверок — `example/screen/` (описание) и `example/screen-code/` (исполнение). В проекте корни задаёт секция `gen` `.dmg/config.json`, слои поставщиков — `layers` ([naming.md](../reference/naming.md) §5, [provider-extension.md](./provider-extension.md)). Заготовки создаёт генератор `dmg-core gen <вид> …` (раздел «Команда» каждого гайда).
 
 ---
 
@@ -24,5 +24,6 @@
 | вынос модуля в сервис, модуль на другом языке (GR-01, GR-02; вживую не проверено) | [extract-module.md](./extract-module.md) | — |
 | делегирование: заявка, порт, резолвер (D-89) | [delegation.md](./delegation.md) | `runners/assembly/example-caller-resolver.ts`, `runners/assembly/example-delegation-store.ts` |
 | расширение графа и проверок: свой вид Def, поставщик, правило, слой, подписка | [graph-extension.md](./graph-extension.md) | `screen/screen-provider.ts`, `screen.test.ts` |
+| расширение `gen` и `sync`: вид заготовок, скилы и роли пакета-поставщика | [provider-extension.md](./provider-extension.md) | `example-provider/dmg-core.ts` |
 
 Без отдельного гайда: тесты — [testing.md](../reference/testing.md); поля `F.*`, `shared/` модуля домена и `kernel` приложения — [manifests.md](../reference/manifests.md) §3; формат графа — [graph.md](../reference/graph.md); структура и имена — [naming.md](../reference/naming.md).

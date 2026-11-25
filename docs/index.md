@@ -29,6 +29,8 @@
 | Вынести модуль в сервис или на другой язык | [guides/extract-module.md](./guides/extract-module.md) → [сценарии роста](./concepts/layers.md#сценарии-роста) |
 | Подключить делегирование | [guides/delegation.md](./guides/delegation.md) |
 | Расширить граф и проверки (пакет-поставщик) | [guides/graph-extension.md](./guides/graph-extension.md) → [reference/graph.md](./reference/graph.md) |
+| Расширить `gen` и `sync` (виды заготовок, скилы и роли пакета-поставщика) | [guides/provider-extension.md](./guides/provider-extension.md) |
+| Настроить проект: `providers`, `layers`, `gen`, `skills`, `roles` в `.dmg/config.json` | [guides/provider-extension.md](./guides/provider-extension.md) §2, [reference/naming.md](./reference/naming.md) §5, [agents/README.md](../agents/README.md) |
 | Объявить контракт | [manifests.md](./reference/manifests.md), [errors-result.md](./reference/errors-result.md) |
 | Работать агентом | скил `dmg-architecture` ([SKILL.md](../skills/dmg-architecture/SKILL.md)), роли [agents/](../agents/README.md), процесс [process.md](./process.md) |
 
@@ -48,7 +50,7 @@
 - [domain-modeling.md](./reference/domain-modeling.md) — модуль-владелец, антипаттерны, границы модулей, агрегат
 - [naming.md](./reference/naming.md) — сокращения, файловая структура, имена, генератор
 - [manifests.md](./reference/manifests.md) — Def-классы (`XxxDef.define`), описания, схемы, граф, проверки
-- [graph.md](./reference/graph.md) — граф приложения: документ graph.json, ядро, поставщик домена (дерево id, виды, рёбра, внешние id), команда dmg-core graph
+- [graph.md](./reference/graph.md) — граф приложения: документ `.dmg/graph.json`, ядро, поставщик домена (дерево id, виды, рёбра, внешние id), команда dmg-core graph
 - [errors-result.md](./reference/errors-result.md) — `Result`, модель ошибки, базовые ошибки ядра, гарантии исполнения UC
 - [caller.md](./reference/caller.md) — кто вызывает: `guest`, `user`, `delegate`, `system`; след `Trace`
 - [transport.md](./reference/transport.md) — HTTP (JSON-команда), отсев повторов, MCP, in-proc

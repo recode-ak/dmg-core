@@ -10,13 +10,13 @@
 - [Слои и пакеты](docs/reference/layers.md): оси, импорты, доменный API, доступ к entity
 - [Оси и сценарии роста](docs/concepts/layers.md): почему четыре оси и сборка в раннерах, реестр сценариев `GR-NN` (вынос модуля в сервис, на другой язык) и их статус
 - [Моделирование домена](docs/reference/domain-modeling.md): модуль-владелец, Ar / Policy / доменное правило / DCS / DQS, границы модулей
-- [Проект](docs/guides/project.md): `dmg-core init --profile single|monorepo` — что создаёт каркас, как растёт проект, подключение модулей генератором, `call` раннера
+- [Проект](docs/guides/project.md): `dmg-core init --profile single|monorepo` — что создаёт каркас (`.dmg/config.json`), как растёт проект, подключение модулей генератором, `call` раннера
 - [Структура и имена](docs/reference/naming.md): сокращения, файловая структура домена и прикладного слоя, генератор `dmg-core gen` (§5)
 
 ## Контракты
 
 - [Манифесты](docs/reference/manifests.md): Def-классы (`XxxDef.define`), обязательные описания, схемы, граф, проверки `ArchChecker`
-- [Граф приложения](docs/reference/graph.md): документ `graph.json` формата 1, ядро (`GraphProvider`, `id`-путь, подъём, монтирование, коды `GraphError`), поставщик домена (дерево `id`, виды узлов и рёбер, внешние `id`), команда `dmg-core graph`
+- [Граф приложения](docs/reference/graph.md): документ `.dmg/graph.json` формата 1, ядро (`GraphProvider`, `id`-путь, подъём, монтирование, коды `GraphError`), поставщик домена (дерево `id`, виды узлов и рёбер, внешние `id`), команда `dmg-core graph`
 - [Ошибки и Result](docs/reference/errors-result.md): модель ошибки, `kind`, текст отказа по умолчанию `ErrorText`, исполнение UC, UoW
 - [Caller и Trace](docs/reference/caller.md): кто вызывает, субъект, след вызова, допуск заместителя (`callers` без `delegate`, `personal`, `readOnly`)
 - [Транспорт](docs/reference/transport.md): HTTP (JSON-команда, `meta.requestId`, ожидаемая версия — поле входа `expectedVersion`), MCP, in-proc
@@ -35,6 +35,7 @@
 - [State](docs/guides/state.md), [Aggregate](docs/guides/aggregate.md), [Events](docs/guides/events.md), [Errors](docs/guides/errors.md), [Policy](docs/guides/policy.md)
 - [Repo, DCS, DQS](docs/guides/repo.md), [Facade](docs/guides/facade.md), [Use case](docs/guides/use-case.md), [Event reaction](docs/guides/event-reaction.md), [Module](docs/guides/module.md), [Job](docs/guides/job.md), [Сборка и раннер](docs/guides/app.md), [Проект](docs/guides/project.md), [Вынос модуля](docs/guides/extract-module.md), [Делегирование](docs/guides/delegation.md)
 - [Расширение графа и проверок](docs/guides/graph-extension.md): пакет-поставщик — свой вид Def, поставщик графа, правило `arch:check` со своим префиксом, слой исходников, подписка `EventSubscriber`, `DeclaredSet`, `ErrorText`, отступление от правила слоя записью долга; образец — `src/testing/example/screen/` (описание) и `src/testing/example/screen-code/` (исполнение)
+- [Расширение `gen` и `sync` пакетом-поставщиком](docs/guides/provider-extension.md): `providers` и `layers` в `.dmg/config.json`, вход `<пакет>/dmg-core`, скилы и роли с меткой `<пакет>@<версия>`, конфликты и `stale`, вид `gen` (`GenProvider`, синхронный `plan`, `GenError`, `layout`); образец — `src/testing/example-provider/`
 
 ## Агенты
 

@@ -54,7 +54,7 @@ bunx dmg-core gen module todo --write
 bunx dmg-core gen aggregate todo.task --write
 bunx dmg-core gen uc todo.task create --write     # рабочий UC создания
 bun install && bun run check                      # зелёный без ручных правок
-bun run graph                                     # graph.json — документ графа приложения
+bun run graph                                     # .dmg/graph.json — документ графа приложения
 APP_DATA_DIR=data bun src/runners/cli/main.ts call todo.create --user <uuid>   # single
 APP_DATA_DIR=data bun runners/cli/src/main.ts call todo.create --user <uuid>   # monorepo
 ```
@@ -70,9 +70,9 @@ bun add dmg-core valibot @valibot/to-json-schema
 bunx dmg-core init
 ```
 
-`init` без профиля создаёт `dmg-core.json` и доставляет в проект скилы и роли агентов (по умолчанию — для Claude Code в `.claude/`). Ещё он добавляет в `AGENTS.md` ссылку на [`llms.txt`](llms.txt) — индекс документации для агентов. После обновления пакета выполни `dmg-core sync`; `dmg-core sync --check` в `check` проекта падает, если копии устарели. Каркас `init --profile` делает то же и сверх того.
+`init` без профиля создаёт `.dmg/config.json` и доставляет в проект скилы и роли агентов (по умолчанию — для Claude Code в `.claude/`). Ещё он добавляет в `AGENTS.md` ссылку на [`llms.txt`](llms.txt) — индекс документации для агентов. После обновления пакета выполни `dmg-core sync`; `dmg-core sync --check` в `check` проекта падает, если копии устарели. Каркас `init --profile` делает то же и сверх того. Файлы DMG проекта лежат в каталоге `.dmg/`: конфиг `.dmg/config.json` (коммитится), граф `.dmg/graph.json` (в `.gitignore`); прежний `dmg-core.json` в корне — отказ с подсказкой переноса. Скилы, роли и виды `gen` других пакетов подключаются секцией `providers` ([гайд](docs/guides/provider-extension.md)).
 
-1. **Модуль.** `bunx dmg-core gen module todo --write` создаёт паспорт модуля в домене (`src/platform/domain/todo/`) и прикладной слой (`src/backend/todo/`). Без `--write` команда только печатает план. Каталоги и импорт домена задаёт секция `gen` в `dmg-core.json` ([naming.md](docs/reference/naming.md) §5).
+1. **Модуль.** `bunx dmg-core gen module todo --write` создаёт паспорт модуля в домене (`src/platform/domain/todo/`) и прикладной слой (`src/backend/todo/`). Без `--write` команда только печатает план. Каталоги и импорт домена задаёт секция `gen` в `.dmg/config.json` ([naming.md](docs/reference/naming.md) §5).
 2. **Агрегат и операции.** `gen aggregate todo.task` добавляет state, события, ошибки, Ar, Policy и репозиторий. `gen uc todo.task complete-task` создаёт пару «контракт в домене ↔ реализация в прикладном слое», `er` и `job` работают так же, а `dcs` / `dqs` создают доменные сервисы. В заготовках остаются `TODO` — по ним видно, что заполнить. Как именно, подскажет гайд вида ([индекс](docs/guides/index.md)) и тот же артефакт в учебном модуле.
 3. **Проверка архитектуры.** Опиши приложение для `ArchChecker`: состав — `AppDef` из входа графа (`{ def, providers? }`, как [`example.graph.ts`](src/testing/example/example.graph.ts)), к нему — места слоёв (`ArchApp = { ...ExampleGraph, entry, project, layout, runners, graphEntry }`: проект, каталоги слоёв из `GenLayout.dirs()`, раннеры-процессы, файл входа графа; как [`example.arch.ts`](src/testing/example/example.arch.ts)), — и вызови отчёт из `check` проекта:
 
@@ -101,10 +101,10 @@ bunx dmg-core init
 | `dmg-core/app` | прикладной слой: UC/ER/Job по Def, модуль, UoW, фасады, репозитории; подписка внешнего слоя `EventSubscriber`, сверка `DeclaredSet` |
 | `dmg-core/graph` | ядро графа, поставщик домена и граф приложения, нормализация Def, `DefIndex` ([граф приложения](docs/reference/graph.md)) |
 | `dmg-core/arch` | `ArchChecker` (с правилами поставщиков графа), `Violation`, `reportArchCheck` |
-| `dmg-core/gen` | `GenLayout`: раскладка проекта из `dmg-core.json` — один источник для `gen` и `ArchApp.layout` |
+| `dmg-core/gen` | `ProjectConfig` (читалка `.dmg/config.json`) и `GenLayout`: раскладка проекта — один источник для `gen` и `ArchApp.layout`; контракт вида `gen` поставщика — `GenProvider`, `GenProviderKind`, `GenError`, типы плана ([расширение поставщиком](docs/guides/provider-extension.md)) |
 | `dmg-core/testing` | хелперы тестов, мини-монорепо `Monorepo` для проверок единиц выноса и учебное приложение (`ExampleAppDef`, `ExampleGraph`, `ExampleArch`); образец расширения графа — исходники `src/testing/example/screen/` и `src/testing/example/screen-code/` (читаются как образец, стабильным входом не являются) |
 | `dmg-core/testing/example` | учебное приложение для тестов внешних пакетов: `ExampleApp`, `ExampleAppDef`, типы `ExampleAppEnv`, `ExampleAppPorts`, `ExampleUser`, контракты модулей todo и users (D-101), в том числе `TaskAr`, `TaskPolicy`, `TaskRules` и `OPEN_TASKS_LIMIT` (D-104); стабилен только этот вход, глубокие пути `dmg-core/testing/example/*` — нет |
-| `dmg-core/cli` | `DmgCoreCli`: `init`, `sync`, `gen` как API; команды CLI `bunx dmg-core` — `init`, `sync`, `gen`, `oplog`, `graph` |
+| `dmg-core/cli` | `DmgCoreCli`: `init`, `sync`, `gen` как API; `CliConfig(PackageSet)`, `PackageSet` и `ProviderPackage` — поставка `dmg-core` и пакетов из `providers`; команды CLI `bunx dmg-core` — `init`, `sync`, `gen`, `oplog`, `graph` |
 
 ## Документация
 
@@ -112,7 +112,7 @@ bunx dmg-core init
 - [Слои](docs/reference/layers.md), [моделирование домена](docs/reference/domain-modeling.md), [структура, имена и генератор](docs/reference/naming.md)
 - [Манифесты](docs/reference/manifests.md), [граф приложения](docs/reference/graph.md), [ошибки и Result](docs/reference/errors-result.md), [Caller и Trace](docs/reference/caller.md), [транспорт](docs/reference/transport.md)
 - [Каталог правил](docs/reference/rules.md), [решения](docs/decisions.md), [тестирование](docs/reference/testing.md), [стиль TypeScript](docs/reference/typescript.md)
-- [Гайды по видам артефактов](docs/guides/index.md), [проект: профили и рост](docs/guides/project.md), [расширение графа и проверок](docs/guides/graph-extension.md)
+- [Гайды по видам артефактов](docs/guides/index.md), [проект: профили и рост](docs/guides/project.md), [расширение графа и проверок](docs/guides/graph-extension.md), [расширение `gen` и `sync` поставщиком](docs/guides/provider-extension.md)
 - Для агентов: [`llms.txt`](llms.txt), скил [`dmg-architecture`](skills/dmg-architecture/SKILL.md), [роли](agents/README.md)
 
 ## Лицензия

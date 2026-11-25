@@ -14,11 +14,11 @@ description: ЗАГРУЖАТЬ ПЕРВЫМ при создании или ре
 3. Контракт (Def) — `reference/manifests.md`; ошибки и `Result` — `reference/errors-result.md`; кто вызывает — `reference/caller.md`; заместитель (делегирование между людьми) — `guides/delegation.md`.
 4. UC/ER/Job — только техническая оркестрация (API-01): никаких доменных решений.
 5. Чужой модуль — только через его `contract.ts` и только по `dependsOn` (ARC-04).
-6. Пакет-расширение (UI, адаптер): свой вид Def, поставщик графа, правило `arch:check`, слой исходников, подписка на события (`EventSubscriber`), текст отказа (`ErrorText`) — `guides/graph-extension.md`; формат графа — `reference/graph.md`.
+6. Пакет-расширение (UI, адаптер): свой вид Def, поставщик графа, правило `arch:check`, слой исходников, подписка на события (`EventSubscriber`), текст отказа (`ErrorText`) — `guides/graph-extension.md`; формат графа — `reference/graph.md`. Свои скилы, роли и виды `gen` пакета — `providers` и `layers` в `.dmg/config.json`, `guides/provider-extension.md`.
 
 ## 2. Как назвать и где положить
 
-`reference/naming.md`: сокращения (Ar, Uc, Er, Job, Dcs, Dqs, Def), суффиксы файлов (`.ar.ts`, `.uc.ts`, …), зеркальная пара контракт ↔ реализация. Корни каталогов задаёт секция `gen` в `dmg-core.json` (`GenLayout`); `ArchApp.layout` проекта берёт их из `GenLayout.dirs()`. Заготовки — генератором `dmg-core gen …` (`reference/naming.md` §5), а не руками. Новый проект — каркас `dmg-core init --profile single|monorepo`; что он создаёт, как подключить модуль к приложению и кто что правит руками — `guides/project.md`.
+`reference/naming.md`: сокращения (Ar, Uc, Er, Job, Dcs, Dqs, Def), суффиксы файлов (`.ar.ts`, `.uc.ts`, …), зеркальная пара контракт ↔ реализация. Корни каталогов задаёт секция `gen` в `.dmg/config.json` (`GenLayout`; слои поставщиков — секция `layers`); `ArchApp.layout` проекта берёт их из `GenLayout.dirs()`. Заготовки — генератором `dmg-core gen …` (`reference/naming.md` §5), а не руками. Новый проект — каркас `dmg-core init --profile single|monorepo`; что он создаёт, как подключить модуль к приложению и кто что правит руками — `guides/project.md`.
 
 ## 3. Как написать артефакт вида
 

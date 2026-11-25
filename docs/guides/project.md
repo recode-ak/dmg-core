@@ -1,7 +1,7 @@
 ---
 covers:
   - src/cli/scaffold/**
-verified: 0237dac
+verified: 9665ad5
 ---
 
 # Проект — гайд
@@ -14,8 +14,9 @@ verified: 0237dac
 
 - **single** — один пакет, всё в `src/` по осям D-106: kernel `src/platform/kernel`, домен `src/platform/domain`, реализации `src/backend/<m>`, сборка `src/runners/assembly`, раннер `src/runners/cli`. Для старта, учебных и небольших проектов; раскладка как у учебного приложения пакета. Проверки единицы выноса в нём молчат — ARC-14, ARC-15 и ARC-16 по `package.json` единиц; вход графа проверяется и здесь: его замыкание не доходит до реализаций (ARC-16, D-111). Проект, который будет расти, — `monorepo`.
 - **monorepo** — те же оси пакетами workspaces `@<scope>/*`: kernel `platform/kernel` (`@<scope>/kernel`), домен `platform/domain` (`@<scope>/domain`), пакет реализации на модуль `backend/<m>` (`@<scope>/be-<m>`), сборка `runners/assembly` (`@<scope>/assembly`), раннеры-процессы `runners/<r>`. Когда модулей несколько и границы должны держаться на уровне пакетов; `scope` — из имени проекта (`@acme/school` → `acme`). Пакет объявляет всё, что импортирует; между пакетами — имя и `exports` (ARC-14…16, D-108); пакет реализации модуля — единица выноса в сервис ([extract-module.md](./extract-module.md)).
-- Профиль выбирается один раз: переход между ними — перенос каталогов и правка секции `gen` `dmg-core.json`, генератора для него нет.
-- Уже есть проект — `dmg-core init` без профиля (только `dmg-core.json`, скилы и роли) и раскладка в секции `gen` ([naming.md](../reference/naming.md) §5).
+- Профиль выбирается один раз: переход между ними — перенос каталогов и правка секции `gen` `.dmg/config.json`, генератора для него нет.
+- Уже есть проект — `dmg-core init` без профиля (только `.dmg/config.json`, скилы и роли) и раскладка в секции `gen` ([naming.md](../reference/naming.md) §5).
+- Файлы DMG проекта — в каталоге `.dmg/`: конфиг `.dmg/config.json` (коммитится) и граф `.dmg/graph.json` (артефакт, в `.gitignore`). Конфиг кроме `gen` несёт `providers` и `layers` — пакеты-поставщики сверх `dmg-core` и места их слоёв ([provider-extension.md](./provider-extension.md)); прежний `dmg-core.json` в корне — отказ с подсказкой переноса.
 
 ## 2. Команда
 
@@ -34,14 +35,14 @@ bun install && bun run check
 |---|---|---|
 | `package.json` | `version` `0.1.0` (есть в проекте — остаётся), скрипты `check`, `lint`, `format`, `arch:check`, `graph`; версии из пакета | то же + `workspaces` `platform/*`, `backend/*`, `runners/*`, домен в `devDependencies` корня |
 | `tsconfig.json`, `biome.json` | строгий TS; `overrides` по [карте линтера](../reference/rules.md#карта-линтера); `data/` biome не проверяет | то же; у каждого пакета свой `tsconfig.json` поверх корневого |
-| `dmg-core.json` | секция `gen` — все ключи осей: `domain`, `backend`, `kernel`, `assembly: src/runners/assembly`, `appDef` | все ключи осей: `domain`, `backend`, `kernel: platform/kernel/src`, `domainImport`, `package: @<scope>/be-{m}`, `assembly: runners/assembly/src`, `appDef` |
-| `scripts/arch-check.ts` | `ArchApp` собирается из входа графа: `{ ...<Имя>Graph, entry, project, layout, runners, graphEntry }` — состав приложения (`AppDef`, поставщики с правилами и слоями) берётся из `scripts/<имя>.graph.ts`; `project` — корень проекта, каталоги слоёв — `GenLayout.dirs()` из `dmg-core.json`, раннеры-процессы — списком (раннер CLI), `graphEntry` — путь к тому же `scripts/<имя>.graph.ts` (ARC-16, D-108); маркеров генератора нет | то же; `AppDef` — из `@<scope>/domain` (через вход графа) |
-| `scripts/<имя>.graph.ts` (D-96) | вход `dmg-core graph`: `export default { def: <Имя>AppDef } satisfies GraphApp`; `bun run graph` пишет `graph.json` — документ графа приложения (версия — из `version` в `package.json`); `graph.json` в `.gitignore`, не коммитится; поставщиков графа сверх домена добавляй в `providers` — их правила попадут и в `arch:check` ([graph-extension.md](./graph-extension.md)) | то же; `AppDef` — из `@<scope>/domain` |
+| `.dmg/config.json` | секция `gen` — все ключи осей: `domain`, `backend`, `kernel`, `assembly: src/runners/assembly`, `appDef` | все ключи осей: `domain`, `backend`, `kernel: platform/kernel/src`, `domainImport`, `package: @<scope>/be-{m}`, `assembly: runners/assembly/src`, `appDef` |
+| `scripts/arch-check.ts` | `ArchApp` собирается из входа графа: `{ ...<Имя>Graph, entry, project, layout, layers, runners, graphEntry }` — состав приложения (`AppDef`, поставщики с правилами и слоями) берётся из `scripts/<имя>.graph.ts`; `project` — корень проекта, каталоги слоёв — `GenLayout.dirs()` из `.dmg/config.json`, слои поставщиков — `layers: layout.layerDirs()` (секция `layers`), раннеры-процессы — списком (раннер CLI), `graphEntry` — путь к тому же `scripts/<имя>.graph.ts` (ARC-16, D-108); маркеров генератора нет | то же; `AppDef` — из `@<scope>/domain` (через вход графа) |
+| `scripts/<имя>.graph.ts` (D-96) | вход `dmg-core graph`: `export default { def: <Имя>AppDef } satisfies GraphApp`; `bun run graph` пишет `.dmg/graph.json` — документ графа приложения (версия — из `version` в `package.json`); `.dmg/graph.json` в `.gitignore`, не коммитится; поставщиков графа сверх домена добавляй в `providers` — их правила попадут и в `arch:check` ([graph-extension.md](./graph-extension.md)) | то же; `AppDef` — из `@<scope>/domain` |
 | `AppDef` (D-93) | `src/platform/domain/<имя>.app.ts` — `<Имя>AppDef` (имя пакета без scope) с маркерами `gen:imports`, `gen:modules`, `TODO` в `label` и `description`; путь — `gen.appDef` | `platform/domain/src/<имя>.app.ts`, экспорт из `platform/domain/src/index.ts` (вход домена — только `AppDef`) |
 | kernel и домен | `src/platform/kernel/app-user.ts` — тип пользователя (без `index.ts`, сборка импортирует файл); домен — `src/platform/domain` | `platform/kernel/` — пакет `@<scope>/kernel`, вход `src/index.ts` (`AppUser`); `platform/domain/` — пакет `@<scope>/domain` с `exports` `./*/contract`, `./*/testing`, `./*` |
 | корень сборки | `src/runners/assembly/app.ts`, резолвер `Caller`, тест | `runners/assembly/` — пакет `@<scope>/assembly` (зависит от `@<scope>/domain` и `@<scope>/kernel`) |
 | раннер | `src/runners/cli/`: окружение, CLI, `main.ts`, тесты | `runners/cli/` (зависит от `@<scope>/domain` и `@<scope>/assembly`) |
-| `.gitignore`; агенты (`init` выполняет `dmg-core sync`) | `.gitignore` (`node_modules/`, `data/`, `graph.json`); скилы и роли (`.claude/`), ссылка на `llms.txt` в `AGENTS.md` | то же |
+| `.gitignore`; агенты (`init` выполняет `dmg-core sync`) | `.gitignore` (`node_modules/`, `data/`, `.dmg/graph.json`); скилы и роли (`.claude/`), ссылка на `llms.txt` в `AGENTS.md` | то же |
 
 Раннер сразу работает (`<раннер>` — `src/runners/cli` | `runners/cli/src`):
 
