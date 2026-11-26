@@ -1,16 +1,16 @@
 /**
  * Проверка проекта-потребителя после установки tarball и `dmg-core init`
  * (`scripts/consumer-e2e.sh`): документация пакета на месте и без битых ссылок
- * (`checkLinks` над установленным пакетом — ловит файлы, не попавшие в
- * `files`; направления D-59 не нужны — файлы те же, что в репо), GritQL-плагины
- * поставлены, init доставил конфиг, скил и вставку, пути
+ * (`docs --check` установленного CLI в корне пакета — ловит файлы, не
+ * попавшие в `files`; направления D-59 не нужны — файлы те же, что в репо),
+ * GritQL-плагины поставлены, init доставил конфиг, скил и вставку, пути
  * `node_modules/dmg-core/…` в доставленных копиях существуют.
  *
  *   bun scripts/consumer-check.ts <корень потребителя>
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, posix } from 'node:path';
-import { checkLinks, type DocFile, readDocs } from './docs-check';
+import type { DocFile } from './docs-check';
 
 const PKG = 'node_modules/dmg-core';
 
@@ -48,6 +48,36 @@ export function checkDelivered(
     }
   }
   return violations;
+}
+
+/** Нарушение CLI: `<ПРАВИЛО>: <путь от корня пакета>…` */
+const RULE_LINE = /^([A-Z]+-\d+): /;
+
+/**
+ * Дерево документации установленного пакета — его же командой `docs --check`
+ * в корне пакета (`cli` — по умолчанию CLI поставки). Строки нарушений — с
+ * путём от корня потребителя; отказ без строк нарушений — строкой с кодом.
+ * Нет каталога пакета — пусто: его отсутствие ловит `REQUIRED`.
+ */
+export function checkPackageDocs(
+  root: string,
+  cli = join(root, PKG, 'src/cli/main.ts'),
+): string[] {
+  const cwd = join(root, PKG);
+  if (!existsSync(cwd)) return [];
+  const run = Bun.spawnSync([process.execPath, cli, 'docs', '--check'], {
+    cwd,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  if (run.exitCode === 0) return [];
+  const lines = run.stderr.toString().split('\n').filter(Boolean);
+  const violations = lines
+    .filter((line) => RULE_LINE.test(line))
+    .map((line) => line.replace(RULE_LINE, `$1: ${PKG}/`));
+  return violations.length > 0
+    ? violations
+    : [`${PKG}: docs --check — код ${run.exitCode}: ${lines.join(' ')}`];
 }
 
 /** Доставленные копии: скилы и роли Claude Code, файл инструкций */
@@ -89,12 +119,7 @@ if (import.meta.main) {
     violations.push(`AGENTS.md: нет ссылки на ${PKG}/llms.txt`);
   }
   violations.push(...checkDelivered(delivered, exists));
-  const docs = readDocs(join(root, PKG));
-  violations.push(
-    ...checkLinks(docs.files, docs.exists).map((line) =>
-      line.replace(/^(DOC-\d{2}): /, `$1: ${PKG}/`),
-    ),
-  );
+  violations.push(...checkPackageDocs(root));
   for (const line of violations) console.error(line);
   console.log(
     violations.length === 0

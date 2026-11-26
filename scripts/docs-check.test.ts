@@ -1,19 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
-import { DocIds } from '../src/cli/docs/doc-ids';
-import { DocReport } from '../src/cli/docs/doc-report';
-import { DocSources } from '../src/cli/docs/doc-sources';
-import { DocsLibrary } from '../src/cli/docs/docs-library';
 import { DocsSettings } from '../src/cli/docs/docs-settings';
 import { DocsTree } from '../src/cli/docs/docs-tree';
-import { MarkdownDoc } from '../src/cli/docs/markdown-doc';
-import {
-  checkDocs,
-  checkLinks,
-  checkSee,
-  type DocFile,
-  readDocs,
-} from './docs-check';
+import { checkDocs, checkSee, type DocFile, readDocs } from './docs-check';
 
 const ROOT = join(import.meta.dir, '..');
 
@@ -130,33 +119,24 @@ describe('@see в src пакета (контракт)', () => {
 });
 
 describe('документация пакета (контракт)', () => {
-  it('ссылки живые, внутри пакета, по направлениям D-59', () => {
-    const { files, exists } = readDocs(ROOT);
+  it('ссылки по направлениям D-59', () => {
+    const { files } = readDocs(ROOT);
     const paths = files.map((f) => f.path);
     expect(paths).toContain('llms.txt');
     expect(paths).toContain('docs/guides/use-case.md');
     expect(paths).toContain('skills/dmg-architecture/SKILL.md');
     expect(paths).toContain('agents/roles/dmg-reviewer.md');
-    expect(checkLinks(files, exists)).toEqual([]);
     expect(checkDocs(files)).toEqual([]);
   });
 
-  it('ID документов и исходников пакета ведут на записи (DOC-07)', async () => {
-    const settings = DocsSettings.of();
-    const tree = await new DocsTree(ROOT, settings).read();
-    const registries = await DocsLibrary.load({
-      root: ROOT,
-      coreRoot: ROOT,
-      providers: [],
-      project: tree.docs,
-    });
-    expect(registries.grammar().find('GR-01 ARC-13 D-114')).toHaveLength(3);
-    const docs = readDocs(ROOT).files.map(
-      (f) => new MarkdownDoc(f.path, f.text),
-    );
-    const sources = await new DocSources(ROOT, settings).read();
-    const into = new DocReport();
-    new DocIds(registries, docs, sources).report(into);
-    expect(into.violations().map((v) => v.format())).toEqual([]);
+  // Ссылки, якоря и ID проверяет `docs --check` в `check` — только по дереву
+  // от входа: документ вне дерева остался бы без проверки.
+  it('каждый документ пакета — в дереве docs --check', async () => {
+    const tree = await new DocsTree(ROOT, DocsSettings.of()).read();
+    const inTree = new Set(tree.docs.map((d) => d.path));
+    const outside = readDocs(ROOT)
+      .files.map((f) => f.path)
+      .filter((path) => !inTree.has(path));
+    expect(outside).toEqual([]);
   });
 });

@@ -1,7 +1,7 @@
 ---
 covers:
   - agents/**
-verified: 1822e40
+verified: d482844
 ---
 
 # Процесс разработки на DMG

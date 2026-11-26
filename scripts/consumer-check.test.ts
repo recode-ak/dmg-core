@@ -1,5 +1,13 @@
-import { describe, expect, it } from 'bun:test';
-import { checkDelivered, PLUGINS, REQUIRED } from './consumer-check';
+import { afterEach, describe, expect, it } from 'bun:test';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import {
+  checkDelivered,
+  checkPackageDocs,
+  PLUGINS,
+  REQUIRED,
+} from './consumer-check';
 
 const EXISTING = new Set([
   'node_modules/dmg-core/llms.txt',
@@ -50,6 +58,41 @@ describe('checkDelivered: пути пакета в доставленных ко
         exists,
       ),
     ).toEqual([]);
+  });
+});
+
+describe('checkPackageDocs: docs --check в корне установленного пакета', () => {
+  // CLI репо вместо установленного: во временном «пакете» только документы.
+  const cli = join(import.meta.dir, '../src/cli/main.ts');
+  const roots: string[] = [];
+  const consumer = (files: Record<string, string>): string => {
+    const root = mkdtempSync(join(tmpdir(), 'consumer-check-'));
+    roots.push(root);
+    for (const [path, text] of Object.entries(files)) {
+      const full = join(root, 'node_modules/dmg-core', path);
+      mkdirSync(dirname(full), { recursive: true });
+      writeFileSync(full, text);
+    }
+    return root;
+  };
+  const llms = '# dmg-core\n\n- [Оглавление](docs/index.md): ищешь раздел\n';
+  afterEach(() => {
+    for (const root of roots.splice(0)) rmSync(root, { recursive: true });
+  });
+
+  it('все цели ссылок в поставке — без нарушений', () => {
+    const root = consumer({
+      'llms.txt': llms,
+      'docs/index.md': '# Оглавление\n',
+    });
+    expect(checkPackageDocs(root, cli)).toEqual([]);
+  });
+
+  it('цель не попала в поставку — нарушение с путём от корня потребителя', () => {
+    const root = consumer({ 'llms.txt': llms });
+    expect(checkPackageDocs(root, cli)).toEqual([
+      'DOC-04: node_modules/dmg-core/llms.txt:3 — ссылка docs/index.md ведёт в несуществующий docs/index.md: исправь путь или убери ссылку',
+    ]);
   });
 });
 

@@ -1,8 +1,8 @@
 /**
  * Свои проверки документации пакета сверх `dmg-core docs --check`: направления
- * ссылок D-59 и `@see` в `src/`. Ссылки и якоря — `src/cli/docs`, ID серий
- * реестров (правила, `GR-NN`, решения) — DOC-07 команды; README от `llms.txt`
- * недостижим, его ссылки держит `checkLinks` по `readDocs`.
+ * ссылок D-59 и `@see` в `src/`; `readDocs` — документы и исходники с диска
+ * для них и для `covers-check`, `jsdoc-check`. Ссылки, якоря и ID серий
+ * реестров — команда `docs --check` в `check` (скрипт `docs:check`).
  * @see scripts/docs-check.test.ts
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -65,20 +65,10 @@ function docsOf(files: readonly DocFile[]): Map<string, MarkdownDoc> {
   return new Map(files.map((f) => [f.path, new MarkdownDoc(f.path, f.text)]));
 }
 
-/** Ссылки и якоря (DOC-04) — реализацией команды `docs --check`; строки `DOC-04: …` */
-export function checkLinks(
-  files: readonly DocFile[],
-  exists: (path: string) => boolean,
-): string[] {
-  const docs = docsOf(files);
-  return new DocLinks([...docs.values()], (path) => docs.get(path), exists)
-    .check()
-    .map((violation) => violation.format());
-}
-
 /**
- * Направления ссылок D-59. Ссылка за корень направлением не считается — её
- * ловит `checkLinks`.
+ * Направления ссылок D-59 по всем документам `readDocs`, не только по дереву
+ * от входа. Ссылка за корень направлением не считается — её ловит
+ * `docs --check` (DOC-04).
  */
 export function checkDocs(files: readonly DocFile[]): string[] {
   const violations: string[] = [];
