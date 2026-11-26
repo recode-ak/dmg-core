@@ -7,7 +7,7 @@ covers:
   - src/kernel/def/**
   - src/graph/**
   - src/arch/**
-verified: 9665ad5
+verified: e941de8
 ---
 
 # Манифест — один источник

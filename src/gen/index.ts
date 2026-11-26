@@ -17,6 +17,9 @@ export type {
 } from './plan';
 export { ProjectConfig, ProjectConfigError } from './project-config';
 export type {
+  DocsExempt,
+  DocsLimits,
+  DocsSection,
   LayerPlace,
   RolesSection,
   RoleTarget,

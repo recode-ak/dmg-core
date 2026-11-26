@@ -1,7 +1,10 @@
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import type { GenLayoutSettings } from './layout';
 import type {
+  DocsExempt,
+  DocsLimits,
+  DocsSection,
   LayerPlace,
   ProjectSections,
   RolesSection,
@@ -22,6 +25,16 @@ const SECTIONS = [
   'roles',
   'instructions',
   'gen',
+  'docs',
+];
+
+/** Ключи секции `docs` и её бюджетов (`docs-format.md` § 7). */
+const DOCS_FIELDS = ['entries', 'exempt', 'generated', 'limits'];
+const DOCS_LIMITS: readonly (keyof DocsLimits)[] = [
+  'entry',
+  'index',
+  'leaf',
+  'caption',
 ];
 
 /** Ключи `gen`, которые понимает `GenLayout`; прочие — отказ, как у секций. */
@@ -79,6 +92,8 @@ export class ProjectConfig {
   readonly roles?: RolesSection;
   /** Файл инструкций агентов для вставки; null — не вставлять */
   readonly instructions?: string | null;
+  /** Дерево документации для `docs --check`; нет — умолчания `DocsSettings` */
+  readonly docs?: DocsSection;
 
   private constructor(sections: ProjectSections) {
     this.providers = sections.providers;
@@ -87,6 +102,7 @@ export class ProjectConfig {
     this.skills = sections.skills;
     this.roles = sections.roles;
     this.instructions = sections.instructions;
+    this.docs = sections.docs;
   }
 
   /** Конфиг из корня проекта; нет файла — undefined; бросает `ProjectConfigError` */
@@ -121,6 +137,7 @@ export class ProjectConfig {
       gen: ProjectConfig.genSettings(data.gen),
       providers: ProjectConfig.providers(data.providers),
       layers: ProjectConfig.layers(data.layers),
+      docs: ProjectConfig.docsSection(data.docs),
     });
   }
 
@@ -294,6 +311,108 @@ export class ProjectConfig {
       gen.package = value as string;
     }
     return gen;
+  }
+
+  /** Секция `docs`: форма и пути внутри корня; умолчания — у `DocsSettings` */
+  private static docsSection(json: unknown): DocsSection | undefined {
+    if (json === undefined) return undefined;
+    const data = ProjectConfig.object(json, 'docs');
+    ProjectConfig.known(data, DOCS_FIELDS, 'docs.');
+    const docs: {
+      entries?: string[];
+      exempt?: DocsExempt[];
+      generated?: string[];
+      limits?: Partial<DocsLimits>;
+    } = {};
+    if (data.entries !== undefined) {
+      if (!Array.isArray(data.entries) || data.entries.length === 0) {
+        ProjectConfig.fail('docs.entries — непустой массив путей входов');
+      }
+      const entries = ProjectConfig.paths(data.entries, 'docs.entries');
+      const repeat = entries.findIndex(
+        (entry, i) => entries.indexOf(entry) !== i,
+      );
+      if (repeat !== -1) {
+        ProjectConfig.fail(
+          `docs.entries[${repeat}] — повтор «${entries[repeat]}»`,
+        );
+      }
+      docs.entries = entries;
+    }
+    if (data.exempt !== undefined) {
+      if (!Array.isArray(data.exempt)) {
+        ProjectConfig.fail('docs.exempt — массив исключений { path, reason }');
+      }
+      docs.exempt = (data.exempt as unknown[]).map((item, i) =>
+        ProjectConfig.exempt(item, `docs.exempt[${i}]`),
+      );
+    }
+    if (data.generated !== undefined) {
+      if (!Array.isArray(data.generated)) {
+        ProjectConfig.fail('docs.generated — массив путей');
+      }
+      docs.generated = ProjectConfig.paths(data.generated, 'docs.generated');
+    }
+    if (data.limits !== undefined) {
+      const limits = ProjectConfig.object(data.limits, 'docs.limits');
+      ProjectConfig.known(limits, [...DOCS_LIMITS], 'docs.limits.');
+      const parsed: Record<string, number> = {};
+      for (const key of DOCS_LIMITS) {
+        const value = limits[key];
+        if (value === undefined) continue;
+        if (!Number.isInteger(value) || (value as number) <= 0) {
+          ProjectConfig.fail(`docs.limits.${key} — целое число больше нуля`);
+        }
+        parsed[key] = value as number;
+      }
+      docs.limits = parsed;
+    }
+    return docs;
+  }
+
+  /** Исключение: путь внутри корня и причина (DOC-05) */
+  private static exempt(json: unknown, field: string): DocsExempt {
+    const data = ProjectConfig.object(json, field);
+    ProjectConfig.known(data, ['path', 'reason'], `${field}.`);
+    const { path, reason } = data;
+    if (typeof path !== 'string' || path === '') {
+      return ProjectConfig.fail(`${field}.path — путь файла или каталога`);
+    }
+    const place = ProjectConfig.pathProblem(path);
+    if (place) ProjectConfig.fail(`${field}.path — ${place} (DOC-05)`);
+    if (typeof reason !== 'string' || reason.trim() === '') {
+      ProjectConfig.fail(
+        `${field}.reason — исключение без причины не принимается (DOC-05)`,
+      );
+    }
+    return { path, reason: reason as string };
+  }
+
+  /** Массив непустых путей от корня проекта: не абсолютных, без выхода за корень */
+  private static paths(json: unknown[], field: string): string[] {
+    json.forEach((item, i) => {
+      if (typeof item !== 'string' || item === '') {
+        ProjectConfig.fail(`${field}[${i}] — непустой путь`);
+      }
+      const place = ProjectConfig.pathProblem(item as string);
+      if (place) ProjectConfig.fail(`${field}[${i}] — ${place}`);
+    });
+    return json as string[];
+  }
+
+  /**
+   * Что не так с путём от корня проекта: абсолютный, выходит за корень или не
+   * в нормальной форме (`./`, `//`, `..` внутри) — путь сравнивается с путями
+   * обхода как строка. Путь в порядке — undefined.
+   */
+  private static pathProblem(path: string): string | undefined {
+    if (posix.isAbsolute(path) || posix.normalize(path).startsWith('..')) {
+      return 'путь внутри проекта, от его корня';
+    }
+    if (path.startsWith('./') || posix.normalize(path) !== path) {
+      return `путь в нормальной форме: ${posix.normalize(path)}`;
+    }
+    return undefined;
   }
 
   private static object(json: unknown, field: string): Json {

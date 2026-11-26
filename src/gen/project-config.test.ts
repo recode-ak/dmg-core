@@ -100,6 +100,7 @@ describe('parse: общая форма', () => {
     expect(config.skills).toBe(undefined);
     expect(config.roles).toBe(undefined);
     expect(config.instructions).toBe(undefined);
+    expect(config.docs).toBe(undefined);
   });
 
   test('не объект — отказ с полем', () => {
@@ -360,5 +361,212 @@ describe('parse: gen', () => {
     expect(genRefusal({ appDef: 1 })).toBe(
       `${PREFIX}gen.appDef — путь файла без {m}`,
     );
+  });
+});
+
+describe('parse: docs', () => {
+  const docsRefusal = (json: unknown) => refusal({ docs: json });
+
+  test('полная форма — как есть', () => {
+    const docs = {
+      entries: ['llms.txt', 'docs/start.md'],
+      exempt: [
+        {
+          path: 'docs/graph-format.md',
+          reason: 'один формат документа: разрез рвёт описание полей',
+        },
+        { path: 'docs/wide/', reason: 'каталог формата' },
+      ],
+      generated: ['docs/state/', 'docs/state.md'],
+      limits: { entry: 40, index: 70, leaf: 200, caption: 100 },
+    };
+    expect(ProjectConfig.parse({ docs }).docs).toEqual(docs);
+  });
+
+  test('пустой объект и частичные поля — как есть', () => {
+    expect(ProjectConfig.parse({ docs: {} }).docs).toEqual({});
+    expect(
+      ProjectConfig.parse({ docs: { limits: { leaf: 200 } } }).docs,
+    ).toEqual({
+      limits: { leaf: 200 },
+    });
+    expect(
+      ProjectConfig.parse({ docs: { exempt: [], generated: [] } }).docs,
+    ).toEqual({
+      exempt: [],
+      generated: [],
+    });
+  });
+
+  test('секция читается из файла вместе с прочими', async () => {
+    put(
+      '.dmg/config.json',
+      JSON.stringify({
+        providers: ['acme-ui'],
+        docs: { entries: ['START.md'] },
+      }),
+    );
+    const config = await ProjectConfig.read(root);
+    expect(config?.docs).toEqual({ entries: ['START.md'] });
+    expect(config?.providers).toEqual(['acme-ui']);
+  });
+
+  test.each([
+    ['не объект', 'docs', 'docs'],
+    ['массив', ['llms.txt'], 'docs'],
+    ['null', null, 'docs'],
+  ])('docs — %s: отказ с полем', (_name, json, field) => {
+    expect(docsRefusal(json)).toStartWith(`${PREFIX}${field}`);
+  });
+
+  test('неизвестное поле: docs, docs.limits, элемент docs.exempt', () => {
+    expect(docsRefusal({ extra: 1 })).toBe(
+      `${PREFIX}неизвестное поле «docs.extra»`,
+    );
+    expect(docsRefusal({ limits: { extra: 1 } })).toBe(
+      `${PREFIX}неизвестное поле «docs.limits.extra»`,
+    );
+    expect(
+      docsRefusal({ exempt: [{ path: 'a.md', reason: 'r', extra: 1 }] }),
+    ).toBe(`${PREFIX}неизвестное поле «docs.exempt[0].extra»`);
+  });
+
+  test.each([
+    ['не массив', 'llms.txt'],
+    ['пустой массив', []],
+    ['пустая строка', ['llms.txt', '']],
+    ['не строка', [1]],
+  ])('entries: %s — отказ с полем', (_name, entries) => {
+    const message = docsRefusal({ entries });
+    expect(message).toStartWith(`${PREFIX}docs.entries`);
+    expect(message).not.toContain('DOC-05');
+  });
+
+  test.each([
+    ['generated не массив', { generated: 'docs/state/' }, 'docs.generated'],
+    ['generated: пустая строка', { generated: [''] }, 'docs.generated'],
+    [
+      'generated: не строка',
+      { generated: ['docs/state/', 2] },
+      'docs.generated',
+    ],
+    [
+      'exempt не массив',
+      { exempt: { path: 'a.md', reason: 'r' } },
+      'docs.exempt',
+    ],
+    ['limits не объект', { limits: 5 }, 'docs.limits'],
+    ['элемент exempt не объект', { exempt: ['a.md'] }, 'docs.exempt[0]'],
+    [
+      'у элемента exempt нет path',
+      { exempt: [{ reason: 'r' }] },
+      'docs.exempt[0].path',
+    ],
+    [
+      'path не строка',
+      { exempt: [{ path: 1, reason: 'r' }] },
+      'docs.exempt[0].path',
+    ],
+    [
+      'path пустой',
+      { exempt: [{ path: '', reason: 'r' }] },
+      'docs.exempt[0].path',
+    ],
+  ])('форма: %s — отказ с полем, без ID правила', (_name, docs, field) => {
+    const message = docsRefusal(docs);
+    expect(message).toStartWith(`${PREFIX}${field}`);
+    expect(message).not.toContain('DOC-05');
+  });
+
+  test.each([
+    ['нет reason', { path: 'a.md' }],
+    ['пустой reason', { path: 'a.md', reason: '' }],
+    ['reason из пробелов', { path: 'a.md', reason: '  \t\n ' }],
+    ['reason не строка', { path: 'a.md', reason: 3 }],
+  ])('exempt: %s — отказ (DOC-05)', (_name, item) => {
+    const message = docsRefusal({ exempt: [item] });
+    expect(message).toStartWith(`${PREFIX}docs.exempt[0].reason`);
+    expect(message).toContain('(DOC-05)');
+  });
+
+  test('отказ называет индекс элемента exempt', () => {
+    const message = docsRefusal({
+      exempt: [{ path: 'a.md', reason: 'r' }, { path: 'b.md' }],
+    });
+    expect(message).toStartWith(`${PREFIX}docs.exempt[1].reason`);
+  });
+
+  test.each([
+    ['нуль', 0],
+    ['отрицательное', -1],
+    ['дробное', 1.5],
+    ['строка', '5'],
+    ['null', null],
+    ['логическое', true],
+  ])('limits.*: %s — не целое больше нуля', (_name, value) => {
+    for (const key of ['entry', 'index', 'leaf', 'caption']) {
+      const message = docsRefusal({ limits: { [key]: value } });
+      expect(message).toStartWith(`${PREFIX}docs.limits.${key}`);
+      expect(message).not.toContain('DOC-05');
+    }
+  });
+
+  test('limits.*: единица — допустима', () => {
+    const limits = { entry: 1, index: 1, leaf: 1, caption: 1 };
+    expect(ProjectConfig.parse({ docs: { limits } }).docs?.limits).toEqual(
+      limits,
+    );
+  });
+
+  test.each([
+    ['абсолютный', '/etc/llms.txt'],
+    ['выход за корень', '../llms.txt'],
+    ['выход за корень в середине', 'docs/../../llms.txt'],
+  ])('entries, generated: путь %s — отказ с полем', (_name, path) => {
+    const entries = docsRefusal({ entries: ['llms.txt', path] });
+    expect(entries).toStartWith(`${PREFIX}docs.entries[1]`);
+    const generated = docsRefusal({ generated: [path] });
+    expect(generated).toStartWith(`${PREFIX}docs.generated[0]`);
+  });
+
+  test.each([
+    ['абсолютный', '/etc/passwd'],
+    ['выход за корень', '../docs/a.md'],
+    ['выход за корень в середине', 'docs/../../a.md'],
+  ])('exempt.path: %s — отказ (DOC-05)', (_name, path) => {
+    const message = docsRefusal({ exempt: [{ path, reason: 'причина' }] });
+    expect(message).toStartWith(`${PREFIX}docs.exempt[0].path`);
+    expect(message).toContain('(DOC-05)');
+  });
+
+  test.each([
+    ['с «./»', './llms.txt'],
+    ['с «./» в середине', 'docs/./a.md'],
+    ['с «..» внутри корня', 'docs/x/../a.md'],
+    ['с двойным «/»', 'docs//a.md'],
+  ])('путь %s — не в нормальной форме: отказ с полем', (_name, path) => {
+    const entries = docsRefusal({ entries: ['llms.txt', path] });
+    expect(entries).toStartWith(`${PREFIX}docs.entries[1]`);
+    expect(entries).not.toContain('DOC-05');
+    const generated = docsRefusal({ generated: [path] });
+    expect(generated).toStartWith(`${PREFIX}docs.generated[0]`);
+    expect(generated).not.toContain('DOC-05');
+    const exempt = docsRefusal({ exempt: [{ path, reason: 'причина' }] });
+    expect(exempt).toStartWith(`${PREFIX}docs.exempt[0].path`);
+    expect(exempt).toContain('(DOC-05)');
+  });
+
+  test('каталог с «/» на конце — нормальная форма', () => {
+    const docs = {
+      generated: ['docs/state/'],
+      exempt: [{ path: 'docs/wide/', reason: 'причина' }],
+    };
+    expect(ProjectConfig.parse({ docs }).docs).toEqual(docs);
+  });
+
+  test('повтор в entries — отказ с полем и путём', () => {
+    const message = docsRefusal({ entries: ['llms.txt', 'a.md', 'llms.txt'] });
+    expect(message).toStartWith(`${PREFIX}docs.entries[2]`);
+    expect(message).toContain('llms.txt');
   });
 });

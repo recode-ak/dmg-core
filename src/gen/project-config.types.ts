@@ -24,6 +24,28 @@ export type RolesSection = {
   readonly targets?: readonly RoleTarget[];
 };
 
+/** Бюджеты секции `docs`: строки по видам документа и знаки подписи (`docs-format.md` § 1, § 3) */
+export type DocsLimits = {
+  readonly entry: number;
+  readonly index: number;
+  readonly leaf: number;
+  readonly caption: number;
+};
+
+/** Исключение из проверок вида: путь файла или каталога (с `/`) и причина */
+export type DocsExempt = {
+  readonly path: string;
+  readonly reason: string;
+};
+
+/** Секция `docs`; нет поля — значение по умолчанию `DocsSettings` */
+export type DocsSection = {
+  readonly entries?: readonly string[];
+  readonly exempt?: readonly DocsExempt[];
+  readonly generated?: readonly string[];
+  readonly limits?: Partial<DocsLimits>;
+};
+
 /** Разобранные секции конфига проекта — поля `ProjectConfig` */
 export type ProjectSections = {
   readonly providers: readonly string[];
@@ -32,4 +54,5 @@ export type ProjectSections = {
   readonly skills?: SkillsSection;
   readonly roles?: RolesSection;
   readonly instructions?: string | null;
+  readonly docs?: DocsSection;
 };

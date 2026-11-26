@@ -2,10 +2,11 @@
 /**
  * CLI пакета: каркас проекта, доставка скилов, ролей и вставки в инструкции
  * агентов, генератор модулей, чтение лога операций, документ графа
- * приложения. Команды — `USAGE` ниже.
+ * приложения, проверка дерева документации. Команды — `USAGE` ниже.
  */
 import { join } from 'node:path';
 import { DmgCoreCli } from './dmg-core-cli';
+import { DocsCommand } from './docs-command';
 import { GraphCommand } from './graph-command';
 import { OplogCommand } from './oplog-command';
 import { PackageSource } from './package-source';
@@ -15,6 +16,7 @@ const USAGE = [
   '               dmg-core init --profile single|monorepo [--name <имя>] [--dry-run]',
   '               dmg-core oplog <dir> [--request <id>] [--aggregate <uuid>] [--subject <id>] [--actor <id>] [--module <m>] [--op <o>] [--failed] [--since <d>] [--until <d>] [--json]',
   '               dmg-core graph <файл> [--out <путь>]',
+  '               dmg-core docs --check',
 ].join('\n');
 
 const [command, ...flags] = process.argv.slice(2);
@@ -28,10 +30,17 @@ if (command === 'oplog') {
   process.exit(done.ok ? 0 : 2);
 }
 
-// graph — тоже без пакета проекта: файл приложения и `package.json` корня.
-// Ошибка ввода — код 2 и справка, отказ по состоянию проекта — код 1.
-if (command === 'graph') {
-  const done = await new GraphCommand(process.cwd()).run(flags);
+// graph и docs — тоже без пакета проекта: graph читает файл приложения и
+// `package.json` корня, docs — дерево документации от входов. Ошибка ввода —
+// код 2 и справка, отказ по состоянию проекта — код 1.
+const project =
+  command === 'graph'
+    ? new GraphCommand(process.cwd())
+    : command === 'docs'
+      ? new DocsCommand(process.cwd())
+      : undefined;
+if (project) {
+  const done = await project.run(flags);
   const print = done.ok ? console.log : console.error;
   for (const message of done.messages) print(message);
   if (done.usage) console.error(USAGE);

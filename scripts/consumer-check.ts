@@ -1,15 +1,16 @@
 /**
  * Проверка проекта-потребителя после установки tarball и `dmg-core init`
  * (`scripts/consumer-e2e.sh`): документация пакета на месте и без битых ссылок
- * (`docs-check` над установленным пакетом — ловит файлы, не попавшие в
- * `files`), GritQL-плагины поставлены, init доставил конфиг, скил и
- * вставку, пути `node_modules/dmg-core/…` в доставленных копиях существуют.
+ * (`checkLinks` над установленным пакетом — ловит файлы, не попавшие в
+ * `files`; направления D-59 не нужны — файлы те же, что в репо), GritQL-плагины
+ * поставлены, init доставил конфиг, скил и вставку, пути
+ * `node_modules/dmg-core/…` в доставленных копиях существуют.
  *
  *   bun scripts/consumer-check.ts <корень потребителя>
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, posix } from 'node:path';
-import { checkDocs, type DocFile, readDocs } from './docs-check';
+import { checkLinks, type DocFile, readDocs } from './docs-check';
 
 const PKG = 'node_modules/dmg-core';
 
@@ -90,8 +91,8 @@ if (import.meta.main) {
   violations.push(...checkDelivered(delivered, exists));
   const docs = readDocs(join(root, PKG));
   violations.push(
-    ...checkDocs(docs.files, docs.exists, docs.rules).map(
-      (line) => `${PKG}/${line}`,
+    ...checkLinks(docs.files, docs.exists).map((line) =>
+      line.replace(/^(DOC-\d{2}): /, `$1: ${PKG}/`),
     ),
   );
   for (const line of violations) console.error(line);

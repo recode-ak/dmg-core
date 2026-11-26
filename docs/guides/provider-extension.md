@@ -16,7 +16,7 @@ covers:
   - src/cli/cli-config.ts
   - src/cli/dmg-core-cli.ts
   - src/testing/example-provider/**
-verified: 9665ad5
+verified: e941de8
 ---
 
 # Расширение `gen` и `sync` пакетом-поставщиком — гайд

@@ -1,16 +1,15 @@
 /**
- * Контрактная проверка документации пакета (`docs/`, `skills/`, `agents/`,
- * `llms.txt`): ссылки на файлы живые, не выходят за пределы пакета и идут по
- * направлению D-59, якоря ведут на заголовки, ID правил есть в
- * `docs/reference/rules.md`, ID сценариев роста `GR-NN` — в реестре
- * `docs/concepts/layers.md` (D-109); пути в `@see` JSDoc `src/` живые.
- * Запускается тестом `docs-check.test.ts`.
- *
- * Чистые функции над файлами в памяти; чтение диска — в `readDocs`.
+ * Свои проверки документации пакета сверх `dmg-core docs --check`: направления
+ * ссылок D-59, ID правил из `rules.md`, `GR-NN` из реестра сценариев (D-109),
+ * `@see` в `src/`. Ссылки и якоря — `src/cli/docs`; README от `llms.txt`
+ * недостижим, его ссылки держит `checkLinks` по `readDocs`.
+ * @see scripts/docs-check.test.ts
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, posix } from 'node:path';
 import { Glob } from 'bun';
+import { DocLinks } from '../src/cli/docs/doc-links';
+import { MarkdownDoc } from '../src/cli/docs/markdown-doc';
 
 /** Файл документации: путь от корня пакета и текст */
 export interface DocFile {
@@ -24,13 +23,11 @@ const SOURCE_GLOB = 'src/**/*.ts';
 const RULES_PATH = 'docs/reference/rules.md';
 const SCENARIOS_PATH = 'docs/concepts/layers.md';
 const SCENARIOS_HEADING = 'Сценарии роста';
-const LINK_RE = /\]\(([^)\s]+)\)/g;
 const SEE_RE = /@see\s+(\S+?)[.,;:)]*(?=\s|$)/g;
 const SEE_PATH_RE = /\.(?:md|ts)$/;
 const RULE_RE = /\b(?:ARC|DOM|MAN|ERR|API|CODE|TST|DOC)-\d{2}\b/g;
 /** ID сценария пакета; у поставщика — с суффиксом репо (`GR-UI-01`), он не сверяется. */
 const SCENARIO_RE = /\bGR-\d{2,}\b/g;
-const EXTERNAL = /^[a-z]+:/i;
 
 type Kind =
   | 'concepts'
@@ -69,79 +66,48 @@ function kindOf(path: string): Kind {
   return 'other';
 }
 
-/** Якоря заголовков markdown по правилам GitHub, без заголовков в блоках кода */
-function anchorsOf(text: string): Set<string> {
-  const anchors = new Set<string>();
-  const seen = new Map<string, number>();
-  let fenced = false;
-  for (const line of text.split('\n')) {
-    if (/^\s*(?:```|~~~)/.test(line)) fenced = !fenced;
-    const heading = fenced ? null : /^#{1,6}\s+(.*?)\s*#*\s*$/.exec(line);
-    if (!heading) continue;
-    const slug = (heading[1] ?? '')
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\p{M} _-]/gu, '')
-      .replace(/ /g, '-');
-    const count = seen.get(slug) ?? 0;
-    seen.set(slug, count + 1);
-    anchors.add(count === 0 ? slug : `${slug}-${count}`);
-  }
-  return anchors;
+/** Документы по пути: якоря и ссылки — через `MarkdownDoc` */
+function docsOf(files: readonly DocFile[]): Map<string, MarkdownDoc> {
+  return new Map(files.map((f) => [f.path, new MarkdownDoc(f.path, f.text)]));
 }
 
-function decoded(anchor: string): string {
-  try {
-    return decodeURIComponent(anchor);
-  } catch {
-    return anchor;
-  }
-}
-
-function anchorIndex(files: readonly DocFile[]) {
-  const index = new Map(files.map((f) => [f.path, anchorsOf(f.text)]));
-  /** Якорь битый: файл известен как документ, а заголовка нет; пустой якорь — не якорь */
-  return (path: string, anchor: string) =>
-    anchor !== '' && index.get(path)?.has(decoded(anchor)) === false;
-}
-
-export function checkDocs(
+/** Ссылки и якоря (DOC-04) — реализацией команды `docs --check`; строки `DOC-04: …` */
+export function checkLinks(
   files: readonly DocFile[],
   exists: (path: string) => boolean,
+): string[] {
+  const docs = docsOf(files);
+  return new DocLinks([...docs.values()], (path) => docs.get(path), exists)
+    .check()
+    .map((violation) => violation.format());
+}
+
+/**
+ * Направления ссылок D-59 и ID правил. Ссылка за корень направлением не
+ * считается — её ловит `checkLinks`.
+ */
+export function checkDocs(
+  files: readonly DocFile[],
   rules: ReadonlySet<string>,
 ): string[] {
-  const broken = anchorIndex(files);
   const violations: string[] = [];
-  for (const file of files) {
-    const allowed = ALLOWED[kindOf(file.path)];
-    for (const [, href = ''] of file.text.matchAll(LINK_RE)) {
-      const [target = '', anchor] = href.split('#');
-      if (EXTERNAL.test(target)) continue;
-      const resolved =
-        target === ''
-          ? file.path
-          : posix.normalize(posix.join(posix.dirname(file.path), target));
-      const kind = kindOf(resolved);
-      if (resolved.startsWith('..')) {
-        violations.push(
-          `${file.path}: ссылка выходит за пределы пакета ${target}`,
-        );
-      } else if (!exists(resolved)) {
-        violations.push(
-          `${file.path}: ссылка ведёт в несуществующий файл ${target}`,
-        );
-      } else if (anchor !== undefined && broken(resolved, anchor)) {
-        violations.push(`${file.path}: битый якорь ${href}`);
-      } else if (allowed && !allowed.has(kind)) {
-        violations.push(
-          `${file.path}: ссылка против направления (${kindOf(file.path)} → ${kind}) ${target}`,
-        );
+  for (const [path, doc] of docsOf(files)) {
+    const allowed = ALLOWED[kindOf(path)];
+    if (allowed) {
+      for (const { target } of doc.links()) {
+        const resolved = DocLinks.resolve(path, target);
+        const kind = kindOf(resolved);
+        if (!resolved.startsWith('..') && !allowed.has(kind)) {
+          violations.push(
+            `${path}: ссылка против направления (${kindOf(path)} → ${kind}) ${target}`,
+          );
+        }
       }
     }
-    const ids = new Set([...file.text.matchAll(RULE_RE)].map((m) => m[0]));
+    const ids = new Set([...doc.text.matchAll(RULE_RE)].map((m) => m[0]));
     for (const id of ids) {
       if (!rules.has(id)) {
-        violations.push(`${file.path}: правило ${id} нет в ${RULES_PATH}`);
+        violations.push(`${path}: правило ${id} нет в ${RULES_PATH}`);
       }
     }
   }
@@ -184,7 +150,7 @@ export function checkSee(
   docs: readonly DocFile[],
   exists: (path: string) => boolean,
 ): string[] {
-  const broken = anchorIndex(docs);
+  const known = docsOf(docs);
   const violations: string[] = [];
   for (const file of sources) {
     for (const [, ref = ''] of file.text.matchAll(SEE_RE)) {
@@ -194,7 +160,10 @@ export function checkSee(
         violations.push(
           `${file.path}: @see ведёт в несуществующий файл ${target}`,
         );
-      } else if (anchor !== undefined && broken(target, anchor)) {
+      } else if (
+        anchor !== undefined &&
+        known.get(target)?.hasAnchor(anchor) === false
+      ) {
         violations.push(`${file.path}: @see — битый якорь ${ref}`);
       }
     }

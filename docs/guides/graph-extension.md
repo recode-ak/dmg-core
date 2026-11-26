@@ -19,7 +19,7 @@ covers:
   - src/testing/example/screen-code/**
   - src/testing/example/screen.arch.ts
   - src/testing/example/screen.test.ts
-verified: 4ab3899
+verified: e941de8
 ---
 
 # Расширение графа и проверок — гайд
