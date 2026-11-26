@@ -34,8 +34,8 @@ type Kind =
 
 /**
  * Куда может ссылаться документ своего типа. Типы без записи —
- * `decisions.md`, входы (`docs/index.md`, `llms.txt`, README), скилы и
- * роли — не ограничены.
+ * `decisions.md`, корень `docs/`, `llms.txt`, README, скилы и роли — не
+ * ограничены.
  */
 const ALLOWED: Partial<Record<Kind, ReadonlySet<Kind>>> = {
   concepts: new Set([

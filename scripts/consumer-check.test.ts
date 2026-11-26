@@ -88,6 +88,28 @@ describe('checkPackageDocs: docs --check в корне установленно�
     expect(checkPackageDocs(root, cli)).toEqual([]);
   });
 
+  it('отказ CLI без строк нарушений — строка с кодом и выводом', () => {
+    const root = consumer({
+      'llms.txt': llms,
+      'fail.ts': "console.error('сбой');\nprocess.exit(3);\n",
+    });
+    const stub = join(root, 'node_modules/dmg-core/fail.ts');
+    expect(checkPackageDocs(root, stub)).toEqual([
+      'node_modules/dmg-core: docs --check — код 3: сбой',
+    ]);
+  });
+
+  it('CLI убит сигналом — строка с сигналом', () => {
+    const root = consumer({
+      'llms.txt': llms,
+      'kill.ts': "process.kill(process.pid, 'SIGKILL');\n",
+    });
+    const stub = join(root, 'node_modules/dmg-core/kill.ts');
+    expect(checkPackageDocs(root, stub)).toEqual([
+      'node_modules/dmg-core: docs --check — сигнал SIGKILL',
+    ]);
+  });
+
   it('цель не попала в поставку — нарушение с путём от корня потребителя', () => {
     const root = consumer({ 'llms.txt': llms });
     expect(checkPackageDocs(root, cli)).toEqual([

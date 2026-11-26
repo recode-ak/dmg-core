@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
+import { DocsLibrary } from '../src/cli/docs/docs-library';
 import { DocsSettings } from '../src/cli/docs/docs-settings';
 import { DocsTree } from '../src/cli/docs/docs-tree';
+import { ProjectConfig } from '../src/gen/project-config';
 import { checkDocs, checkSee, type DocFile, readDocs } from './docs-check';
 
 const ROOT = join(import.meta.dir, '..');
+
+/** Дерево пакета, как его читает `docs --check` в корне: с секцией `docs`, если она есть */
+async function packageTree() {
+  const config = await ProjectConfig.read(ROOT);
+  return new DocsTree(ROOT, DocsSettings.of(config?.docs)).read();
+}
 
 const doc = (text: string, path = 'docs/guides/aggregate.md'): DocFile => ({
   path,
@@ -132,11 +140,41 @@ describe('документация пакета (контракт)', () => {
   // Ссылки, якоря и ID проверяет `docs --check` в `check` — только по дереву
   // от входа: документ вне дерева остался бы без проверки.
   it('каждый документ пакета — в дереве docs --check', async () => {
-    const tree = await new DocsTree(ROOT, DocsSettings.of()).read();
+    const tree = await packageTree();
     const inTree = new Set(tree.docs.map((d) => d.path));
     const outside = readDocs(ROOT)
       .files.map((f) => f.path)
       .filter((path) => !inTree.has(path));
     expect(outside).toEqual([]);
+  });
+
+  // DOC-07 `docs --check` видит ID только объявленных серий: реестр, потерявший
+  // строку `**Серия:**`, молча выключает проверку своих ID. Грамматику держит
+  // `src/cli/docs/id-grammar.test.ts`, здесь — связка «реестры пакета
+  // объявляют серии пакета». Новая серия пакета — строкой в список.
+  it('реестры пакета объявляют серии пакета (DOC-06, DOC-07)', async () => {
+    const tree = await packageTree();
+    const registries = await DocsLibrary.load({
+      root: ROOT,
+      coreRoot: ROOT,
+      providers: [],
+      project: tree.docs,
+    });
+    const ids = [
+      'D-114',
+      'ARC-13',
+      'DOM-14',
+      'MAN-01',
+      'ERR-01',
+      'API-02',
+      'CODE-04',
+      'TST-08',
+      'DOC-07',
+      'GR-01',
+      'DEBT-5',
+      'DISC-6',
+    ];
+    const found = registries.grammar().find(ids.join(' '));
+    expect(found.map((mention) => mention.id)).toEqual(ids);
   });
 });

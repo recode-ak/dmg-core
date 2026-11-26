@@ -1,12 +1,9 @@
 /**
  * Проверка проекта-потребителя после установки tarball и `dmg-core init`
- * (`scripts/consumer-e2e.sh`): документация пакета на месте и без битых ссылок
- * (`docs --check` установленного CLI в корне пакета — ловит файлы, не
- * попавшие в `files`; направления D-59 не нужны — файлы те же, что в репо),
- * GritQL-плагины поставлены, init доставил конфиг, скил и вставку, пути
- * `node_modules/dmg-core/…` в доставленных копиях существуют.
- *
- *   bun scripts/consumer-check.ts <корень потребителя>
+ * (`scripts/consumer-e2e.sh`): обязательные файлы и GritQL-плагины на месте,
+ * пути пакета в доставленных копиях живые, документы поставки проходят её же
+ * `docs --check`. Запуск: `bun scripts/consumer-check.ts <корень потребителя>`.
+ * @see scripts/consumer-check.test.ts
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, posix } from 'node:path';
@@ -55,9 +52,10 @@ const RULE_LINE = /^([A-Z]+-\d+): /;
 
 /**
  * Дерево документации установленного пакета — его же командой `docs --check`
- * в корне пакета (`cli` — по умолчанию CLI поставки). Строки нарушений — с
- * путём от корня потребителя; отказ без строк нарушений — строкой с кодом.
- * Нет каталога пакета — пусто: его отсутствие ловит `REQUIRED`.
+ * в корне пакета (`cli` — по умолчанию CLI поставки): ловит файлы, не
+ * попавшие в `files`. Строки нарушений — с путём от корня потребителя; отказ
+ * без строк нарушений — строкой с кодом или сигналом. Нет каталога пакета —
+ * пусто: его отсутствие ловит `REQUIRED`.
  */
 export function checkPackageDocs(
   root: string,
@@ -65,12 +63,18 @@ export function checkPackageDocs(
 ): string[] {
   const cwd = join(root, PKG);
   if (!existsSync(cwd)) return [];
+  // Допущение: `.dmg/` не в поставке — проверка идёт по умолчаниям секции
+  // `docs`. Появится секция в репо (`exempt`, `limits`) — здесь всплывут
+  // нарушения, которых нет в `check` репо.
   const run = Bun.spawnSync([process.execPath, cli, 'docs', '--check'], {
     cwd,
     stdout: 'pipe',
     stderr: 'pipe',
   });
   if (run.exitCode === 0) return [];
+  if (run.exitCode === null) {
+    return [`${PKG}: docs --check — сигнал ${run.signalCode}`];
+  }
   const lines = run.stderr.toString().split('\n').filter(Boolean);
   const violations = lines
     .filter((line) => RULE_LINE.test(line))
