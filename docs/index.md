@@ -57,6 +57,7 @@
 - [oplog.md](./reference/oplog.md) — лог операций: запись, патч полей, маскирование `F.sensitive`, срок хранения, чтение (`dmg-core oplog`)
 - [testing.md](./reference/testing.md) — тестирование; хелперы `dmg-core/testing` (фейк `MemoryRepo`, `testTrace`, `testUuid`, `TempDir`, мини-монорепо `Monorepo`)
 - [typescript.md](./reference/typescript.md) — стиль TypeScript
+- [docs-format.md](./reference/docs-format.md) — создаёшь, правишь или переносишь документ, запись реестра, роль или скил
 
 ## Как устроена документация
 

@@ -28,6 +28,7 @@
 - [Решения](docs/decisions.md): реестр решений фреймворка D-NN
 - [Тестирование](docs/reference/testing.md): принципы, пирамида, польза на тест (TST-08), тест проверяет код модуля (TST-09), тесты типов (TST-10) (UC/ER/Job — фейк порта `MemoryRepo`, репозиторий и smoke модуля — временный каталог), хелперы `dmg-core/testing` (`MemoryRepo.where`/`unanswered`, `TEST_TRACE`/`testTrace`, `testUuid`, `TempDir`/`useTempDir`), фикстуры владельца `<domain>/<m>/testing` (только тестовому коду, TST-07)
 - [Стиль TypeScript](docs/reference/typescript.md)
+- [Формат документации](docs/reference/docs-format.md): создаёшь, правишь или переносишь документ, запись реестра, роль или скил
 
 ## Гайды по видам артефактов
 
