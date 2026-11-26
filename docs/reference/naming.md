@@ -1,7 +1,9 @@
 ---
 covers:
   - src/arch/file-checker.ts
-verified: 9665ad5
+  - src/arch/layer-checker.ts
+  - src/gen/naming.ts
+  - src/gen/kinds/**
 ---
 
 # Структура и именование

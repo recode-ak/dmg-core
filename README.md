@@ -103,7 +103,7 @@ bunx dmg-core init
 | `dmg-core/arch` | `ArchChecker` (с правилами поставщиков графа), `Violation`, `reportArchCheck` |
 | `dmg-core/gen` | `ProjectConfig` (читалка `.dmg/config.json`) и `GenLayout`: раскладка проекта — один источник для `gen` и `ArchApp.layout`; контракт вида `gen` поставщика — `GenProvider`, `GenProviderKind`, `GenError`, типы плана ([расширение поставщиком](docs/guides/provider-extension.md)) |
 | `dmg-core/testing` | хелперы тестов, мини-монорепо `Monorepo` для проверок единиц выноса и учебное приложение (`ExampleAppDef`, `ExampleGraph`, `ExampleArch`); образец расширения графа — исходники `src/testing/example/screen/` и `src/testing/example/screen-code/` (читаются как образец, стабильным входом не являются) |
-| `dmg-core/testing/example` | учебное приложение для тестов внешних пакетов: `ExampleApp`, `ExampleAppDef`, типы `ExampleAppEnv`, `ExampleAppPorts`, `ExampleUser`, контракты модулей todo и users (D-101), в том числе `TaskAr`, `TaskPolicy`, `TaskRules` и `OPEN_TASKS_LIMIT` (D-104); стабилен только этот вход, глубокие пути `dmg-core/testing/example/*` — нет |
+| `dmg-core/testing/example` | учебное приложение для тестов внешних пакетов; состав и стабильность — [example.md](docs/reference/example.md) |
 | `dmg-core/cli` | `DmgCoreCli`: `init`, `sync`, `gen` как API; `CliConfig(PackageSet)`, `PackageSet` и `ProviderPackage` — поставка `dmg-core` и пакетов из `providers`; команды CLI `bunx dmg-core` — `init`, `sync`, `gen`, `oplog`, `graph`, `docs --check`, `docs show <ID…>` |
 
 ## Документация

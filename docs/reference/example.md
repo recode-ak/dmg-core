@@ -1,7 +1,10 @@
 ---
 covers:
-  - src/testing/example/**
-  - src/testing/example-provider/**
+  - src/testing/example/index.ts
+  - src/testing/example/example.arch.ts
+  - src/testing/example/example.graph.ts
+  - src/testing/example/screen.arch.ts
+  - src/testing/example-provider/dmg-core.ts
 ---
 # Учебный модуль
 
@@ -21,6 +24,8 @@ covers:
 | `AppDef` | `platform/domain/example.app.ts` |
 | вход графа (`dmg-core graph`), `{ def }` | `example.graph.ts` |
 | `ArchApp` (`{ ...ExampleGraph, layout, … }`) | `example.arch.ts` |
+| вход `dmg-core/testing/example` | `index.ts` |
+| `ArchApp` расширения графа | `screen.arch.ts` |
 | сборка | `runners/assembly/example-app.ts` |
 | раннер | `runners/cli/` |
 | расширение графа и проверок: описание | `screen/` |

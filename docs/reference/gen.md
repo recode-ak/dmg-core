@@ -8,6 +8,9 @@ covers:
   - src/gen/layout.ts
   - src/cli/dmg-core-cli.ts
   - src/cli/cli-config.ts
+  - src/gen/apply.ts
+  - src/gen/validate.ts
+  - src/gen/kinds/**
 verified: 9665ad5
 ---
 
