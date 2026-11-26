@@ -16,6 +16,8 @@
     "!src/testing/*.test.ts",
     "!src/*.test.ts",
     "docs",
+    "debt.md",
+    "discussion.md",
     "skills",
     "agents",
     "llms.txt",

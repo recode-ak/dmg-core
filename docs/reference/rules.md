@@ -2,6 +2,8 @@
 
 **Назначение:** проверяемые правила архитектуры. Агенты и ревьюер ссылаются на ID; каждая машинная проверка выводит ID в сообщении (`DOM-01: …`). Правило меняется только через [decisions.md](../decisions.md).
 
+**Серия:** `ARC-<n>`, `DOM-<n>`, `MAN-<n>`, `ERR-<n>`, `API-<n>`, `CODE-<n>`, `TST-<n>`, `DOC-<n>`
+
 Проверка: **lint** — biome (`noRestrictedImports`, GritQL-плагины пакета `node_modules/dmg-core/biome-plugins/*.grit`, подключение — [карта линтера](#карта-линтера); видно в IDE); **type** — компилятор; **test** — контрактный или рантайм-тест (`ArchChecker` из `dmg-core/arch` в `check` проекта); **review** — агент-ревьюер. Какие пути блокируются и какие исключения действуют на время перехода, решает проект в своём `biome.json` и `ArchApp`. Ограничения: в DOM-11 автоматизированы базовые поля, а «DTO из схемы» — `review`. Повторяющееся замечание ревьюера переводится в машинную проверку (ratchet).
 
 Имена слоёв — по [layers.md](./layers.md) (оси — D-106): **фреймворк** (`dmg-core`); **платформа приложения** — **`kernel` приложения** и **домен** (пакет домена); **пакет реализации модуля** (его содержимое — прикладной слой) и необязательное **общее реализаций** (`backend/app`); **раннеры** — **сборка** (`runners/assembly`, корень сборки) и **раннеры-процессы**.
@@ -12,7 +14,7 @@
 
 Какие lint-правила на какие каталоги слоёв подключены в `biome.json` проекта. Каркас `dmg-core init --profile` пишет `overrides` по этой карте (источник — `LintMap` в `src/cli/scaffold/lint-map.ts`); проект без каркаса подключает правила так же. Плагины — `node_modules/dmg-core/biome-plugins/*.grit`, запреты импортов — `noRestrictedImports`. Тестовый код (`*.test.ts`, `*.fixture.ts`, `*.test-kit.ts`, D-70) из всех строк исключён. Каталоги слоёв поставщиков графа карта не называет: их шаблоны проект добавляет к строкам «все исходники» по документу поставщика (фронт `dmg-ui` — `frontend/*/*/src`, `frontend/*/src`; `naming.md` `dmg-ui`, «Пакеты в `monorepo`»).
 
-| ID | Чем | Слой | single | monorepo |
+| Правило | Чем | Слой | single | monorepo |
 |---|---|---|---|---|
 | ARC-02 | `noRestrictedImports`: только `dmg-core`, `valibot` и свои файлы | `kernel` приложения | `src/platform/kernel` | `platform/kernel/src` |
 | ARC-02 | `noRestrictedImports`: только `dmg-core`, `valibot`, свои файлы и `kernel` приложения (в monorepo — `@<scope>/kernel`, только вход) | домен | `src/platform/domain` | `platform/domain/src` |
