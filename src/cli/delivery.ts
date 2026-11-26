@@ -1,10 +1,12 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { ProjectConfig } from '../gen/project-config';
-import type { CliSettings } from './cli-config';
+import type { CliSettings } from './cli-config.types';
+import type { Inspection } from './delivery.types';
 import { DirScan } from './dir-scan';
 import { Marker } from './marker';
 import type { PackageSet } from './package-set';
+import { RoleRefs } from './role-refs';
 
 /**
  * Ожидаемая копия; markFile — файл, чья метка решает, наша ли копия
@@ -16,23 +18,6 @@ interface Copy {
   marker: Marker;
 }
 
-/** Найденное расхождение копии с пакетом */
-export interface Finding {
-  path: string;
-  message: string;
-}
-
-/** Итог сверки проекта с пакетом (пути от корня проекта) */
-export interface Inspection {
-  /** Копии, которые надо записать (нет или расходится) */
-  write: string[];
-  /** Свои копии без источника — файлы и каталоги скилов */
-  stale: string[];
-  /** Файлы проекта на месте копий — не трогаются */
-  foreign: string[];
-  findings: Finding[];
-}
-
 /**
  * Доставка скилов и ролей поставки (`dmg-core` и поставщики) в проект по
  * настройкам: ожидаемые копии с меткой владельца, сверка с файлами проекта и
@@ -41,22 +26,26 @@ export interface Inspection {
  */
 export class Delivery {
   private readonly copies: Map<string, Copy>;
+  private readonly refs: RoleRefs;
 
   constructor(
     private readonly packages: PackageSet,
     private readonly settings: CliSettings,
   ) {
+    this.refs = new RoleRefs(settings.roles.refs);
     this.copies = this.build();
   }
 
-  /** Сверяет файлы проекта в root с ожидаемыми копиями */
+  /** Сверяет файлы проекта в root с ожидаемыми копиями и живость ссылок `roles.refs` */
   async inspect(root: string): Promise<Inspection> {
     const result: Inspection = {
       write: [],
       stale: [],
       foreign: [],
+      broken: await this.refs.broken(root),
       findings: [],
     };
+    result.findings.push(...result.broken);
     const read = (path: string) =>
       readFile(join(root, path), 'utf8').catch(() => undefined);
 
@@ -138,7 +127,9 @@ export class Delivery {
       for (const { role, owner } of selected) {
         const path = `${target.dir}/${role.name}.md`;
         const marker = owner.marker();
-        const text = role.render(target.format, marker, common);
+        const text = role
+          .withKnowledge(this.refs.block(role.name))
+          .render(target.format, marker, common);
         copies.set(path, { text, markFile: path, marker });
       }
       if (target.format === 'neutral') {

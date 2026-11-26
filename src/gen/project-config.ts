@@ -56,6 +56,9 @@ const RENAMED: Readonly<Record<string, string>> = {
 
 const FORMATS: readonly RoleTarget['format'][] = ['neutral', 'claude', 'pi'];
 
+/** Знаки, которым не место в пути из промпта: служебные и разделители Unicode, бэктик. */
+const UNSAFE = /[\p{C}\p{Z}`]/u;
+
 /** Поставщик графа и слоёв, который подключён всегда — в `providers` не перечисляется. */
 const CORE = 'dmg-core';
 
@@ -212,8 +215,12 @@ export class ProjectConfig {
   private static roles(json: unknown): RolesSection | undefined {
     if (json === undefined) return undefined;
     const data = ProjectConfig.object(json, 'roles');
-    ProjectConfig.known(data, ['names', 'targets'], 'roles.');
-    const roles: { names?: string[]; targets?: RoleTarget[] } = {};
+    ProjectConfig.known(data, ['names', 'targets', 'refs'], 'roles.');
+    const roles: {
+      names?: string[];
+      targets?: RoleTarget[];
+      refs?: ReadonlyMap<string, readonly string[]>;
+    } = {};
     if (data.names !== undefined) {
       roles.names = ProjectConfig.strings(data.names, 'roles.names');
     }
@@ -225,7 +232,51 @@ export class ProjectConfig {
         ProjectConfig.target(item, `roles.targets[${i}]`),
       );
     }
+    if (data.refs !== undefined) roles.refs = ProjectConfig.refs(data.refs);
     return roles;
+  }
+
+  /**
+   * `roles.refs`: роль → пути файлов знаний. `Object.entries` в `Map`, а не
+   * присваивание в `{}`: ключ `__proto__` из `JSON.parse` не теряется.
+   */
+  private static refs(json: unknown): ReadonlyMap<string, readonly string[]> {
+    if (typeof json !== 'object' || json === null || Array.isArray(json)) {
+      return ProjectConfig.fail('roles.refs — объект «роль → список путей»');
+    }
+    const refs = new Map<string, readonly string[]>();
+    for (const [role, value] of Object.entries(json)) {
+      const field = `roles.refs.${role}`;
+      if (!Array.isArray(value) || value.length === 0) {
+        ProjectConfig.fail(
+          `${field} — непустой массив путей (нет ссылок — убери ключ)`,
+        );
+      }
+      const paths = ProjectConfig.paths(value as unknown[], field);
+      paths.forEach((path, i) => {
+        const problem = ProjectConfig.refProblem(path);
+        if (problem) ProjectConfig.fail(`${field}[${i}] — ${problem}`);
+        if (paths.indexOf(path) !== i) {
+          ProjectConfig.fail(`${field}[${i}] — путь повторяется: ${path}`);
+        }
+      });
+      refs.set(role, paths);
+    }
+    return refs;
+  }
+
+  /**
+   * Сверх `pathProblem`: ссылка — файл целиком, путь безопасен для текста
+   * промпта — без управляющих, невидимых и пробельных знаков, кроме пробела.
+   */
+  private static refProblem(path: string): string | undefined {
+    if (path === '.') return 'файл, не каталог: это корень проекта';
+    if (path.endsWith('/')) return 'файл, не каталог (убери «/» в конце)';
+    if (path.includes('#')) return 'без якоря: лист целиком (DOC-03)';
+    if (UNSAFE.test(path.replaceAll(' ', ''))) {
+      return 'без управляющих знаков и «`» (путь попадает в промпт)';
+    }
+    return undefined;
   }
 
   private static target(json: unknown, field: string): RoleTarget {

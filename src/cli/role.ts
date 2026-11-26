@@ -89,6 +89,19 @@ export class Role {
     );
   }
 
+  /** Роль с блоком знаний проекта после тела; пустой блок — та же роль */
+  withKnowledge(block: string): Role {
+    if (block === '') return this;
+    return new Role(
+      this.name,
+      this.description,
+      this.tools,
+      this.model,
+      `${this.body}\n\n${block}`,
+      `${this.source.trimEnd()}\n\n${block}\n`,
+    );
+  }
+
   /**
    * Текст копии роли. neutral — исходник с меткой (общий блок доставляется
    * отдельным файлом); claude / pi — готовая роль среды с общим блоком в конце.

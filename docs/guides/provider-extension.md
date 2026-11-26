@@ -12,8 +12,9 @@ covers:
   - src/cli/package-set*.ts
   - src/cli/package-source.ts
   - src/cli/marker.ts
-  - src/cli/delivery.ts
-  - src/cli/cli-config.ts
+  - src/cli/delivery*.ts
+  - src/cli/cli-config*.ts
+  - src/cli/role-refs.ts
   - src/cli/dmg-core-cli.ts
   - src/testing/example-provider/**
 verified: e941de8
@@ -68,6 +69,7 @@ verified: e941de8
 5. **Пакет убран из `providers` — его копии без источника (`stale`).** `sync --check` сообщает о них, `sync` удаляет. Файл проекта на месте копии (без метки) `sync` не трогает — ошибка.
 6. **Явные `skills.names` / `roles.names` скрывают нового поставщика.** `init` пишет в конфиг списки по умолчанию; после этого скилы и роли пакета, добавленного в `providers` позже, в `names` не попадают — предупреждения нет. Добавь их имена в `names` вручную (или убери поле — «всё из поставки»). Имя в `names`, которого нет ни у одного пакета, — отказ.
 7. **Вставка в файл инструкций (`instructions`) — только `dmg-core`**: блок ссылается на `node_modules/dmg-core/llms.txt`.
+8. **`roles.refs` работают и для ролей поставщика**: блок «Знания проекта» — в копии роли поставщика, метка копии — поставщика; роль должна доставляться (`roles.names`).
 
 Код: тип `ProviderPackage` (поиск и чтение пакета; снаружи — только тип), `PackageSet` (объединение `dmg-core` и поставщиков), `CliConfig(PackageSet)` — `dmg-core/cli`.
 

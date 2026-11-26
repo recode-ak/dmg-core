@@ -22,6 +22,8 @@ export type SkillsSection = {
 export type RolesSection = {
   readonly names?: readonly string[];
   readonly targets?: readonly RoleTarget[];
+  /** Роль → пути файлов знаний проекта от корня, в порядке конфига */
+  readonly refs?: ReadonlyMap<string, readonly string[]>;
 };
 
 /** Бюджеты секции `docs`: строки по видам документа и знаки подписи (`docs-format.md` § 1, § 3) */

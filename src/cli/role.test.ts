@@ -126,3 +126,75 @@ describe('Role.renderEnv', () => {
     expect(fm.description).toBe('a: "b" # c');
   });
 });
+
+describe('Role.withKnowledge', () => {
+  const role = Role.parse(SRC, REVIEWER);
+  const BLOCK = [
+    '## Знания проекта',
+    '',
+    'Пути — от корня проекта; прочитай до начала работы:',
+    '',
+    '- `docs/ux.md`',
+  ].join('\n');
+  const knowing = () => role.withKnowledge(BLOCK);
+
+  test('тело — прежнее тело и блок через пустую строку', () => {
+    expect(knowing().body).toBe(`Промпт роли.\n\n${BLOCK}`);
+    expect(knowing().name).toBe('reviewer');
+    expect(role.body).toBe('Промпт роли.');
+  });
+
+  test('neutral — блок в конце исходника, метка после frontmatter, parse даёт тело с блоком', () => {
+    const copy = knowing().render('neutral', marker);
+    expect(copy).toBe(marker.mark(`${REVIEWER.trimEnd()}\n\n${BLOCK}\n`));
+    expect(Role.parse(SRC, Marker.strip(copy)).body).toBe(
+      `Промпт роли.\n\n${BLOCK}`,
+    );
+  });
+
+  test('claude — тело, блок, общий блок: точно', () => {
+    expect(knowing().render('claude', marker, 'Общий блок.')).toBe(
+      [
+        '---',
+        'name: reviewer',
+        'description: "Проверка по rules.md"',
+        'tools: Read, Grep, Glob, Bash',
+        'model: sonnet',
+        '---',
+        '',
+        marker.comment,
+        '',
+        'Промпт роли.',
+        '',
+        BLOCK,
+        '',
+        'Общий блок.',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  test('pi — блок в копии один раз', () => {
+    const text = knowing().render('pi', marker, 'Общий блок.');
+    expect(text.split('## Знания проекта')).toHaveLength(2);
+    expect(text).toContain(`Промпт роли.\n\n${BLOCK}\n\nОбщий блок.\n`);
+  });
+
+  test('renderEnv — блок после тела, до общего, метка сборщика', () => {
+    const comment = '<!-- Сгенерировано сборщиком проекта — не править. -->';
+    expect(knowing().renderEnv('pi', comment, 'Общий блок.')).toBe(
+      role
+        .renderEnv('pi', comment, 'Общий блок.')
+        .replace('Промпт роли.\n', `Промпт роли.\n\n${BLOCK}\n`),
+    );
+  });
+
+  test('пустой блок — render как прежде, во всех форматах', () => {
+    const same = role.withKnowledge('');
+    for (const format of ['neutral', 'claude', 'pi'] as const) {
+      expect(same.render(format, marker, 'Общий блок.')).toBe(
+        role.render(format, marker, 'Общий блок.'),
+      );
+    }
+  });
+});

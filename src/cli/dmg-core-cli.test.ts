@@ -7,6 +7,7 @@ import { put, role } from './cli.test-kit';
 import { DmgCoreCli } from './dmg-core-cli';
 import { Marker } from './marker';
 import { PackageSource } from './package-source';
+import { RoleRefs } from './role-refs';
 
 const PACKAGE_FILES: Record<string, string> = {
   'package.json': JSON.stringify({ name: 'dmg-core', version: '1.0.0' }),
@@ -257,6 +258,82 @@ describe('sync и check', () => {
       });
     },
   );
+});
+
+describe('roles.refs: связка', () => {
+  const PATHS = ['docs/ux.md', 'docs/domain/index.md'];
+
+  async function project(files: Record<string, string>) {
+    await write(
+      '.dmg/config.json',
+      JSON.stringify({
+        roles: {
+          targets: [
+            { dir: 'roles', format: 'neutral', common: 'dmg-core-common.md' },
+            { dir: '.pi/agents', format: 'pi' },
+          ],
+          refs: { alpha: PATHS },
+        },
+        skills: { dirs: ['.pi/skills'] },
+      }),
+    );
+    await put(root, files);
+  }
+  const refs = () => new RoleRefs(new Map([['alpha', PATHS]]));
+  const block = () => refs().block('alpha');
+  /** Сообщение CLI о битых ссылках — текст владельца `RoleRefs`; ждём ровно одно */
+  async function broken(): Promise<string[]> {
+    const lines = (await refs().broken(root)).map(
+      (finding) => `${finding.message}: ${finding.path}`,
+    );
+    expect(lines).toHaveLength(1);
+    return lines;
+  }
+
+  test('блок «Знания проекта» — в копиях neutral и pi у alpha, у beta нет; повторный sync ничего не меняет', async () => {
+    await project({
+      'docs/ux.md': 'Лист.\n',
+      'docs/domain/index.md': 'Оглавление.\n',
+    });
+    expect(await (await cli()).sync(root)).toEqual({ ok: true, messages: [] });
+
+    expect(Marker.strip(await read('roles/alpha.md'))).toBe(
+      `${role('alpha').trimEnd()}\n\n${block()}\n`,
+    );
+    expect(await read('.pi/agents/alpha.md')).toContain(
+      `Промпт alpha.\n\n${block()}\n\nОбщий блок пакета.\n`,
+    );
+    expect(await read('roles/beta.md')).not.toContain('Знания проекта');
+    expect(await read('.pi/agents/beta.md')).not.toContain('Знания проекта');
+    expect(await read('dmg-core-common.md')).not.toContain('Знания проекта');
+
+    const before = await snapshot();
+    expect(await (await cli()).sync(root)).toEqual({ ok: true, messages: [] });
+    expect(await snapshot()).toEqual(before);
+    expect(await (await cli()).check(root)).toEqual({ ok: true, messages: [] });
+  });
+
+  test('sync с битой ссылкой — не ok с сообщением, ничего не записано', async () => {
+    await project({
+      'docs/domain/index.md': 'Оглавление.\n',
+      'AGENTS.md': '# Проект\n',
+    });
+    const before = await snapshot();
+    const messages = await broken();
+    expect(await (await cli()).sync(root)).toEqual({ ok: false, messages });
+    expect(await snapshot()).toEqual(before);
+  });
+
+  test('check с битой ссылкой — не ok, то же сообщение', async () => {
+    await project({
+      'docs/ux.md': 'Лист.\n',
+      'docs/domain/index.md': 'Оглавление.\n',
+    });
+    await (await cli()).sync(root);
+    await rm(join(root, 'docs/ux.md'));
+    const messages = await broken();
+    expect(await (await cli()).check(root)).toEqual({ ok: false, messages });
+  });
 });
 
 describe('gen', () => {

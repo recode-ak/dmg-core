@@ -6,7 +6,8 @@ import type { ProvidedKinds } from '../gen/gen-kinds.types';
 import { GenLayout } from '../gen/layout';
 import { runGen } from '../gen/main';
 import { ProjectConfig, ProjectConfigError } from '../gen/project-config';
-import { CliConfig, type CliSettings } from './cli-config';
+import { CliConfig } from './cli-config';
+import type { CliSettings } from './cli-config.types';
 import { Delivery } from './delivery';
 import { InstructionsBlock } from './instructions-block';
 import { PackageSet } from './package-set';
@@ -115,6 +116,13 @@ export class DmgCoreCli {
       return { ok: false, messages: [prepared] };
     const { delivery, instructions } = prepared;
     const inspection = await delivery.inspect(root);
+    if (inspection.broken.length > 0) {
+      // Битая ссылка — отказ до любой записи: копии и вставка не тронуты.
+      const messages = inspection.broken.map(
+        (finding) => `${finding.message}: ${finding.path}`,
+      );
+      return { ok: false, messages };
+    }
     await delivery.apply(root, inspection);
     if (instructions) {
       const text = await this.read(root, instructions);

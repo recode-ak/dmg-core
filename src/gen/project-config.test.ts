@@ -113,7 +113,7 @@ describe('parse: общая форма', () => {
     expect(refusal({ extra: 1 })).toBe(`${PREFIX}неизвестное поле «extra»`);
   });
 
-  test('конфиг формы u7-school: skills.dirs, roles.targets neutral, instructions, семь ключей gen', () => {
+  test('конфиг монорепо с целью neutral: skills.dirs, roles.targets neutral, instructions, семь ключей gen', () => {
     const targets: RoleTarget[] = [
       {
         dir: '.agents-core/roles',
@@ -187,6 +187,133 @@ describe('parse: общая форма', () => {
     [{ instructions: 1 }, 'instructions — путь файла или null'],
   ])('форма skills, roles, instructions: %#', (config, message) => {
     expect(refusal(config)).toBe(`${PREFIX}${message}`);
+  });
+});
+
+describe('parse: roles.refs', () => {
+  const refsRefusal = (refs: unknown) => refusal({ roles: { refs } });
+
+  test('refs двух ролей — Map в порядке конфига', () => {
+    const config = ProjectConfig.parse({
+      roles: {
+        refs: {
+          beta: ['docs/ux.md'],
+          alpha: ['docs/domain/index.md', 'docs/ux.md'],
+        },
+      },
+    });
+    expect(config.roles?.refs).toEqual(
+      new Map([
+        ['beta', ['docs/ux.md']],
+        ['alpha', ['docs/domain/index.md', 'docs/ux.md']],
+      ]),
+    );
+    expect([...(config.roles?.refs?.keys() ?? [])]).toEqual(['beta', 'alpha']);
+  });
+
+  test('refs: {} — допустимо, ссылок нет', () => {
+    expect(ProjectConfig.parse({ roles: { refs: {} } }).roles?.refs?.size).toBe(
+      0,
+    );
+  });
+
+  test('нет refs — поля нет', () => {
+    expect(ProjectConfig.parse({ roles: {} }).roles?.refs).toBe(undefined);
+  });
+
+  test('ключ __proto__ из JSON сохраняется в Map, а не теряется', () => {
+    const json = JSON.parse('{"roles":{"refs":{"__proto__":["a.md"]}}}');
+    expect(ProjectConfig.parse(json).roles?.refs).toEqual(
+      new Map([['__proto__', ['a.md']]]),
+    );
+  });
+
+  test.each([
+    [[], 'roles.refs — объект «роль → список путей»'],
+    ['docs/ux.md', 'roles.refs — объект «роль → список путей»'],
+    [null, 'roles.refs — объект «роль → список путей»'],
+    [
+      { alpha: 'docs/ux.md' },
+      'roles.refs.alpha — непустой массив путей (нет ссылок — убери ключ)',
+    ],
+    [
+      { alpha: [] },
+      'roles.refs.alpha — непустой массив путей (нет ссылок — убери ключ)',
+    ],
+    [{ alpha: [1] }, 'roles.refs.alpha[0] — непустой путь'],
+    [{ alpha: ['a.md', ''] }, 'roles.refs.alpha[1] — непустой путь'],
+  ])('форма refs: %#', (refs, message) => {
+    expect(refsRefusal(refs)).toBe(`${PREFIX}${message}`);
+  });
+
+  test.each([
+    ['абсолютный', '/abs.md'],
+    ['выход за корень', '../x.md'],
+  ])('путь %s — отказ с полем', (_name, path) => {
+    expect(refsRefusal({ alpha: [path] })).toBe(
+      `${PREFIX}roles.refs.alpha[0] — путь внутри проекта, от его корня`,
+    );
+  });
+
+  test.each([
+    ['с ./', './x.md', 'x.md'],
+    ['с //', 'a//b.md', 'a/b.md'],
+    ['с .. внутри', 'a/../b.md', 'b.md'],
+  ])('путь %s — не в нормальной форме: отказ', (_name, path, normal) => {
+    expect(refsRefusal({ alpha: [path] })).toBe(
+      `${PREFIX}roles.refs.alpha[0] — путь в нормальной форме: ${normal}`,
+    );
+  });
+
+  test.each([
+    ['docs/', 'файл, не каталог (убери «/» в конце)'],
+    ['.', 'файл, не каталог: это корень проекта'],
+  ])('каталог «%s» — отказ: ссылка — файл', (path, message) => {
+    expect(refsRefusal({ alpha: [path] })).toBe(
+      `${PREFIX}roles.refs.alpha[0] — ${message}`,
+    );
+  });
+
+  test('якорь «#» — отказ: лист целиком (DOC-03)', () => {
+    expect(refsRefusal({ alpha: ['docs/ux.md#a'] })).toBe(
+      `${PREFIX}roles.refs.alpha[0] — без якоря: лист целиком (DOC-03)`,
+    );
+  });
+
+  test.each([
+    ['перевод строки', 'a\nb.md'],
+    ['управляющий знак', 'a\u0001b.md'],
+    ['бэктик', 'a`b.md'],
+    ['неразрывный пробел', 'a\u00a0b.md'],
+    ['NEL', 'a\u0085b.md'],
+    ['bidi', 'a\u202eb.md'],
+    ['DEL', 'a\x7fb.md'],
+    ['разделитель строк', 'a\u2028b.md'],
+  ])(
+    'путь с символом «%s» — отказ: путь попадает в текст промпта',
+    (_n, path) => {
+      expect(refsRefusal({ alpha: [path] })).toBe(
+        `${PREFIX}roles.refs.alpha[0] — без управляющих знаков и «\`» (путь попадает в промпт)`,
+      );
+    },
+  );
+
+  test('обычный пробел в пути — допустим', () => {
+    expect(
+      ProjectConfig.parse({ roles: { refs: { alpha: ['a b.md'] } } }).roles
+        ?.refs,
+    ).toEqual(new Map([['alpha', ['a b.md']]]));
+  });
+
+  test('повтор пути в списке роли — отказ; у другой роли — можно', () => {
+    expect(refsRefusal({ alpha: ['a.md', 'b.md', 'a.md'] })).toBe(
+      `${PREFIX}roles.refs.alpha[2] — путь повторяется: a.md`,
+    );
+    expect(
+      ProjectConfig.parse({
+        roles: { refs: { alpha: ['a.md'], beta: ['a.md'] } },
+      }).roles?.refs?.size,
+    ).toBe(2);
   });
 });
 
