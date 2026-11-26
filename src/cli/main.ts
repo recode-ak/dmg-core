@@ -2,11 +2,13 @@
 /**
  * CLI пакета: каркас проекта, доставка скилов, ролей и вставки в инструкции
  * агентов, генератор модулей, чтение лога операций, документ графа
- * приложения, проверка дерева документации. Команды — `USAGE` ниже.
+ * приложения, проверка дерева документации и записи реестров по ID.
+ * Команды — `USAGE` ниже.
  */
 import { join } from 'node:path';
 import { DmgCoreCli } from './dmg-core-cli';
 import { DocsCommand } from './docs-command';
+import type { DocsResult } from './docs-command.types';
 import { GraphCommand } from './graph-command';
 import { OplogCommand } from './oplog-command';
 import { PackageSource } from './package-source';
@@ -17,6 +19,7 @@ const USAGE = [
   '               dmg-core oplog <dir> [--request <id>] [--aggregate <uuid>] [--subject <id>] [--actor <id>] [--module <m>] [--op <o>] [--failed] [--since <d>] [--until <d>] [--json]',
   '               dmg-core graph <файл> [--out <путь>]',
   '               dmg-core docs --check',
+  '               dmg-core docs show [--titles] <ID…>',
 ].join('\n');
 
 const [command, ...flags] = process.argv.slice(2);
@@ -31,16 +34,19 @@ if (command === 'oplog') {
 }
 
 // graph и docs — тоже без пакета проекта: graph читает файл приложения и
-// `package.json` корня, docs — дерево документации от входов. Ошибка ввода —
-// код 2 и справка, отказ по состоянию проекта — код 1.
+// `package.json` корня, docs — дерево документации от входов и реестры
+// проекта, ядра (корень пакета самого CLI) и поставщиков. Ошибка ввода —
+// код 2 и справка, отказ по состоянию проекта — код 1; `out` у docs — в
+// stdout при любом итоге.
 const project =
   command === 'graph'
     ? new GraphCommand(process.cwd())
     : command === 'docs'
-      ? new DocsCommand(process.cwd())
+      ? new DocsCommand(process.cwd(), join(import.meta.dir, '../..'))
       : undefined;
 if (project) {
-  const done = await project.run(flags);
+  const done: DocsResult = await project.run(flags);
+  for (const line of done.out ?? []) console.log(line);
   const print = done.ok ? console.log : console.error;
   for (const message of done.messages) print(message);
   if (done.usage) console.error(USAGE);

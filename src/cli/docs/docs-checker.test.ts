@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { DocsSection } from '../../gen/project-config.types';
+import type { DocReport } from './doc-report';
 import type { DocsTreeRead } from './docs.types';
 import { DocsChecker } from './docs-checker';
 import { DocsSettings } from './docs-settings';
@@ -284,5 +285,21 @@ describe('вывод', () => {
 
   test('чистое дерево — пусто', () => {
     expect(check(tree({ 'llms.txt': '# Демо\n' }))).toEqual([]);
+  });
+});
+
+describe('части общего отчёта', () => {
+  test('нарушения части входят в отчёт и сортируются вместе с прочими', () => {
+    const part = {
+      report: (into: DocReport) =>
+        into.add('DOC-06', 'docs/a.md', 2, 'часть отчёта'),
+    };
+    const read = tree({
+      'docs/a.md': '[x](./нет.md)\n',
+      'docs/b.md': lines(151),
+    });
+    const found = new DocsChecker(DocsSettings.of()).check(read, [part]);
+    expect(rules(found)).toEqual(['DOC-04', 'DOC-06', 'DOC-01']);
+    expect(found[1]?.message).toStartWith('docs/a.md:2 — часть отчёта');
   });
 });

@@ -2,7 +2,7 @@ import type { Violation } from '../../arch/violation';
 import { DocKinds } from './doc-kinds';
 import { DocLinks } from './doc-links';
 import { DocReport } from './doc-report';
-import type { DocKind, DocsTreeRead } from './docs.types';
+import type { DocKind, DocReportPart, DocsTreeRead } from './docs.types';
 import type { DocsSettings } from './docs-settings';
 import type { MarkdownDoc } from './markdown-doc';
 
@@ -16,14 +16,15 @@ const KIND_NAMES: Readonly<Record<'entry' | 'index' | 'leaf', string>> = {
 /**
  * Проверки дерева документов: вид и бюджет (DOC-01), подпись во входе и
  * оглавлении (DOC-02), ссылки и якоря (DOC-04), входы и исключения (DOC-05).
- * `exempt` снимает DOC-01 и DOC-02, ссылки файла проверяются.
+ * `exempt` снимает DOC-01 и DOC-02, ссылки файла проверяются. Прочие
+ * проверки (реестры, ID) входят частями отчёта.
  * @see src/cli/docs/docs-checker.test.ts
  */
 export class DocsChecker {
   constructor(private readonly settings: DocsSettings) {}
 
-  /** Нарушения, отсортированные по пути и номеру строки */
-  check(tree: DocsTreeRead): Violation[] {
+  /** Нарушения, отсортированные по пути и номеру строки; `parts` — свои части отчёта */
+  check(tree: DocsTreeRead, parts: readonly DocReportPart[] = []): Violation[] {
     const report = new DocReport();
     const kinds = new DocKinds(this.settings);
     for (const doc of tree.docs) {
@@ -54,6 +55,7 @@ export class DocsChecker {
           : undefined;
       if (text) report.add('DOC-05', path, undefined, text);
     }
+    for (const part of parts) part.report(report);
     return report.violations();
   }
 

@@ -1,7 +1,7 @@
 /**
  * Свои проверки документации пакета сверх `dmg-core docs --check`: направления
- * ссылок D-59, ID правил из `rules.md`, `GR-NN` из реестра сценариев (D-109),
- * `@see` в `src/`. Ссылки и якоря — `src/cli/docs`; README от `llms.txt`
+ * ссылок D-59 и `@see` в `src/`. Ссылки и якоря — `src/cli/docs`, ID серий
+ * реестров (правила, `GR-NN`, решения) — DOC-07 команды; README от `llms.txt`
  * недостижим, его ссылки держит `checkLinks` по `readDocs`.
  * @see scripts/docs-check.test.ts
  */
@@ -20,14 +20,8 @@ export interface DocFile {
 const DOC_DIRS = ['docs', 'skills', 'agents'];
 const DOC_FILES = ['llms.txt', 'README.md'];
 const SOURCE_GLOB = 'src/**/*.ts';
-const RULES_PATH = 'docs/reference/rules.md';
-const SCENARIOS_PATH = 'docs/concepts/layers.md';
-const SCENARIOS_HEADING = 'Сценарии роста';
 const SEE_RE = /@see\s+(\S+?)[.,;:)]*(?=\s|$)/g;
 const SEE_PATH_RE = /\.(?:md|ts)$/;
-const RULE_RE = /\b(?:ARC|DOM|MAN|ERR|API|CODE|TST|DOC)-\d{2}\b/g;
-/** ID сценария пакета; у поставщика — с суффиксом репо (`GR-UI-01`), он не сверяется. */
-const SCENARIO_RE = /\bGR-\d{2,}\b/g;
 
 type Kind =
   | 'concepts'
@@ -83,65 +77,25 @@ export function checkLinks(
 }
 
 /**
- * Направления ссылок D-59 и ID правил. Ссылка за корень направлением не
- * считается — её ловит `checkLinks`.
+ * Направления ссылок D-59. Ссылка за корень направлением не считается — её
+ * ловит `checkLinks`.
  */
-export function checkDocs(
-  files: readonly DocFile[],
-  rules: ReadonlySet<string>,
-): string[] {
+export function checkDocs(files: readonly DocFile[]): string[] {
   const violations: string[] = [];
   for (const [path, doc] of docsOf(files)) {
     const allowed = ALLOWED[kindOf(path)];
-    if (allowed) {
-      for (const { target } of doc.links()) {
-        const resolved = DocLinks.resolve(path, target);
-        const kind = kindOf(resolved);
-        if (!resolved.startsWith('..') && !allowed.has(kind)) {
-          violations.push(
-            `${path}: ссылка против направления (${kindOf(path)} → ${kind}) ${target}`,
-          );
-        }
-      }
-    }
-    const ids = new Set([...doc.text.matchAll(RULE_RE)].map((m) => m[0]));
-    for (const id of ids) {
-      if (!rules.has(id)) {
-        violations.push(`${path}: правило ${id} нет в ${RULES_PATH}`);
+    if (!allowed) continue;
+    for (const { target } of doc.links()) {
+      const resolved = DocLinks.resolve(path, target);
+      const kind = kindOf(resolved);
+      if (!resolved.startsWith('..') && !allowed.has(kind)) {
+        violations.push(
+          `${path}: ссылка против направления (${kindOf(path)} → ${kind}) ${target}`,
+        );
       }
     }
   }
   return violations;
-}
-
-/** Реестр сценариев: ID из строк таблиц раздела «Сценарии роста» (до следующего `## `). */
-export function scenariosOf(text: string): Set<string> {
-  const ids = new Set<string>();
-  let inside = false;
-  for (const line of text.split('\n')) {
-    if (line.startsWith('## ')) {
-      inside = line.slice(3).trim() === SCENARIOS_HEADING;
-      continue;
-    }
-    const row = inside ? /^\| (GR-\d{2,}) \|/.exec(line) : null;
-    if (row?.[1]) ids.add(row[1]);
-  }
-  return ids;
-}
-
-/** Каждый `GR-NN` в файлах объявлен в реестре сценариев (D-109); нарушение — раз на файл и ID. */
-export function checkScenarios(
-  files: readonly DocFile[],
-  scenarios: ReadonlySet<string>,
-): string[] {
-  return files.flatMap((file) =>
-    [...new Set([...file.text.matchAll(SCENARIO_RE)].map((m) => m[0]))]
-      .filter((id) => !scenarios.has(id))
-      .map(
-        (id) =>
-          `${file.path}: сценарий ${id} не объявлен в ${SCENARIOS_PATH} («${SCENARIOS_HEADING}»)`,
-      ),
-  );
 }
 
 /** Пути в `@see` (от корня пакета, `*.md` и `*.ts`) живые, якоря — на заголовки `docs` */
@@ -171,7 +125,7 @@ export function checkSee(
   return violations;
 }
 
-/** Документация, исходники, проверка существования, ID правил и сценариев пакета с корнем `root`. */
+/** Документация, исходники и проверка существования пакета с корнем `root`. */
 export function readDocs(root: string) {
   const read = (path: string): DocFile => ({
     path,
@@ -192,15 +146,9 @@ export function readDocs(root: string) {
   const sources = [...new Glob(SOURCE_GLOB).scanSync({ cwd: root })]
     .sort()
     .map(read);
-  const rulesText = readFileSync(join(root, RULES_PATH), 'utf8');
-  const rules = new Set(
-    [...rulesText.matchAll(/^\| ([A-Z]+-\d{2}) \|/gm)].map((m) => m[1] ?? ''),
-  );
   return {
     files,
     sources,
     exists: (path: string) => existsSync(join(root, path)),
-    rules,
-    scenarios: scenariosOf(readFileSync(join(root, SCENARIOS_PATH), 'utf8')),
   };
 }

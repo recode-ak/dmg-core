@@ -4,6 +4,8 @@ import { useTempDir } from '#core/testing/index';
 import { put } from './cli.test-kit';
 
 const MAIN = join(import.meta.dir, 'main.ts');
+/** Корень пакета: ядро `docs show` — каталог самого CLI */
+const CORE_ROOT = join(import.meta.dir, '../..');
 const USAGE_DOCS = 'dmg-core docs --check';
 
 const temp = useTempDir('dmg-core-docs-cli-');
@@ -135,5 +137,24 @@ describe('dmg-core docs: ошибки ввода — код 2 и справка'
     const result = run('--fix');
     expect(result.code).toBe(2);
     expect(result.stderr).toContain(USAGE_DOCS);
+  });
+});
+
+describe('dmg-core docs show', () => {
+  test('docs show D-114 в пустом проекте — запись пакета: источник dmg-core, код 0', () => {
+    const result = run('show', 'D-114');
+    expect(result.code).toBe(0);
+    expect(result.stderr).toBe('');
+    expect(result.stdout).toStartWith(
+      `D-114 — dmg-core, ${join(CORE_ROOT, 'docs/decisions.md')}:`,
+    );
+    expect(result.stdout).toContain('### D-114. ');
+  });
+
+  test('docs show без ID — код 2 и справка со строкой show', () => {
+    const result = run('show');
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain('dmg-core docs show');
+    expect(result.stdout).toBe('');
   });
 });

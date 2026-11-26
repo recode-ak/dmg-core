@@ -549,15 +549,13 @@ describe('DebtChecker.read: код и реестры с диска', () => {
   };
   const put = (path: string, text: string) => Bun.write(tmp().file(path), text);
 
-  test('code — по glob раскладки без exclude; files — все пути без node_modules, .git, data', async () => {
+  test('code — по glob раскладки без exclude; files — все пути репо, обход — у SourceWalk (node_modules не обходится)', async () => {
     await put(CODE_MD, '# долг кода');
     await put(PATHS.tests, '# долг тестов');
     await put('domain/src/user/a.ts', CORE);
     await put('domain/src/user/a.test.ts', '// тест');
     await put('docs/a.md', '# док');
     await put('node_modules/x/index.ts', CORE);
-    await put('.git/HEAD', 'ref');
-    await put('data/users/u.json', '{}');
     const read = await DebtChecker.read(tmp().path, LAYOUT);
     expect(read.code).toEqual([file('domain/src/user/a.ts', CORE)]);
     expect([...read.files].sort()).toEqual([
@@ -571,16 +569,6 @@ describe('DebtChecker.read: код и реестры с диска', () => {
       code: '# долг кода',
       tests: '# долг тестов',
     });
-  });
-
-  test('dist на любой глубине не обходится', async () => {
-    await put(CODE_MD, '# долг кода');
-    await put(PATHS.tests, '# долг тестов');
-    await put('dist/index.js', CORE);
-    await put('pkg/dist/index.js', CORE);
-    await put('pkg/a.ts', CORE);
-    const read = await DebtChecker.read(tmp().path, LAYOUT);
-    expect([...read.files].sort()).toEqual([CODE_MD, PATHS.tests, 'pkg/a.ts']);
   });
 
   test('реестр из раскладки, которого нет на диске, — реестр не найден', async () => {

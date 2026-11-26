@@ -1,29 +1,25 @@
 import { describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
+import { DocIds } from '../src/cli/docs/doc-ids';
+import { DocReport } from '../src/cli/docs/doc-report';
+import { DocSources } from '../src/cli/docs/doc-sources';
+import { DocsLibrary } from '../src/cli/docs/docs-library';
+import { DocsSettings } from '../src/cli/docs/docs-settings';
+import { DocsTree } from '../src/cli/docs/docs-tree';
+import { MarkdownDoc } from '../src/cli/docs/markdown-doc';
 import {
   checkDocs,
   checkLinks,
-  checkScenarios,
   checkSee,
   type DocFile,
   readDocs,
-  scenariosOf,
 } from './docs-check';
 
-const RULES = new Set(['DOM-02', 'API-01']);
+const ROOT = join(import.meta.dir, '..');
 
 const doc = (text: string, path = 'docs/guides/aggregate.md'): DocFile => ({
   path,
   text,
-});
-
-describe('checkDocs: ID правил', () => {
-  it('неизвестный ID правила — нарушение', () => {
-    const files = [doc('Проверь DOM-02 и DOM-99.')];
-    expect(checkDocs(files, RULES)).toEqual([
-      'docs/guides/aggregate.md: правило DOM-99 нет в docs/reference/rules.md',
-    ]);
-  });
 });
 
 describe('checkDocs: направление ссылок', () => {
@@ -41,12 +37,12 @@ describe('checkDocs: направление ссылок', () => {
         '../../src/testing/example/platform/domain/todo/task/task.ar.ts',
       ),
     ];
-    expect(checkDocs(files, RULES)).toEqual([]);
+    expect(checkDocs(files)).toEqual([]);
   });
 
   it('guides → decisions — против направления', () => {
     const files = [at('docs/guides/facade.md', '../decisions.md')];
-    expect(checkDocs(files, RULES)).toEqual([
+    expect(checkDocs(files)).toEqual([
       'docs/guides/facade.md: ссылка против направления (guides → decisions) ../decisions.md',
     ]);
   });
@@ -61,7 +57,7 @@ describe('checkDocs: направление ссылок', () => {
         '../guides/use-case.md',
       ),
     ];
-    expect(checkDocs(files, RULES)).toEqual([
+    expect(checkDocs(files)).toEqual([
       'docs/reference/rules.md: ссылка против направления (reference → concepts) ../concepts/uc-path.md',
       'docs/reference/rules.md: ссылка против направления (reference → guides) ../guides/use-case.md',
     ]);
@@ -71,7 +67,7 @@ describe('checkDocs: направление ссылок', () => {
     const files = [
       at('docs/guides/facade.md', '../../src/app/facade/module-facade.ts'),
     ];
-    expect(checkDocs(files, RULES)).toEqual([
+    expect(checkDocs(files)).toEqual([
       'docs/guides/facade.md: ссылка против направления (guides → src) ../../src/app/facade/module-facade.ts',
     ]);
   });
@@ -82,7 +78,7 @@ describe('checkDocs: направление ссылок', () => {
       at('llms.txt', 'docs/concepts/uc-path.md', 'src/index.ts'),
       at('skills/dmg-architecture/SKILL.md', '../../docs/decisions.md'),
     ];
-    expect(checkDocs(files, RULES)).toEqual([]);
+    expect(checkDocs(files)).toEqual([]);
   });
 });
 
@@ -125,66 +121,42 @@ describe('checkSee: @see в JSDoc', () => {
   });
 });
 
-describe('checkScenarios: ID сценариев роста', () => {
-  const SCENARIOS = new Set(['GR-01', 'GR-02']);
-
-  it('объявленные GR-NN — без нарушений; ID поставщика с суффиксом не сверяется', () => {
-    const files = [doc('Сценарии GR-01 и GR-02; у поставщика — GR-UI-01.')];
-    expect(checkScenarios(files, SCENARIOS)).toEqual([]);
-  });
-
-  it('необъявленный GR-99 — нарушение с путём, один раз на файл', () => {
-    const files = [
-      doc('GR-01, GR-99 и снова GR-99, GR-100'),
-      doc('// GR-99', 'src/arch/unit-checker.ts'),
-    ];
-    expect(checkScenarios(files, SCENARIOS)).toEqual([
-      'docs/guides/aggregate.md: сценарий GR-99 не объявлен в docs/concepts/layers.md («Сценарии роста»)',
-      'docs/guides/aggregate.md: сценарий GR-100 не объявлен в docs/concepts/layers.md («Сценарии роста»)',
-      'src/arch/unit-checker.ts: сценарий GR-99 не объявлен в docs/concepts/layers.md («Сценарии роста»)',
-    ]);
-  });
-
-  it('реестр — строки таблицы раздела «Сценарии роста», не упоминания вне его', () => {
-    const text = [
-      '## Как это работает',
-      '| GR-07 | не реестр |',
-      '## Сценарии роста',
-      '| ID | Сценарий |',
-      '|---|---|',
-      '| GR-01 | модуль в сервис |',
-      '| GR-02 | другой язык |',
-      '## Почему так',
-      '| GR-08 | не реестр |',
-    ].join('\n');
-    expect([...scenariosOf(text)]).toEqual(['GR-01', 'GR-02']);
-  });
-});
-
 describe('@see в src пакета (контракт)', () => {
   it('пути живые, якоря — на заголовки', () => {
-    const { files, sources, exists } = readDocs(join(import.meta.dir, '..'));
+    const { files, sources, exists } = readDocs(ROOT);
     expect(sources.map((f) => f.path)).toContain('src/app/index.ts');
     expect(checkSee(sources, files, exists)).toEqual([]);
   });
 });
 
 describe('документация пакета (контракт)', () => {
-  it('ссылки живые, внутри пакета; ID правил — из docs/reference/rules.md', () => {
-    const { files, exists, rules } = readDocs(join(import.meta.dir, '..'));
+  it('ссылки живые, внутри пакета, по направлениям D-59', () => {
+    const { files, exists } = readDocs(ROOT);
     const paths = files.map((f) => f.path);
     expect(paths).toContain('llms.txt');
     expect(paths).toContain('docs/guides/use-case.md');
     expect(paths).toContain('skills/dmg-architecture/SKILL.md');
     expect(paths).toContain('agents/roles/dmg-reviewer.md');
-    expect(rules.size).toBeGreaterThan(50);
     expect(checkLinks(files, exists)).toEqual([]);
-    expect(checkDocs(files, rules)).toEqual([]);
+    expect(checkDocs(files)).toEqual([]);
   });
 
-  it('сценарии GR-NN в документах и src объявлены в «Сценариях роста»', () => {
-    const { files, sources, scenarios } = readDocs(join(import.meta.dir, '..'));
-    expect(scenarios.size).toBeGreaterThan(0);
-    expect(checkScenarios([...files, ...sources], scenarios)).toEqual([]);
+  it('ID документов и исходников пакета ведут на записи (DOC-07)', async () => {
+    const settings = DocsSettings.of();
+    const tree = await new DocsTree(ROOT, settings).read();
+    const registries = await DocsLibrary.load({
+      root: ROOT,
+      coreRoot: ROOT,
+      providers: [],
+      project: tree.docs,
+    });
+    expect(registries.grammar().find('GR-01 ARC-13 D-114')).toHaveLength(3);
+    const docs = readDocs(ROOT).files.map(
+      (f) => new MarkdownDoc(f.path, f.text),
+    );
+    const sources = await new DocSources(ROOT, settings).read();
+    const into = new DocReport();
+    new DocIds(registries, docs, sources).report(into);
+    expect(into.violations().map((v) => v.format())).toEqual([]);
   });
 });

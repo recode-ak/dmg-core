@@ -184,6 +184,16 @@ describe('isRegistry', () => {
   test('без строки «Серия» и «Архив» — не реестр', () => {
     expect(doc('# Т\n\nтекст\n').isRegistry()).toBe(false);
   });
+
+  test('«Серия» после первого `###` — не шапка: шапка кончается и на `###`', () => {
+    const text = '# Т\n\n### D-1. Запись\n\n**Серия:** `D-<n>`\n';
+    expect(doc(text).isRegistry()).toBe(false);
+  });
+
+  test('`###` в блоке кода шапку не обрывает', () => {
+    const text = '# Т\n\n```md\n### D-1. пример\n```\n\n**Серия:** `D-<n>`\n';
+    expect(doc(text).isRegistry()).toBe(true);
+  });
 });
 
 describe('listItems', () => {

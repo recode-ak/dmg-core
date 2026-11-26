@@ -1,4 +1,4 @@
-import type { DocLink, DocListItem } from './docs.types';
+import type { DocLine, DocLink, DocListItem } from './docs.types';
 
 /** Front-matter в начале файла: `---`, строки, `---` (как `covers-check`) */
 const FRONT_MATTER_RE = /^---\n[\s\S]*?\n---\n/;
@@ -18,9 +18,8 @@ const EXTERNAL_RE = /^[a-z]+:/i;
 const ITEM_RE = /^\s*(?:[-*+]|\d+\.)\s+/;
 /** Строка шапки, объявляющая реестр (`docs-format.md` § 6) */
 const REGISTRY_RE = /^\*\*(?:Серия|Архив):\*\*/;
-
-/** Строка файла вне front-matter и блоков кода: текст и номер (с 1) */
-type TextLine = { readonly text: string; readonly line: number };
+/** Заголовок, которым кончается шапка документа: `##` или `###` */
+const HEADER_END_RE = /^#{2,3}\s/;
 
 /** Ссылка строки и её позиция в строке: нужна пунктам списка */
 type PlacedLink = {
@@ -99,13 +98,40 @@ export class MarkdownDoc {
     return this.anchors().has(name);
   }
 
-  /** В шапке до первого `## ` вне кода есть строка, начинающаяся с `**Серия:**` или `**Архив:**` */
+  /** В шапке есть строка вне кода, начинающаяся с `**Серия:**` или `**Архив:**` */
   isRegistry(): boolean {
-    for (const { text } of this.textLines()) {
-      if (text.startsWith('## ')) return false;
-      if (REGISTRY_RE.test(text)) return true;
-    }
-    return false;
+    return this.header().some(
+      ({ text, code }) => !code && REGISTRY_RE.test(text),
+    );
+  }
+
+  /**
+   * Шапка: строки тела до первого заголовка `##` или `###` вне кода
+   * (`docs-format.md` § 6); заголовка нет — всё тело.
+   */
+  header(): DocLine[] {
+    const lines = this.lines();
+    const end = lines.findIndex(
+      ({ text, code }) => !code && HEADER_END_RE.test(text),
+    );
+    return end === -1 ? lines : lines.slice(0, end);
+  }
+
+  /**
+   * Строки тела без front-matter с номерами строк файла; строки блока кода
+   * вместе с его границами — с признаком `code`.
+   */
+  lines(): DocLine[] {
+    const skip = this.frontMatter().split('\n').length - 1;
+    const lines: DocLine[] = [];
+    let fenced = false;
+    this.text.split('\n').forEach((text, i) => {
+      if (i < skip) return;
+      const fence = FENCE_RE.test(text);
+      if (fence) fenced = !fenced;
+      lines.push({ text, line: i + 1, code: fence || fenced });
+    });
+    return lines;
   }
 
   /**
@@ -141,19 +167,8 @@ export class MarkdownDoc {
   }
 
   /** Строки вне front-matter и блоков кода с номерами строк файла */
-  private textLines(): TextLine[] {
-    const skip = this.frontMatter().split('\n').length - 1;
-    const lines: TextLine[] = [];
-    let fenced = false;
-    this.text.split('\n').forEach((text, i) => {
-      if (i < skip) return;
-      if (FENCE_RE.test(text)) {
-        fenced = !fenced;
-        return;
-      }
-      if (!fenced) lines.push({ text, line: i + 1 });
-    });
-    return lines;
+  private textLines(): DocLine[] {
+    return this.lines().filter(({ code }) => !code);
   }
 
   /** Ссылки строки вне вставок кода (внешние — тоже) с позициями */

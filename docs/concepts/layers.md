@@ -4,7 +4,7 @@ covers:
   - src/app/api-app/api-app.ts
   - src/app/facade/**
   - src/domain/contracts/module-def*.ts
-verified: e941de8
+verified: a479204
 ---
 
 # Слои и зависимости

@@ -1,4 +1,3 @@
-import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type {
   DebtCheckerOptions,
@@ -9,15 +8,13 @@ import type {
   SourceFile,
 } from './debt-checker.types';
 import { DebtRegistry } from './debt-registry';
+import { SourceWalk } from './source-walk';
 import { Violation } from './violation';
 
 /** ID любого реестра; префикс `X-` отличает чужой реестр от долга кода. */
 const DEBT_ID = /(?<![A-Za-z])(?:([A-Z])-)?DEBT-\d+\b/g;
 // Фразы, а не слово «временный»; `\b` для кириллицы не работает, «ВРЕМЕННЫЙ» — только заглавными.
 const TEMP_MARKERS = [/временное решение|уходит с миграцией/gi, /ВРЕМЕННЫЙ/g];
-/** Каталоги вне `files`: `node_modules`, `.git`, `dist` на любой глубине, `data` — в корне. */
-const SKIP_DIRS = new Set(['node_modules', '.git', 'dist']);
-const ROOT_SKIP_DIRS = new Set(['data']);
 
 const DEFAULT_PATHS: DebtRegistryPaths = {
   code: 'code',
@@ -45,11 +42,11 @@ export class DebtChecker {
 
   /**
    * Исходники по glob'ам раскладки без `exclude`, все пути репо и реестры.
-   * Не обходятся `node_modules`, `.git`, `dist` (на любой глубине) и `data`
-   * (в корне). Реестр раскладки, которого нет на диске, — в `missing`.
+   * Какие каталоги не обходятся — `SourceWalk`. Реестр раскладки, которого
+   * нет на диске, — в `missing`.
    */
   static async read(root: string, layout: DebtLayout): Promise<DebtInput> {
-    const files = DebtChecker.walk(root, '').sort();
+    const files = new SourceWalk(root).paths().sort();
     const include = layout.code.map((g) => new Bun.Glob(g));
     const exclude = (layout.exclude ?? []).map((g) => new Bun.Glob(g));
     const paths = files.filter(
@@ -84,20 +81,6 @@ export class DebtChecker {
       },
       ...(missing.length ? { missing } : {}),
     };
-  }
-
-  /** Пути файлов каталога от корня репо, без пропускаемых каталогов. */
-  private static walk(root: string, dir: string): string[] {
-    const out: string[] = [];
-    for (const d of readdirSync(join(root, dir), { withFileTypes: true })) {
-      const path = dir ? `${dir}/${d.name}` : d.name;
-      if (d.isDirectory()) {
-        if (SKIP_DIRS.has(d.name) || (!dir && ROOT_SKIP_DIRS.has(d.name)))
-          continue;
-        out.push(...DebtChecker.walk(root, path));
-      } else if (d.isFile()) out.push(path);
-    }
-    return out;
   }
 
   check(input: DebtInput): Violation[] {
