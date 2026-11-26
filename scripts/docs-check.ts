@@ -27,7 +27,7 @@ const SCENARIOS_HEADING = 'Сценарии роста';
 const LINK_RE = /\]\(([^)\s]+)\)/g;
 const SEE_RE = /@see\s+(\S+?)[.,;:)]*(?=\s|$)/g;
 const SEE_PATH_RE = /\.(?:md|ts)$/;
-const RULE_RE = /\b(?:ARC|DOM|MAN|ERR|API|CODE|TST)-\d{2}\b/g;
+const RULE_RE = /\b(?:ARC|DOM|MAN|ERR|API|CODE|TST|DOC)-\d{2}\b/g;
 /** ID сценария пакета; у поставщика — с суффиксом репо (`GR-UI-01`), он не сверяется. */
 const SCENARIO_RE = /\bGR-\d{2,}\b/g;
 const EXTERNAL = /^[a-z]+:/i;

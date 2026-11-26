@@ -33,6 +33,7 @@ export const PACKAGE_RULE_PREFIXES = [
   'API',
   'ARC',
   'CODE',
+  'DOC',
   'DOM',
   'ERR',
   'MAN',
