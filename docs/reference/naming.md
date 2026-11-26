@@ -90,7 +90,11 @@ infra/<aggregate>.json-repo.ts
 |---|---|---|
 | Файлы, папки | kebab-case + суффикс вида | `complete-task.uc.ts` |
 | Тесты | рядом, `<file>.test.ts` | `task.ar.test.ts` |
+| Грань теста | `<file>.<грань>.test.ts` — второй тест того же файла: режим, сторона, сценарий; грань — kebab-слово без точки | `graph.lift.test.ts`, `error-def.define.test.ts` |
+| Тест темы | `<тема>-<что>.test.ts` рядом с головой темы `<тема>.ts`; сквозной тест без своего файла — по теме каталога | `main-graph.test.ts` (голова `main.ts`), `gen/e2e.test.ts` |
+| Помощники тестов | `<тема>.fixture.ts` рядом с тестами, только тестовому коду пакета (TST-07); фикстуры для зависимых — `testing.ts` модуля (§2) | `arch.fixture.ts` |
 | Экспортируемые типы | рядом, `<file>.types.ts`; в файле класса — только приватные | `aggregate.types.ts`, `task-release.types.ts` |
+| Экспортируемые константы | рядом, `<file>.const.ts` — пара `<file>.types.ts` | `ui-file-names.const.ts` (`dmg-ui`) |
 | Классы, типы | PascalCase + сокращение | `TaskAr`, `TaskReleaseDcs` |
 | Def | `<Имя><Вид>Def` | `TaskArDef`, `CompleteTaskUcDef` |
 | `AppDef` приложения | файл `<домен>/<имя>.app.ts`, константа `<Имя>AppDef`; имя — имя пакета проекта без scope | `school.app.ts`, `SchoolAppDef` |

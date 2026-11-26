@@ -107,7 +107,7 @@ export const gen: GenProvider = {
 
 | Член | Что даёт |
 |---|---|
-| `layout.root` | абсолютный корень проекта; корневой `package.json` — `join(layout.root, 'package.json')` |
+| `layout.root` | корень проекта, как его передал вызывающий: у CLI — `'.'` (пути плана относительны каталогу запуска), в тесте — свой каталог; корневой `package.json` — `join(layout.root, 'package.json')` |
 | `layout.layerNames()` | имена слоёв из `layers` в порядке конфига |
 | `layout.layerDir(слой, модуль)` | каталог слоя для модуля, `{m}` подставлен; слоя нет в `layers` — `GenError` |
 | `layout.layerPackage(слой, модуль)` | `{ dir, name, root }` пакета workspaces слоя; нет `package` у слоя — `undefined` |
