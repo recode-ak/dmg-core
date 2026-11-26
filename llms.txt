@@ -1,50 +1,16 @@
 # dmg-core
 
-> Фреймворк DMG (Domain Manifest Graph) для TypeScript и Bun: каждая доменная сущность объявляется один раз манифестом (`XxxDef.define`), из него выводятся типы, базовые классы, проверки архитектуры, граф и транспорт. Домен чистый и синхронный, модули связаны только по `dependsOn`, вынос в сервис предусмотрен (D-28): шов — прокси-фабрика, готового адаптера нет (`DEBT-5`), вживую не проверен. Документация на русском; образец всех артефактов — учебный модуль `src/testing/example` (`todo`, `users`).
+> Фреймворк DMG (Domain Manifest Graph) для TypeScript и Bun: каждая доменная сущность объявляется один раз манифестом, из него выводятся типы, проверки архитектуры, граф и транспорт. Документация на русском.
 
-Пути ниже — от корня пакета (`node_modules/dmg-core/`). Агентам: сначала скил `skills/dmg-architecture/SKILL.md`, затем гайд нужного вида.
+Пути — от корня пакета (`node_modules/dmg-core/`). Агентам: сначала скил, затем оглавление документации.
 
-## Начало
-
-- [Вход в документацию](docs/index.md): суть DMG, карта документов
-- [Слои и пакеты](docs/reference/layers.md): оси, импорты, доменный API, доступ к entity
-- [Оси и сценарии роста](docs/concepts/layers.md): почему четыре оси и сборка в раннерах, реестр сценариев `GR-NN` (вынос модуля в сервис, на другой язык) и их статус
-- [Моделирование домена](docs/reference/domain-modeling.md): модуль-владелец, Ar / Policy / доменное правило / DCS / DQS, границы модулей
-- [Проект](docs/guides/project.md): `dmg-core init --profile single|monorepo` — что создаёт каркас (`.dmg/config.json`), как растёт проект, подключение модулей генератором, `call` раннера
-- [Структура и имена](docs/reference/naming.md): сокращения, файловая структура домена и прикладного слоя, генератор `dmg-core gen` (§5)
-
-## Контракты
-
-- [Манифесты](docs/reference/manifests.md): Def-классы (`XxxDef.define`), обязательные описания, схемы, граф, проверки `ArchChecker`
-- [Граф приложения](docs/reference/graph.md): документ `.dmg/graph.json` формата 1, ядро (`GraphProvider`, `id`-путь, подъём, монтирование, коды `GraphError`), поставщик домена (дерево `id`, виды узлов и рёбер, внешние `id`), команда `dmg-core graph`
-- [Ошибки и Result](docs/reference/errors-result.md): модель ошибки, `kind`, текст отказа по умолчанию `ErrorText`, исполнение UC, UoW
-- [Caller и Trace](docs/reference/caller.md): кто вызывает, субъект, след вызова, допуск заместителя (`callers` без `delegate`, `personal`, `readOnly`)
-- [Транспорт](docs/reference/transport.md): HTTP (JSON-команда, `meta.requestId`, ожидаемая версия — поле входа `expectedVersion`), MCP, in-proc
-- [Лог операций](docs/reference/oplog.md): запись `OperationRecord`, патч `writes[].changes`, персональные данные — `F.sensitive` и маскирование всей записи, `retainDays`, чтение — `dmg-core oplog` (`--actor` — действия заместителя), `OperationLogReader`
-
-## Правила и качество
-
-- [Каталог правил](docs/reference/rules.md): ID правил (ARC, DOM, MAN, ERR, API, CODE, TST), способ проверки, карта линтера «правило → каталоги слоёв»; учёт долга — ARC-12 (`DebtChecker` из `dmg-core/arch`: реестры долга кода, тестов и продукта сверены с кодом)
-- [Решения](docs/decisions.md): реестр решений фреймворка D-NN
-- [Тестирование](docs/reference/testing.md): принципы, пирамида, польза на тест (TST-08), тест проверяет код модуля (TST-09), тесты типов (TST-10) (UC/ER/Job — фейк порта `MemoryRepo`, репозиторий и smoke модуля — временный каталог), хелперы `dmg-core/testing` (`MemoryRepo.where`/`unanswered`, `TEST_TRACE`/`testTrace`, `testUuid`, `TempDir`/`useTempDir`), фикстуры владельца `<domain>/<m>/testing` (только тестовому коду, TST-07)
-- [Стиль TypeScript](docs/reference/typescript.md)
-- [Формат документации](docs/reference/docs-format.md): создаёшь, правишь или переносишь документ, запись реестра, роль или скил
-
-## Гайды по видам артефактов
-
-- [Индекс гайдов](docs/guides/index.md)
-- [State](docs/guides/state.md), [Aggregate](docs/guides/aggregate.md), [Events](docs/guides/events.md), [Errors](docs/guides/errors.md), [Policy](docs/guides/policy.md)
-- [Repo, DCS, DQS](docs/guides/repo.md), [Facade](docs/guides/facade.md), [Use case](docs/guides/use-case.md), [Event reaction](docs/guides/event-reaction.md), [Module](docs/guides/module.md), [Job](docs/guides/job.md), [Сборка и раннер](docs/guides/app.md), [Проект](docs/guides/project.md), [Вынос модуля](docs/guides/extract-module.md), [Делегирование](docs/guides/delegation.md)
-- [Расширение графа и проверок](docs/guides/graph-extension.md): пакет-поставщик — свой вид Def, поставщик графа, правило `arch:check` со своим префиксом, слой исходников, подписка `EventSubscriber`, `DeclaredSet`, `ErrorText`, отступление от правила слоя записью долга; образец — `src/testing/example/screen/` (описание) и `src/testing/example/screen-code/` (исполнение)
-- [Расширение `gen` и `sync` пакетом-поставщиком](docs/guides/provider-extension.md): `providers` и `layers` в `.dmg/config.json`, вход `<пакет>/dmg-core`, скилы и роли с меткой `<пакет>@<версия>`, конфликты и `stale`, вид `gen` (`GenProvider`, синхронный `plan`, `GenError`, `layout`); образец — `src/testing/example-provider/`
-
-## Агенты
-
-- [Скил dmg-architecture](skills/dmg-architecture/SKILL.md): маршрутизатор по документации для агента
-- [Роли](agents/README.md): dmg-tech-lead, dmg-test-designer, dmg-domain-author, dmg-api-author, dmg-data-keeper, dmg-reviewer и общий блок
-- [Процесс](docs/process.md): уровни постановки (spec, план, бриф), роли, срез, проверки
+- [Оглавление документации](docs/index.md): ищешь раздел по задаче — справочник, гайды, решения, процесс
+- [Скил dmg-architecture](skills/dmg-architecture/SKILL.md): пишешь или правишь модуль — маршрут к гайду и правилам
+- [Роли](agents/README.md): работаешь агентом по роли, настраиваешь доставку скилов и ролей в проект
+- [Долг](debt.md): хочешь знать, какие отступления от правил пакета уже разрешены
+- [Обсуждение](discussion.md): есть идея к пакету, которую надо обсудить до решения
+- [README](README.md): знакомишься с пакетом, ставишь его, начинаешь проект
 
 ## Optional
 
-- [Как устроено и почему](docs/concepts/index.md): concepts — потоки и жизненный цикл со схемами; читать, когда гайда и правил не хватает, чтобы понять устройство
-- [Учебный модуль](src/testing/example/example.arch.ts): `AppDef` примера — `src/testing/example/platform/domain/example.app.ts`, вход графа — `example.graph.ts` (`{ def }`), `ArchApp` — `example.arch.ts` (`{ ...ExampleGraph, layout, … }`); домен — `src/testing/example/platform/domain/<m>`, прикладной слой — `src/testing/example/backend/<m>`, расширение графа — `src/testing/example/screen/`; стабильный вход для тестов внешних пакетов — `dmg-core/testing/example` (`ExampleApp`, `ExampleAppDef`, контракты todo и users, D-101; контракт todo — с `TaskAr`, `TaskPolicy`, `TaskRules`, `OPEN_TASKS_LIMIT`, D-104)
+- [Учебный модуль](src/testing/example/example.arch.ts): нужен образец артефакта в коде; раскладка и вход для тестов — в справочнике

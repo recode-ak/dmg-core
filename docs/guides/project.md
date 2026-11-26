@@ -15,7 +15,7 @@ verified: 9665ad5
 - **single** — один пакет, всё в `src/` по осям D-106: kernel `src/platform/kernel`, домен `src/platform/domain`, реализации `src/backend/<m>`, сборка `src/runners/assembly`, раннер `src/runners/cli`. Для старта, учебных и небольших проектов; раскладка как у учебного приложения пакета. Проверки единицы выноса в нём молчат — ARC-14, ARC-15 и ARC-16 по `package.json` единиц; вход графа проверяется и здесь: его замыкание не доходит до реализаций (ARC-16, D-111). Проект, который будет расти, — `monorepo`.
 - **monorepo** — те же оси пакетами workspaces `@<scope>/*`: kernel `platform/kernel` (`@<scope>/kernel`), домен `platform/domain` (`@<scope>/domain`), пакет реализации на модуль `backend/<m>` (`@<scope>/be-<m>`), сборка `runners/assembly` (`@<scope>/assembly`), раннеры-процессы `runners/<r>`. Когда модулей несколько и границы должны держаться на уровне пакетов; `scope` — из имени проекта (`@acme/school` → `acme`). Пакет объявляет всё, что импортирует; между пакетами — имя и `exports` (ARC-14…16, D-108); пакет реализации модуля — единица выноса в сервис ([extract-module.md](./extract-module.md)).
 - Профиль выбирается один раз: переход между ними — перенос каталогов и правка секции `gen` `.dmg/config.json`, генератора для него нет.
-- Уже есть проект — `dmg-core init` без профиля (только `.dmg/config.json`, скилы и роли) и раскладка в секции `gen` ([naming.md](../reference/naming.md) §5).
+- Уже есть проект — `dmg-core init` без профиля (только `.dmg/config.json`, скилы и роли) и раскладка в секции `gen` ([gen.md](../reference/gen.md)).
 - Файлы DMG проекта — в каталоге `.dmg/`: конфиг `.dmg/config.json` (коммитится) и граф `.dmg/graph.json` (артефакт, в `.gitignore`). Конфиг кроме `gen` несёт `providers` и `layers` — пакеты-поставщики сверх `dmg-core` и места их слоёв ([provider-extension.md](./provider-extension.md)); прежний `dmg-core.json` в корне — отказ с подсказкой переноса.
 
 ## 2. Команда
@@ -87,7 +87,7 @@ bun install && bun run check                   # bun install — после gen 
 APP_DATA_DIR=data bun <раннер>/main.ts call todo.create --user "$(bun -e 'console.log(crypto.randomUUID())')"
 ```
 
-1. **Подключение — генератор** ([naming.md](../reference/naming.md) §5, маркеры `// gen:imports`, `// gen:modules`, `// gen:repos:<m>`):
+1. **Подключение — генератор** ([gen.md](../reference/gen.md), маркеры `// gen:imports`, `// gen:modules`, `// gen:repos:<m>`):
    - `gen module` — фабрика в список модулей корня сборки (`{ def: <M>ModuleDef, create: (deps) => create<M>Module({ ...deps }) }`; фабрика — из входа пакета реализации, Def — из контракта домена), `<M>ModuleDef` — в `modules` файла `AppDef` (`gen.appDef`; импорт Def — относительный, файл лежит в пакете домена), в monorepo — `"@<scope>/be-<m>": "workspace:*"` в `runners/assembly/package.json` (затем `bun install`);
    - `gen aggregate` — репозиторий в фабрику: `<a>Repo: new <A>JsonRepo(join(env.dataDir, '<m>.<a>.json'))` (имя файла уникально в приложении).
    - Нет маркера (своя раскладка, правленый `app.ts`) или конфликт имён импортов (агрегаты с одним именем в двух модулях) — генератор печатает «Вставь вручную в <файл> перед <маркер>» с причиной и не падает. Без `gen.assembly` при своей раскладке корень сборки не правится, без `gen.appDef` не правится `AppDef` — подсказка называет поле.

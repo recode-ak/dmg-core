@@ -5,7 +5,7 @@ description: ЗАГРУЖАТЬ ПЕРВЫМ при создании или ре
 
 # DMG: как писать модуль на dmg-core
 
-Источник истины — документация пакета `node_modules/dmg-core/docs/` (вход — `index.md`, индекс для LLM — `node_modules/dmg-core/llms.txt`). Скил — маршрутизатор: не дублирует документы, а говорит, что прочитать. Образец любого артефакта — учебный модуль `node_modules/dmg-core/src/testing/example` (`todo`, `users`).
+Источник истины — документация пакета `node_modules/dmg-core/docs/` (вход — `node_modules/dmg-core/llms.txt`). Скил — маршрутизатор: не дублирует документы, а говорит, что прочитать. Образец любого артефакта — учебный модуль `node_modules/dmg-core/src/testing/example` (`todo`, `users`).
 
 ## 1. Где разместить логику
 
@@ -18,11 +18,11 @@ description: ЗАГРУЖАТЬ ПЕРВЫМ при создании или ре
 
 ## 2. Как назвать и где положить
 
-`reference/naming.md`: сокращения (Ar, Uc, Er, Job, Dcs, Dqs, Def), суффиксы файлов (`.ar.ts`, `.uc.ts`, …), зеркальная пара контракт ↔ реализация. Корни каталогов задаёт секция `gen` в `.dmg/config.json` (`GenLayout`; слои поставщиков — секция `layers`); `ArchApp.layout` проекта берёт их из `GenLayout.dirs()`. Заготовки — генератором `dmg-core gen …` (`reference/naming.md` §5), а не руками. Новый проект — каркас `dmg-core init --profile single|monorepo`; что он создаёт, как подключить модуль к приложению и кто что правит руками — `guides/project.md`.
+Сокращения, суффиксы файлов, структура домена и прикладного слоя — `reference/naming.md`. Заготовки — генератором `dmg-core gen …` и раскладка корней — `reference/gen.md`, а не руками. Новый проект — каркас `dmg-core init --profile single|monorepo`; что он создаёт, как подключить модуль к приложению и кто что правит руками — `guides/project.md`.
 
 ## 3. Как написать артефакт вида
 
-Гайд `docs/guides/<вид>.md` (индекс — `guides/index.md`): когда применять, команда генератора, образец в учебном модуле, чеклист ID, типичные ловушки, как тестировать. Виды: state, aggregate, events, errors, policy, repo (с DCS/DQS), facade, use-case, event-reaction, module, job, app (корень сборки и раннер), project (профили и рост проекта), extract-module (вынос модуля в сервис), delegation (делегирование между людьми), graph-extension (расширение графа и проверок).
+Гайд вида — `guides/index.md` (выбери вид, открой гайд): когда применять, команда генератора, образец в учебном модуле, чеклист ID, типичные ловушки, как тестировать.
 
 ## 4. Проверь перед завершением
 

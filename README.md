@@ -72,7 +72,7 @@ bunx dmg-core init
 
 `init` без профиля создаёт `.dmg/config.json` и доставляет в проект скилы и роли агентов (по умолчанию — для Claude Code в `.claude/`). Ещё он добавляет в `AGENTS.md` ссылку на [`llms.txt`](llms.txt) — индекс документации для агентов. После обновления пакета выполни `dmg-core sync`; `dmg-core sync --check` в `check` проекта падает, если копии устарели. Каркас `init --profile` делает то же и сверх того. Файлы DMG проекта лежат в каталоге `.dmg/`: конфиг `.dmg/config.json` (коммитится), граф `.dmg/graph.json` (в `.gitignore`); прежний `dmg-core.json` в корне — отказ с подсказкой переноса. Скилы, роли и виды `gen` других пакетов подключаются секцией `providers` ([гайд](docs/guides/provider-extension.md)).
 
-1. **Модуль.** `bunx dmg-core gen module todo --write` создаёт паспорт модуля в домене (`src/platform/domain/todo/`) и прикладной слой (`src/backend/todo/`). Без `--write` команда только печатает план. Каталоги и импорт домена задаёт секция `gen` в `.dmg/config.json` ([naming.md](docs/reference/naming.md) §5).
+1. **Модуль.** `bunx dmg-core gen module todo --write` создаёт паспорт модуля в домене (`src/platform/domain/todo/`) и прикладной слой (`src/backend/todo/`). Без `--write` команда только печатает план. Каталоги и импорт домена задаёт секция `gen` в `.dmg/config.json` ([gen.md](docs/reference/gen.md)).
 2. **Агрегат и операции.** `gen aggregate todo.task` добавляет state, события, ошибки, Ar, Policy и репозиторий. `gen uc todo.task complete-task` создаёт пару «контракт в домене ↔ реализация в прикладном слое», `er` и `job` работают так же, а `dcs` / `dqs` создают доменные сервисы. В заготовках остаются `TODO` — по ним видно, что заполнить. Как именно, подскажет гайд вида ([индекс](docs/guides/index.md)) и тот же артефакт в учебном модуле.
 3. **Проверка архитектуры.** Опиши приложение для `ArchChecker`: состав — `AppDef` из входа графа (`{ def, providers? }`, как [`example.graph.ts`](src/testing/example/example.graph.ts)), к нему — места слоёв (`ArchApp = { ...ExampleGraph, entry, project, layout, runners, graphEntry }`: проект, каталоги слоёв из `GenLayout.dirs()`, раннеры-процессы, файл входа графа; как [`example.arch.ts`](src/testing/example/example.arch.ts)), — и вызови отчёт из `check` проекта:
 
@@ -108,12 +108,7 @@ bunx dmg-core init
 
 ## Документация
 
-- [Вход](docs/index.md): суть DMG, карта документов
-- [Слои](docs/reference/layers.md), [моделирование домена](docs/reference/domain-modeling.md), [структура, имена и генератор](docs/reference/naming.md)
-- [Манифесты](docs/reference/manifests.md), [граф приложения](docs/reference/graph.md), [ошибки и Result](docs/reference/errors-result.md), [Caller и Trace](docs/reference/caller.md), [транспорт](docs/reference/transport.md)
-- [Каталог правил](docs/reference/rules.md), [решения](docs/decisions.md), [тестирование](docs/reference/testing.md), [стиль TypeScript](docs/reference/typescript.md)
-- [Гайды по видам артефактов](docs/guides/index.md), [проект: профили и рост](docs/guides/project.md), [расширение графа и проверок](docs/guides/graph-extension.md), [расширение `gen` и `sync` поставщиком](docs/guides/provider-extension.md)
-- Для агентов: [`llms.txt`](llms.txt), скил [`dmg-architecture`](skills/dmg-architecture/SKILL.md), [роли](agents/README.md)
+Вход — [`llms.txt`](llms.txt): оглавление документации, скил и роли. Агентам: сначала скил [`dmg-architecture`](skills/dmg-architecture/SKILL.md).
 
 ## Лицензия
 
